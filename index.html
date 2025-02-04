@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Профиль whylovly</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        iframe {
+            width: 100%;
+            max-width: 560px;
+            height: 315px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Добро пожаловать в профиль whylovly</h1>
+    <p>Выберите раздел:</p>
+    <button class="button" onclick="openMusic()">Музыка</button>
+    <button class="button" onclick="openVideo()">Видео</button>
+
+    <div id="content"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем Web App в Telegram
+
+        function openMusic() {
+            document.getElementById("content").innerHTML = "<h2>Раздел 'Музыка' скоро появится!</h2>";
+        }
+
+        function openVideo() {
+            document.getElementById("content").innerHTML = `
+                <h2>Видео whylovly</h2>
+                <iframe src="https://www.youtube.com/embed/TpOkmZweAeI?autoplay=0" allowfullscreen></iframe>
+                <br>
+                <button class="button" onclick="goBack()">Назад</button>
+            `;
+        }
+
+        function goBack() {
+            document.getElementById("content").innerHTML = "";
+        }
+    </script>
+</body>
+</html>
