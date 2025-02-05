@@ -1,59 +1,131 @@
-<div id="posts-container"></div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whylovly</title>
+    <style>
+        /* Подключение шрифта */
+        @font-face {
+            font-family: 'Blackmoor';
+            src: url('./1-BLACKMOOR-LET-PLAIN103.TTF') format('truetype');
+        }
 
-<script>
-  fetch('posts.json')
-    .then(response => response.json())
-    .then(data => renderPosts(data.posts));
+        /* Общие стили */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: #111;
+            color: white;
+            text-align: center;
+        }
 
-  function renderPosts(posts) {
-    const container = document.getElementById('posts-container');
-    container.innerHTML = ''; // Очищаем контейнер перед загрузкой новых постов
+        /* Верхнее меню */
+        .menu {
+            background: #222;
+            padding: 15px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+        }
 
-    posts.forEach(post => {
-      const postElement = document.createElement('div');
-      postElement.className = 'post';
-      postElement.innerHTML = `
-        <div class="post-card">
-          <img src="${post.image}" alt="Пост">
-          <p>${post.description}</p>
-          <div class="actions">
-            <span onclick="likePost(${post.id})">❤️ ${post.likes}</span>
-            <span onclick="commentPost(${post.id})">💬 ${post.comments.length}</span>
-          </div>
-        </div>
-      `;
-      container.appendChild(postElement);
-    });
-  }
+        .menu a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
 
-  function likePost(id) {
-    alert(`Лайкнул пост ${id}!`);
-  }
+        /* Контейнер для постов */
+        #posts-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 70px;
+        }
 
-  function commentPost(id) {
-    alert(`Оставь комментарий к посту ${id}`);
-  }
-</script>
+        /* Карточка поста */
+        .post-card {
+            width: 90%;
+            max-width: 500px;
+            background: #222;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
 
-<style>
-  .post-card {
-    background: #222;
-    color: white;
-    padding: 15px;
-    margin: 10px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-  }
-  .post-card img {
-    width: 100%;
-    border-radius: 8px;
-  }
-  .actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-  }
-  .actions span {
-    cursor: pointer;
-  }
-</style>
+        .post-card img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .actions span {
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Верхнее меню -->
+    <div class="menu">
+        <a href="index.html">Главная</a>
+        <a href="music.html">Музыка</a>
+        <a href="video.html">Видео</a>
+    </div>
+
+    <!-- Контейнер для постов -->
+    <div id="posts-container"></div>
+
+    <script>
+        // Загружаем посты из JSON
+        fetch('posts.json')
+            .then(response => response.json())
+            .then(data => renderPosts(data.posts));
+
+        function renderPosts(posts) {
+            const container = document.getElementById('posts-container');
+            container.innerHTML = ''; // Очищаем контейнер перед загрузкой новых постов
+
+            posts.forEach(post => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post-card';
+                postElement.innerHTML = `
+                    <img src="${post.image}" alt="Пост">
+                    <p>${post.description}</p>
+                    <div class="actions">
+                        <span onclick="likePost(${post.id})">❤️ ${post.likes}</span>
+                        <span onclick="commentPost(${post.id})">💬 ${post.comments.length}</span>
+                    </div>
+                `;
+                container.appendChild(postElement);
+            });
+        }
+
+        function likePost(id) {
+            alert(`Лайкнул пост ${id}!`);
+        }
+
+        function commentPost(id) {
+            alert(`Оставь комментарий к посту ${id}`);
+        }
+    </script>
+
+</body>
+</html>
