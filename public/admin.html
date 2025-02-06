@@ -1,130 +1,80 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель | whylovly</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #121212;
-            color: white;
-            text-align: center;
-            padding: 20px;
-        }
-        h2 {
-            margin-bottom: 20px;
-        }
-        .upload-container {
-            background: #222;
-            padding: 20px;
-            border-radius: 10px;
-            width: 300px;
-            margin: auto;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-            text-align: left;
-        }
-        select, input, textarea, button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 5px;
-        }
-        select, input, textarea {
-            background: #333;
-            color: white;
-        }
-        button {
-            background: #e50914;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
+// ... existing code ...
+<script type="module">
+    // Обновляем импорты Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <h2>Добавить новый пост</h2>
-    <div class="upload-container">
-        <form id="uploadForm">
-            <label for="category">Категория:</label>
-            <select id="category">
-                <option value="photo">Фото</option>
-                <option value="music">Музыка</option>
-                <option value="video">Видео (YouTube ссылка)</option>
-            </select>
+    // Обновленная конфигурация Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
+        authDomain: "whylovly-website.firebaseapp.com",
+        projectId: "whylovly-website",
+        storageBucket: "whylovly-website-8adcb.appspot.com", // Обновленный bucket
+        messagingSenderId: "679128641326",
+        appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf",
+        measurementId: "G-RFQRS6K1SX"
+    };
 
-            <label for="fileInput">Файл (для фото/музыки):</label>
-            <input type="file" id="fileInput">
+    // Инициализация Firebase
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+    const db = getFirestore(app);
 
-            <label for="youtubeLink">Ссылка на YouTube (для видео):</label>
-            <input type="url" id="youtubeLink" placeholder="Вставьте ссылку">
-
-            <label for="description">Описание:</label>
-            <textarea id="description" rows="3" placeholder="Добавьте описание"></textarea>
-
-            <button type="submit">Загрузить</button>
-        </form>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getDatabase, ref as dbRef, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // Firebase конфигурация
-        const firebaseConfig = {
-            apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
-            authDomain: "whylovly-website.firebaseapp.com",
-            projectId: "whylovly-website",
-            storageBucket: "whylovly-website.appspot.com",
-            messagingSenderId: "679128641326",
-            appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf",
-            measurementId: "G-RFQRS6K1SX"
-        };
-
-        // Инициализация Firebase
-        const app = initializeApp(firebaseConfig);
-        const storage = getStorage(app);
-        const database = getDatabase(app);
-
-        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-            event.preventDefault();
-
+    // Добавляем обработку ошибок и логирование
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        
+        try {
             const category = document.getElementById("category").value;
             const fileInput = document.getElementById("fileInput");
             const youtubeLink = document.getElementById("youtubeLink").value;
             const description = document.getElementById("description").value;
+
+            console.log("Начало загрузки:", { category, youtubeLink, description });
 
             let fileURL = "";
             let fileName = "";
 
             if (category === "video" && youtubeLink) {
                 fileURL = youtubeLink;
+                console.log("Добавление видео:", fileURL);
             } else if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
-                fileName = file.name;
+                fileName = `${Date.now()}_${file.name}`; // Уникальное имя файла
                 const storageRef = ref(storage, `${category}/${fileName}`);
-                await uploadBytes(storageRef, file);
+                
+                console.log("Загрузка файла в Storage...");
+                const snapshot = await uploadBytes(storageRef, file);
+                console.log("Файл загружен:", snapshot);
+                
                 fileURL = await getDownloadURL(storageRef);
+                console.log("Получен URL файла:", fileURL);
             } else {
-                return alert("Выберите файл или вставьте YouTube ссылку!");
+                throw new Error("Выберите файл или вставьте YouTube ссылку!");
             }
 
-            // Отправка данных в Realtime Database
-            push(dbRef(database, category), {
-                fileName: fileName,
-                fileURL: fileURL,
-                description: description,
+            // Сохраняем информацию в Firestore
+            const postData = {
+                category,
+                fileName,
+                fileURL,
+                description,
+                timestamp: new Date().toISOString(),
                 likes: 0,
                 comments: []
-            });
+            };
+
+            console.log("Сохранение в Firestore:", postData);
+            const docRef = await addDoc(collection(db, category), postData);
+            console.log("Документ сохранен с ID:", docRef.id);
 
             alert("Пост успешно загружен!");
             document.getElementById("uploadForm").reset();
-        });
-    </script>
 
-</body>
-</html>
+        } catch (error) {
+            console.error("Ошибка при загрузке:", error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    });
+</script>
