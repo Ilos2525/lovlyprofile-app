@@ -1,182 +1,232 @@
-<script type="module">
-    // Firebase импорты
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    // Конфигурация Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
-        authDomain: "whylovly-website.firebaseapp.com",
-        projectId: "whylovly-website",
-        storageBucket: "whylovly-website-8adcb.appspot.com",
-        messagingSenderId: "679128641326",
-        appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
-    };
-
-    // Инициализация Firebase
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-    const db = getFirestore(app);
-
-    // Функция загрузки файла в Storage
-    async function uploadFileToStorage(file, category) {
-        try {
-            const fileRef = storageRef(storage, `${category}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(fileRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            return downloadURL;
-        } catch (error) {
-            console.error("Ошибка загрузки файла:", error);
-            throw error;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель | whylovly</title>
+    <style>
+        :root {
+            --neon-color: #00ffcc;
+            --neon-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
         }
-    }
 
-    // Функция сохранения поста в Firestore
-    async function savePost(postData) {
-        try {
-            const docRef = await addDoc(collection(db, 'posts'), {
-                ...postData,
-                timestamp: new Date().toISOString(),
-                likes: 0,
-                comments: []
-            });
-            return docRef.id;
-        } catch (error) {
-            console.error("Ошибка сохранения поста:", error);
-            throw error;
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            margin: 0;
+            padding: 20px;
         }
-    }
 
-    // Обработчик отправки формы
-    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const submitButton = this.querySelector('button[type="submit"]');
-        const progressBar = document.querySelector('.progress');
-        
-        try {
-            submitButton.disabled = true;
-            progressBar.style.width = '10%';
-
-            const category = document.getElementById('category').value;
-            const description = document.getElementById('description').value;
-            let fileURL = '';
-
-            // Обработка видео
-            if (category === 'video') {
-                fileURL = document.getElementById('youtubeLink').value;
-                if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-            } 
-            // Обработка фото/музыки
-            else {
-                const fileInput = document.getElementById('fileInput');
-                if (!fileInput.files.length) throw new Error('Выберите файл');
-                
-                progressBar.style.width = '30%';
-                fileURL = await uploadFileToStorage(fileInput.files[0], category);
-            }
-
-            progressBar.style.width = '60%';
-
-            // Сохраняем пост
-            const postData = {
-                category,
-                fileURL,
-                description,
-                type: category,
-                createdAt: new Date().toISOString()
-            };
-
-            await savePost(postData);
-            progressBar.style.width = '100%';
-
-            alert('Пост успешно опубликован!');
-            this.reset();
-            document.getElementById('imagePreview').innerHTML = '';
-
-        } catch (error) {
-            alert(`Ошибка: ${error.message}`);
-            console.error(error);
-        } finally {
-            submitButton.disabled = false;
-            setTimeout(() => {
-                progressBar.style.width = '0%';
-            }, 1000);
+        .admin-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
         }
-    });
 
-    // Функция получения всех постов
-    async function loadPosts() {
-        try {
-            const querySnapshot = await getDocs(collection(db, 'posts'));
-            const posts = [];
-            querySnapshot.forEach((doc) => {
-                posts.push({ id: doc.id, ...doc.data() });
-            });
-            return posts;
-        } catch (error) {
-            console.error("Ошибка загрузки постов:", error);
-            throw error;
+        .tab-button {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
         }
-    }
 
-    // Добавляем вкладку управления постами
-    const postsTab = document.createElement('div');
-    postsTab.id = 'managePosts';
-    postsTab.className = 'tab-content';
-    postsTab.innerHTML = `
+        .tab-button.active {
+            background: var(--neon-color);
+            color: black;
+        }
+
+        .tab-content {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--neon-color);
+        }
+
+        h3 {
+            color: var(--neon-color);
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #fff;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-color);
+            color: white;
+            border-radius: 5px;
+        }
+
+        button {
+            background: var(--neon-color);
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            box-shadow: 0 0 15px var(--neon-color);
+        }
+
+        .preview-image {
+            max-width: 200px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            height: 5px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--neon-color);
+            width: 0%;
+            transition: 0.3s;
+        }
+
+        .post-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid var(--neon-color);
+        }
+
+        .delete-button {
+            background: #ff4444;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-tabs">
+        <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+        <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
+        <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
+        <button class="tab-button" onclick="showTab('managePosts')">Управление постами</button>
+    </div>
+
+    <!-- Вкладка добавления постов -->
+    <div id="posts" class="tab-content active">
+        <div class="form-group">
+            <h3>Добавить новый пост</h3>
+            <form id="uploadForm">
+                <label for="category">Категория:</label>
+                <select id="category" required>
+                    <option value="photo">Фото</option>
+                    <option value="music">Музыка</option>
+                    <option value="video">Видео</option>
+                </select>
+
+                <div id="fileInputGroup">
+                    <label for="fileInput">Файл:</label>
+                    <input type="file" id="fileInput">
+                    <div class="preview-image" id="imagePreview"></div>
+                </div>
+
+                <div id="youtubeLinkGroup" style="display: none;">
+                    <label for="youtubeLink">Ссылка на YouTube:</label>
+                    <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+                </div>
+
+                <label for="description">Описание:</label>
+                <textarea id="description" rows="4" required></textarea>
+
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+
+                <button type="submit">Опубликовать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Вкладка настроек профиля -->
+    <div id="profile" class="tab-content">
+        <div class="form-group">
+            <h3>Настройки профиля</h3>
+            <form id="profileForm">
+                <label for="profilePhoto">Фото профиля:</label>
+                <input type="file" id="profilePhoto" accept="image/*">
+                <div class="preview-image" id="profilePreview"></div>
+
+                <label for="profileName">Имя профиля:</label>
+                <input type="text" id="profileName" value="whylovly">
+
+                <label for="profileBio">Описание профиля:</label>
+                <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
+
+                <button type="submit">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Вкладка общих настроек -->
+    <div id="settings" class="tab-content">
+        <div class="form-group">
+            <h3>Общие настройки</h3>
+            <form id="settingsForm">
+                <label for="siteTitle">Заголовок сайта:</label>
+                <input type="text" id="siteTitle" value="whylovly">
+
+                <label for="accentColor">Цвет акцента:</label>
+                <input type="color" id="accentColor" value="#00ffcc">
+
+                <button type="submit">Применить настройки</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Вкладка управления постами -->
+    <div id="managePosts" class="tab-content">
         <div class="form-group">
             <h3>Управление постами</h3>
-            <div id="postsList"></div>
+            <div id="postsList">
+                <!-- Здесь будет список постов -->
+            </div>
         </div>
-    `;
-    document.body.appendChild(postsTab);
+    </div>
 
-    // Добавляем кнопку в меню
-    const tabsContainer = document.querySelector('.admin-tabs');
-    const manageButton = document.createElement('button');
-    manageButton.className = 'tab-button';
-    manageButton.onclick = () => showTab('managePosts');
-    manageButton.textContent = 'Управление постами';
-    tabsContainer.appendChild(manageButton);
-
-    // Функция отображения постов
-    async function displayPosts() {
-        const postsContainer = document.getElementById('postsList');
-        try {
-            const posts = await loadPosts();
-            postsContainer.innerHTML = posts.map(post => `
-                <div class="post-item" style="margin: 10px 0; padding: 10px; border: 1px solid var(--neon-color); border-radius: 5px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>${post.category}</strong>
-                            <p>${post.description}</p>
-                            <small>${new Date(post.createdAt).toLocaleString()}</small>
-                        </div>
-                        <button onclick="deletePost('${post.id}')" style="background: #ff4444; margin-left: 10px;">
-                            Удалить
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            postsContainer.innerHTML = `<p style="color: red;">Ошибка загрузки постов: ${error.message}</p>`;
-        }
-    }
-
-    // Функция удаления поста
-    window.deletePost = async function(postId) {
-        if (confirm('Вы уверены, что хотите удалить этот пост?')) {
-            try {
-                await deleteDoc(doc(db, 'posts', postId));
-                alert('Пост удален');
-                displayPosts(); // Обновляем список
-            } catch (error) {
-                alert(`Ошибка удаления: ${error.message}`);
-            }
-        }
-    };
-
-    // Загружаем посты при открытии вкладки
-    document.querySelector('[onclick="showTab(\'managePosts\')"]').addEventListener('click', displayPosts);
-</script>
+    <!-- Добавляем предыдущий JavaScript код сюда -->
+    <script type="module">
+        // Весь JavaScript код, который я отправил в предыдущем сообщении
+        // нужно вставить сюда
+    </script>
+</body>
+</html>
