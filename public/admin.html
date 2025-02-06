@@ -185,14 +185,15 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
             authDomain: "whylovly-website.firebaseapp.com",
             projectId: "whylovly-website",
-            storageBucket: "whylovly-website-8adcb.firebasestorage.app", // Обновлено
+            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
             messagingSenderId: "679128641326",
             appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
         };
@@ -200,19 +201,55 @@
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // Функция загрузки файла
+        // Анонимная авторизация
+        signInAnonymously(auth).catch((error) => {
+            console.error("Ошибка авторизации:", error);
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('Пользователь авторизован:', user.uid);
+            }
+        });
+
+        // Функция загрузки файла с прогрессом
         async function uploadFile(file, category) {
-            const metadata = {
-                contentType: file.type,
-                customMetadata: {
-                    'Access-Control-Allow-Origin': '*'
-                }
-            };
+            return new Promise((resolve, reject) => {
+                const timestamp = Date.now();
+                const storageRef = ref(storage, `${category}/${timestamp}_${file.name}`);
+                
+                const metadata = {
+                    contentType: file.type,
+                    customMetadata: {
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                };
 
-            const fileRef = ref(storage, `${category}/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(fileRef, file, metadata);
-            return await getDownloadURL(snapshot.ref);
+                const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+                const progressBar = document.querySelector('.progress');
+
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log('Прогресс загрузки:', progress);
+                        progressBar.style.width = progress + '%';
+                    },
+                    (error) => {
+                        console.error('Ошибка загрузки:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(downloadURL);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
         }
 
         // Переключение вкладок
@@ -257,8 +294,6 @@
                     
                     const file = fileInput.files[0];
                     console.log('Начало загрузки файла:', file.name);
-                    
-                    progressBar.style.width = '30%';
                     fileURL = await uploadFile(file, category);
                     console.log('Файл успешно загружен, URL:', fileURL);
                 }
@@ -306,7 +341,7 @@
             }
         });
 
-        // Обработчики форм профиля и настроек
+        // Обработчик формы профиля
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             try {
@@ -319,7 +354,7 @@
                     photoURL = await uploadFile(profilePhoto, 'profile');
                 }
 
-                await addDoc(collection(db, 'profile'), {
+                await setDoc(doc(db, 'profile', 'main'), {
                     name: profileName,
                     bio: profileBio,
                     photoURL,
@@ -333,13 +368,14 @@
             }
         });
 
+        // Обработчик формы настроек
         document.getElementById('settingsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             try {
                 const siteTitle = document.getElementById('siteTitle').value;
                 const accentColor = document.getElementById('accentColor').value;
 
-                await addDoc(collection(db, 'settings'), {
+                await setDoc(doc(db, 'settings', 'main'), {
                     title: siteTitle,
                     accentColor,
                     updatedAt: new Date().toISOString()
