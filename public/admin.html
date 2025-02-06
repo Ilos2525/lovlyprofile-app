@@ -203,7 +203,6 @@
             </div>
         </div>
     </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -211,10 +210,10 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
+            apiKey: "AIzaSyBXvRg-5GmXhQE6V4yXm9mwE7G4Lfx0KUE",
             authDomain: "whylovly-website.firebaseapp.com",
             projectId: "whylovly-website",
-            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+            storageBucket: "whylovly-website-8adcb.appspot.com",
             messagingSenderId: "679128641326",
             appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
         };
@@ -225,7 +224,6 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // Проверка состояния авторизации
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === 'sanatngelillya@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
@@ -239,7 +237,6 @@
             }
         });
 
-        // Обработчик входа через Google
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
                 const result = await signInWithPopup(auth, provider);
@@ -253,7 +250,6 @@
             }
         });
 
-        // Функция загрузки файла с прогрессом
         async function uploadFile(file, category) {
             return new Promise((resolve, reject) => {
                 const timestamp = Date.now();
@@ -288,7 +284,6 @@
             });
         }
 
-        // Переключение вкладок
         window.showTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -300,14 +295,12 @@
             event.target.classList.add('active');
         };
 
-        // Переключение полей категории
         document.getElementById('category').addEventListener('change', function(e) {
             const isVideo = e.target.value === 'video';
             document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
             document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
         });
 
-        // Загрузка файлов
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitButton = this.querySelector('button[type="submit"]');
@@ -336,7 +329,6 @@
 
                 progressBar.style.width = '80%';
 
-                // Сохраняем в Firestore
                 const postData = {
                     category,
                     fileURL,
@@ -364,7 +356,6 @@
             }
         });
 
-        // Предпросмотр изображений
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
@@ -377,7 +368,6 @@
             }
         });
 
-        // Обработчик формы профиля
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             try {
@@ -404,7 +394,6 @@
             }
         });
 
-        // Обработчик формы настроек
         document.getElementById('settingsForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             try {
