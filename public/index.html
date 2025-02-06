@@ -1,182 +1,396 @@
-// ... existing code ...
-<style>
-    @font-face {
-        font-family: 'Blackmoor';
-        src: url('./1-BLACKMOOR-LET-PLAIN103.TTF') format('truetype');
-    }
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whylovly</title>
+    <style>
+        :root {
+            --neon-color: #00ffcc;
+        }
 
-    :root {
-        --neon-color: #00ffcc;
-        --neon-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
-    }
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
 
-    /* Обновленные стили меню */
-    .menu {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 15px 0;
-        text-align: center;
-        z-index: 1000;
-        backdrop-filter: blur(5px);
-        border-bottom: 1px solid var(--neon-color);
-        box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
-    }
+        /* Профиль */
+        .profile-section {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--neon-color);
+        }
 
-    .menu a {
-        color: white;
-        text-decoration: none;
-        margin: 0 25px;
-        font-size: 20px;
-        font-family: 'Blackmoor', sans-serif;
-        transition: all 0.3s ease;
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-        position: relative;
-    }
+        .profile-photo {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 3px solid var(--neon-color);
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
 
-    .menu a:hover {
-        color: var(--neon-color);
-        text-shadow: 0 0 10px var(--neon-color);
-    }
+        .profile-name {
+            color: var(--neon-color);
+            font-size: 24px;
+            margin: 10px 0;
+        }
 
-    .menu a::after {
-        content: '';
-        position: absolute;
-        width: 0;
-        height: 2px;
-        bottom: -5px;
-        left: 50%;
-        background: var(--neon-color);
-        transition: all 0.3s ease;
-        transform: translateX(-50%);
-        box-shadow: 0 0 10px var(--neon-color);
-    }
+        .profile-bio {
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto;
+        }
 
-    .menu a:hover::after {
-        width: 100%;
-    }
+        /* Навигация */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--neon-color);
+        }
 
-    /* Восстанавливаем и обновляем стили профиля */
-    body {
-        font-family: 'Blackmoor', sans-serif;
-        background: #0d0d0d;
-        color: white;
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-    }
+        .nav-link {
+            color: var(--neon-color);
+            text-decoration: none;
+            padding: 8px 20px;
+            border: 1px solid var(--neon-color);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
 
-    .profile-header {
-        margin-top: 80px;
-        padding: 30px;
-        background: rgba(13, 13, 13, 0.95);
-        border: 1px solid var(--neon-color);
-        box-shadow: var(--neon-shadow);
-        border-radius: 15px;
-        width: 90%;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
-        animation: fadeIn 0.8s ease-out;
-    }
+        .nav-link:hover {
+            background: rgba(0, 255, 204, 0.1);
+        }
 
-    .profile-header img {
-        width: 180px;
-        height: 180px;
-        border-radius: 50%;
-        border: 2px solid var(--neon-color);
-        box-shadow: var(--neon-shadow);
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
+        .nav-link.active {
+            background: var(--neon-color);
+            color: black;
+        }
 
-    .profile-header img:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 20px var(--neon-color);
-    }
+        /* Контент */
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-    .profile-info {
-        margin-top: 20px;
-    }
+        .section {
+            display: none;
+        }
 
-    .profile-info h1 {
-        color: var(--neon-color);
-        font-size: 2.5em;
-        text-shadow: 0 0 10px var(--neon-color);
-        margin-bottom: 15px;
-    }
+        .section.active {
+            display: block;
+        }
 
-    .profile-bio {
-        font-size: 1.2em;
-        color: #ffffff;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.6;
-    }
+        /* Посты */
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
 
-    .profile-stats {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        margin-top: 25px;
-    }
+        .post {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--neon-color);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
 
-    .stat-item {
-        text-align: center;
-        padding: 10px 20px;
-        border-radius: 10px;
-        transition: 0.3s;
-    }
+        .post:hover {
+            transform: translateY(-5px);
+        }
 
-    .stat-item:hover {
-        background: rgba(0, 255, 204, 0.1);
-        transform: translateY(-5px);
-    }
+        .post img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
 
-    #posts-container {
-        margin-top: 30px;
-        padding: 20px;
-        max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
-    }
+        .post-content {
+            padding: 15px;
+        }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-</style>
+        .post-description {
+            margin: 10px 0;
+            color: #ccc;
+        }
 
+        .post-date {
+            color: var(--neon-color);
+            font-size: 0.9em;
+        }
+        /* Видео */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Аудио */
+        .audio-player {
+            width: 100%;
+            margin: 10px 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .audio-player audio {
+            width: 100%;
+        }
+
+        /* Загрузка */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: var(--neon-color);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .posts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-link {
+                width: 80%;
+                margin: 0 auto;
+                text-align: center;
+            }
+
+            .profile-photo {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
 <body>
-    <div class="menu">
-        <a href="index.html">Главная</a>
-        <a href="music.html">Музыка</a>
-        <a href="video.html">Видео</a>
+    <!-- Профиль -->
+    <div class="profile-section">
+        <img id="profileImage" src="https://placehold.co/150x150" class="profile-photo" alt="Profile Photo">
+        <h1 id="profileName" class="profile-name">whylovly</h1>
+        <p id="profileBio" class="profile-bio">Загрузка профиля...</p>
     </div>
 
-    <div class="profile-header">
-        <img src="whylovly-avatar.jpg" alt="whylovly">
-        <div class="profile-info">
-            <h1>whylovly</h1>
-            <p class="profile-bio">Музыкант | Создатель контента | Артист</p>
-            <div class="profile-stats">
-                <div class="stat-item">
-                    <div>Треки</div>
-                    <div>12</div>
-                </div>
-                <div class="stat-item">
-                    <div>Видео</div>
-                    <div>8</div>
-                </div>
-                <div class="stat-item">
-                    <div>Фото</div>
-                    <div>24</div>
-                </div>
+    <!-- Навигация -->
+    <div class="nav">
+        <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
+        <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
+        <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
+    </div>
+
+    <!-- Контент -->
+    <div class="content">
+        <!-- Все посты -->
+        <div id="all" class="section active">
+            <div class="posts-grid" id="allPosts">
+                <div class="loading">Загрузка постов</div>
+            </div>
+        </div>
+
+        <!-- Музыка -->
+        <div id="music" class="section">
+            <div class="posts-grid" id="musicPosts">
+                <div class="loading">Загрузка музыки</div>
+            </div>
+        </div>
+
+        <!-- Видео -->
+        <div id="video" class="section">
+            <div class="posts-grid" id="videoPosts">
+                <div class="loading">Загрузка видео</div>
             </div>
         </div>
     </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <div id="posts-container">
-        <!-- Здесь будут отображаться посты -->
-    </div>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+            authDomain: "whylovly-website-8adcb.firebaseapp.com",
+            projectId: "whylovly-website-8adcb",
+            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+            messagingSenderId: "749833792533",
+            appId: "1:749833792533:web:2494649a11b628cd84321c",
+            measurementId: "G-0MKF0C3WQJ"
+        };
+
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Загрузка профиля
+        async function loadProfile() {
+            try {
+                const profileDoc = await getDoc(doc(db, 'profile', 'main'));
+                if (profileDoc.exists()) {
+                    const data = profileDoc.data();
+                    if (data.photoURL) {
+                        document.getElementById('profileImage').src = data.photoURL;
+                    }
+                    if (data.name) {
+                        document.getElementById('profileName').textContent = data.name;
+                    }
+                    if (data.bio) {
+                        document.getElementById('profileBio').textContent = data.bio;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
+
+        // Загрузка постов
+        async function loadPosts() {
+            try {
+                const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+                const querySnapshot = await getDocs(postsQuery);
+                
+                const posts = {};
+                posts.all = [];
+                posts.photo = [];
+                posts.music = [];
+                posts.video = [];
+
+                querySnapshot.forEach((doc) => {
+                    const post = doc.data();
+                    post.id = doc.id;
+                    posts.all.push(post);
+                    posts[post.category].push(post);
+                });
+
+                displayPosts('allPosts', posts.all);
+                displayPosts('musicPosts', posts.music);
+                displayPosts('videoPosts', posts.video);
+            } catch (error) {
+                console.error('Ошибка загрузки постов:', error);
+            }
+        }
+
+        // Отображение постов
+        function displayPosts(containerId, posts) {
+            const container = document.getElementById(containerId);
+            if (!posts.length) {
+                container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => {
+                const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
+                
+                let mediaContent = '';
+                if (post.category === 'photo') {
+                    mediaContent = `<img src="${post.fileURL}" alt="Photo">`;
+                } else if (post.category === 'music') {
+                    mediaContent = `
+                        <div class="audio-player">
+                            <audio controls>
+                                <source src="${post.fileURL}" type="audio/mpeg">
+                                Ваш браузер не поддерживает аудио элемент.
+                            </audio>
+                        </div>`;
+                } else if (post.category === 'video') {
+                    const videoId = getYoutubeVideoId(post.fileURL);
+                    mediaContent = `
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/${videoId}" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                            </iframe>
+                        </div>`;
+                }
+
+                return `
+                    <div class="post">
+                        ${mediaContent}
+                        <div class="post-content">
+                            <div class="post-description">${post.description}</div>
+                            <div class="post-date">${date}</div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+        // Получение ID видео из YouTube URL
+        function getYoutubeVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Переключение разделов
+        window.showSection = function(sectionId) {
+            // Обновляем активную вкладку
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Показываем выбранный раздел
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            if (sectionId === 'all') {
+                document.getElementById('all').classList.add('active');
+            } else if (sectionId === 'music') {
+                document.getElementById('music').classList.add('active');
+            } else if (sectionId === 'video') {
+                document.getElementById('video').classList.add('active');
+            }
+        };
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+            loadPosts();
+        });
+
+        // Обработка ошибок загрузки изображений
+        document.addEventListener('error', function(e) {
+            if (e.target.tagName.toLowerCase() === 'img') {
+                e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+            }
+        }, true);
+    </script>
 </body>
+</html>
