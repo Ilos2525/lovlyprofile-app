@@ -6,6 +6,14 @@
     <title>whylovly</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whylovly</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
         :root {
             --neon-color: #00ffcc;
             --bg-color: #121212;
@@ -196,7 +204,7 @@
             margin-top: 10px;
         }
 
-        /* Аудио посты */
+        /* Аудио и видео */
         .audio-post {
             padding: 25px;
             background: linear-gradient(45deg, rgba(0,255,204,0.05) 0%, transparent 100%);
@@ -222,15 +230,6 @@
             background: transparent;
         }
 
-        audio::-webkit-media-controls-panel {
-            background: rgba(0, 0, 0, 0.8);
-        }
-
-        audio::-webkit-media-controls-current-time-display,
-        audio::-webkit-media-controls-time-remaining-display {
-            color: var(--neon-color);
-        }
-        /* Видео контейнер */
         .video-container {
             position: relative;
             padding-bottom: 56.25%;
@@ -249,7 +248,7 @@
             border: none;
         }
 
-        /* Лайки и комментарии */
+        /* Лайки и действия */
         .post-actions {
             display: flex;
             gap: 15px;
@@ -278,15 +277,6 @@
 
         .action-btn.liked {
             color: var(--neon-color);
-        }
-
-        .delete-btn {
-            margin-left: auto;
-            color: #ff4444;
-        }
-
-        .delete-btn:hover {
-            background: rgba(255,68,68,0.1);
         }
 
         /* Загрузка */
@@ -361,6 +351,7 @@
         <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
         <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
     </div>
+
     <!-- Контент -->
     <div class="content">
         <!-- Все посты (фото) -->
@@ -384,13 +375,9 @@
             </div>
         </div>
     </div>
-
     <script type="module">
-               import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // Объявляем currentUser в начале
-        let currentUser = null;
 
         // Конфигурация Firebase
         const firebaseConfig = {
@@ -407,129 +394,141 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Отладка Telegram WebApp
-        console.log('Telegram WebApp объект:', window.Telegram?.WebApp);
-        
-        // Проверка инициализации Telegram
+        // Инициализация переменных
+        let currentUser = null;
         const tg = window.Telegram?.WebApp;
-        if (!tg) {
-            console.error('Telegram WebApp не найден');
-        } else {
-            console.log('Telegram WebApp инициализирован');
-            console.log('InitData:', tg.initData);
-            console.log('User:', tg.initDataUnsafe?.user);
+
+        // Отладка Telegram WebApp
+        console.log('Инициализация приложения...');
+        console.log('Telegram WebApp объект:', tg);
+
+        // Инициализация Telegram
+        if (tg) {
             try {
                 tg.expand();
                 currentUser = tg.initDataUnsafe?.user;
-                console.log('Текущий пользователь после инициализации:', currentUser);
+                console.log('Telegram WebApp инициализирован');
+                console.log('Текущий пользователь:', currentUser);
             } catch (e) {
                 console.error('Ошибка инициализации Telegram WebApp:', e);
             }
+        } else {
+            console.log('Telegram WebApp не найден - сайт открыт не через Telegram');
         }
 
-        // Обновленная инициализация пользователя
-        let currentUser = null;
-        try {
-            if (tg) {
-                tg.expand();
-                currentUser = tg.initDataUnsafe?.user;
-                console.log('Текущий пользователь после инициализации:', currentUser);
-            }
-        } catch (e) {
-            console.error('Ошибка инициализации Telegram WebApp:', e);
-        }
         // Загрузка профиля
         async function loadProfile() {
             try {
                 const profileDoc = await getDoc(doc(db, 'profile', 'main'));
                 if (profileDoc.exists()) {
                     const data = profileDoc.data();
-                    if (data.photoURL) {
-                        document.getElementById('profileImage').src = data.photoURL;
-                    }
-                    if (data.name) {
-                        document.getElementById('profileName').textContent = data.name;
-                    }
-                    if (data.bio) {
-                        document.getElementById('profileBio').textContent = data.bio;
-                    }
+                    if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
+                    if (data.name) document.getElementById('profileName').textContent = data.name;
+                    if (data.bio) document.getElementById('profileBio').textContent = data.bio;
                 }
             } catch (error) {
                 console.error('Ошибка загрузки профиля:', error);
+                document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
             }
         }
 
-       // Загрузка постов
-async function loadPosts() {
-    try {
-        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(postsQuery);
-        
-        const posts = {};
-        posts.all = [];
-        posts.photo = [];
-        posts.music = [];
-        posts.video = [];
+        // Загрузка постов
+        async function loadPosts() {
+            try {
+                console.log('Начало загрузки постов');
+                const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+                const querySnapshot = await getDocs(postsQuery);
+                
+                const posts = {
+                    photo: [],
+                    music: [],
+                    video: []
+                };
 
-        querySnapshot.forEach((doc) => {
-            const post = doc.data();
-            post.id = doc.id;
-            posts.all.push(post);
-            posts[post.category].push(post);
-        });
+                querySnapshot.forEach((doc) => {
+                    const post = doc.data();
+                    post.id = doc.id;
+                    if (post.category) {
+                        posts[post.category].push(post);
+                    }
+                });
 
-        displayPosts('allPosts', posts.all);
-        displayPosts('musicPosts', posts.music);
-        displayPosts('videoPosts', posts.video);
-    } catch (error) {
-        console.error('Ошибка загрузки постов:', error);
-    }
-}
-
-// Отображение постов
-function displayPosts(containerId, posts) {
-    const container = document.getElementById(containerId);
-    if (!posts.length) {
-        container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-        return;
-    }
-
-    container.innerHTML = posts.map(post => {
-        const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
-        
-        let mediaContent = '';
-        if (post.category === 'photo') {
-            mediaContent = `<img src="${post.fileURL}" alt="Photo">`;
-        } else if (post.category === 'music') {
-            mediaContent = `
-                <div class="audio-player">
-                    <audio controls>
-                        <source src="${post.fileURL}" type="audio/mpeg">
-                        Ваш браузер не поддерживает аудио элемент.
-                    </audio>
-                </div>`;
-        } else if (post.category === 'video') {
-            const videoId = getYoutubeVideoId(post.fileURL);
-            mediaContent = `
-                <div class="video-container">
-                    <iframe src="https://www.youtube.com/embed/${videoId}" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen>
-                    </iframe>
-                </div>`;
+                console.log('Посты получены:', posts);
+                await Promise.all([
+                    displayPosts('allPosts', posts.photo),
+                    displayPosts('musicPosts', posts.music),
+                    displayPosts('videoPosts', posts.video)
+                ]);
+            } catch (error) {
+                console.error('Ошибка загрузки постов:', error);
+                document.querySelectorAll('.loading').forEach(el => {
+                    el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
+                });
+            }
         }
 
-        return `
-            <div class="post">
-                ${mediaContent}
-                <div class="post-content">
-                    <div class="post-description">${post.description}</div>
-                    <div class="post-date">${date}</div>
-                </div>
-            </div>`;
-    }).join('');
-}
+        // Отображение постов
+        function displayPosts(containerId, posts) {
+            const container = document.getElementById(containerId);
+            if (!posts.length) {
+                container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => {
+                const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
+                const isAdmin = currentUser?.id === '5794174511';
+                
+                let mediaContent = '';
+                if (post.category === 'photo') {
+                    mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
+                } else if (post.category === 'music') {
+                    mediaContent = `
+                        <div class="audio-post">
+                            <h3 class="audio-title">${post.description}</h3>
+                            <div class="audio-player">
+                                <audio controls preload="none">
+                                    <source src="${post.fileURL}" type="audio/mpeg">
+                                </audio>
+                            </div>
+                        </div>`;
+                } else if (post.category === 'video') {
+                    const videoId = getYoutubeVideoId(post.fileURL);
+                    mediaContent = `
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/${videoId}" 
+                                    loading="lazy"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                            </iframe>
+                        </div>`;
+                }
+
+                const likes = post.likes || 0;
+                const isLiked = post.likedBy?.includes(currentUser?.id);
+
+                return `
+                    <div class="post" data-post-id="${post.id}">
+                        ${mediaContent}
+                        <div class="post-content">
+                            <div class="post-description">${post.description}</div>
+                            <div class="post-date">${date}</div>
+                            <div class="post-actions">
+                                <button class="action-btn ${isLiked ? 'liked' : ''}" 
+                                        onclick="handleLike('${post.id}', ${likes})">
+                                    ${isLiked ? '❤️' : '🤍'} ${likes}
+                                </button>
+                                ${isAdmin ? `
+                                    <button class="action-btn delete-btn" 
+                                            onclick="deletePost('${post.id}')">
+                                        🗑️ Удалить
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
 
         // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
@@ -545,34 +544,27 @@ function displayPosts(containerId, posts) {
                 const likedBy = post.likedBy || [];
                 const isLiked = likedBy.includes(currentUser.id);
 
-                if (isLiked) {
-                    await updateDoc(postRef, {
-                        likes: currentLikes - 1,
-                        likedBy: likedBy.filter(id => id !== currentUser.id)
-                    });
-                } else {
-                    await updateDoc(postRef, {
-                        likes: currentLikes + 1,
-                        likedBy: [...likedBy, currentUser.id]
-                    });
-                }
+                await updateDoc(postRef, {
+                    likes: isLiked ? currentLikes - 1 : currentLikes + 1,
+                    likedBy: isLiked 
+                        ? likedBy.filter(id => id !== currentUser.id)
+                        : [...likedBy, currentUser.id]
+                });
 
-                loadPosts(); // Перезагружаем посты для обновления отображения
+                loadPosts();
             } catch (error) {
                 console.error('Ошибка при обработке лайка:', error);
             }
         };
 
-        // Удаление поста (только для админа)
+        // Удаление поста
         window.deletePost = async function(postId) {
-            if (!currentUser || currentUser.id !== '5794174511') {
-                return;
-            }
+            if (!currentUser || currentUser.id !== '5794174511') return;
 
             if (confirm('Вы уверены, что хотите удалить этот пост?')) {
                 try {
                     await deleteDoc(doc(db, 'posts', postId));
-                    loadPosts(); // Перезагружаем посты
+                    loadPosts();
                 } catch (error) {
                     console.error('Ошибка при удалении поста:', error);
                 }
