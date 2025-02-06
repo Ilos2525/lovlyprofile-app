@@ -209,14 +209,14 @@
         import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXvRg-5GmXhQE6V4yXm9mwE7G4Lfx0KUE",
-            authDomain: "whylovly-website.firebaseapp.com",
-            projectId: "whylovly-website",
-            storageBucket: "whylovly-website-8adcb.appspot.com",
-            messagingSenderId: "679128641326",
-            appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
-        };
+  const firebaseConfig = {
+    apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",  // <-- Новый ключ
+    authDomain: "whylovly-website.firebaseapp.com",
+    projectId: "whylovly-website",
+    storageBucket: "whylovly-website-8adcb.appspot.com",
+    messagingSenderId: "679128641326",
+    appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
+};
 
         const app = initializeApp(firebaseConfig);
         const storage = getStorage(app);
