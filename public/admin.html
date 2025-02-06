@@ -106,80 +106,101 @@
             width: 0%;
             transition: 0.3s;
         }
+
+        #loginForm {
+            text-align: center;
+            margin: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid var(--neon-color);
+        }
+
+        #googleSignIn {
+            max-width: 300px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
-    <div class="admin-tabs">
-        <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
-        <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
-        <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
+    <div id="loginForm">
+        <h3>Вход в админ-панель</h3>
+        <button id="googleSignIn">Войти через Google</button>
     </div>
 
-    <div id="posts" class="tab-content active">
-        <div class="form-group">
-            <h3>Добавить новый пост</h3>
-            <form id="uploadForm">
-                <label for="category">Категория:</label>
-                <select id="category" required>
-                    <option value="photo">Фото</option>
-                    <option value="music">Музыка</option>
-                    <option value="video">Видео</option>
-                </select>
-
-                <div id="fileInputGroup">
-                    <label for="fileInput">Файл:</label>
-                    <input type="file" id="fileInput">
-                    <div class="preview-image" id="imagePreview"></div>
-                </div>
-
-                <div id="youtubeLinkGroup" style="display: none;">
-                    <label for="youtubeLink">Ссылка на YouTube:</label>
-                    <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
-                </div>
-
-                <label for="description">Описание:</label>
-                <textarea id="description" rows="4" required></textarea>
-
-                <div class="progress-bar">
-                    <div class="progress"></div>
-                </div>
-
-                <button type="submit">Опубликовать</button>
-            </form>
+    <div id="adminContent" style="display: none;">
+        <div class="admin-tabs">
+            <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+            <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
+            <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
         </div>
-    </div>
 
-    <div id="profile" class="tab-content">
-        <div class="form-group">
-            <h3>Настройки профиля</h3>
-            <form id="profileForm">
-                <label for="profilePhoto">Фото профиля:</label>
-                <input type="file" id="profilePhoto" accept="image/*">
-                <div class="preview-image" id="profilePreview"></div>
+        <div id="posts" class="tab-content active">
+            <div class="form-group">
+                <h3>Добавить новый пост</h3>
+                <form id="uploadForm">
+                    <label for="category">Категория:</label>
+                    <select id="category" required>
+                        <option value="photo">Фото</option>
+                        <option value="music">Музыка</option>
+                        <option value="video">Видео</option>
+                    </select>
 
-                <label for="profileName">Имя профиля:</label>
-                <input type="text" id="profileName" value="whylovly">
+                    <div id="fileInputGroup">
+                        <label for="fileInput">Файл:</label>
+                        <input type="file" id="fileInput">
+                        <div class="preview-image" id="imagePreview"></div>
+                    </div>
 
-                <label for="profileBio">Описание профиля:</label>
-                <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
+                    <div id="youtubeLinkGroup" style="display: none;">
+                        <label for="youtubeLink">Ссылка на YouTube:</label>
+                        <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+                    </div>
 
-                <button type="submit">Сохранить изменения</button>
-            </form>
+                    <label for="description">Описание:</label>
+                    <textarea id="description" rows="4" required></textarea>
+
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+
+                    <button type="submit">Опубликовать</button>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <div id="settings" class="tab-content">
-        <div class="form-group">
-            <h3>Общие настройки</h3>
-            <form id="settingsForm">
-                <label for="siteTitle">Заголовок сайта:</label>
-                <input type="text" id="siteTitle" value="whylovly">
+        <div id="profile" class="tab-content">
+            <div class="form-group">
+                <h3>Настройки профиля</h3>
+                <form id="profileForm">
+                    <label for="profilePhoto">Фото профиля:</label>
+                    <input type="file" id="profilePhoto" accept="image/*">
+                    <div class="preview-image" id="profilePreview"></div>
 
-                <label for="accentColor">Цвет акцента:</label>
-                <input type="color" id="accentColor" value="#00ffcc">
+                    <label for="profileName">Имя профиля:</label>
+                    <input type="text" id="profileName" value="whylovly">
 
-                <button type="submit">Применить настройки</button>
-            </form>
+                    <label for="profileBio">Описание профиля:</label>
+                    <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
+
+                    <button type="submit">Сохранить изменения</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="settings" class="tab-content">
+            <div class="form-group">
+                <h3>Общие настройки</h3>
+                <form id="settingsForm">
+                    <label for="siteTitle">Заголовок сайта:</label>
+                    <input type="text" id="siteTitle" value="whylovly">
+
+                    <label for="accentColor">Цвет акцента:</label>
+                    <input type="color" id="accentColor" value="#00ffcc">
+
+                    <button type="submit">Применить настройки</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -187,7 +208,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
@@ -202,15 +223,33 @@
         const storage = getStorage(app);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        // Анонимная авторизация
-        signInAnonymously(auth).catch((error) => {
-            console.error("Ошибка авторизации:", error);
+        // Проверка состояния авторизации
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === 'sanatngelillya@gmail.com') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+                console.log('Авторизован как админ:', user.email);
+            } else {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('adminContent').style.display = 'none';
+                if (user) auth.signOut();
+                console.log('Не авторизован или не админ');
+            }
         });
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log('Пользователь авторизован:', user.uid);
+        // Обработчик входа через Google
+        document.getElementById('googleSignIn').addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                if (result.user.email !== 'sanatngelillya@gmail.com') {
+                    await auth.signOut();
+                    alert('Доступ запрещен. Используйте аккаунт администратора.');
+                }
+            } catch (error) {
+                console.error('Ошибка входа:', error);
+                alert('Ошибка входа: ' + error.message);
             }
         });
 
@@ -221,10 +260,7 @@
                 const storageRef = ref(storage, `${category}/${timestamp}_${file.name}`);
                 
                 const metadata = {
-                    contentType: file.type,
-                    customMetadata: {
-                        'Access-Control-Allow-Origin': '*'
-                    }
+                    contentType: file.type
                 };
 
                 const uploadTask = uploadBytesResumable(storageRef, file, metadata);
