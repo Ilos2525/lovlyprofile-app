@@ -5,146 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
     <style>
-        @font-face {
-            font-family: 'Blackmoor';
-            src: url('./1-BLACKMOOR-LET-PLAIN103.TTF') format('truetype');
-        }
-
         :root {
             --neon-color: #00ffcc;
             --neon-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
         }
 
         body {
-            font-family: 'Blackmoor', sans-serif;
+            font-family: Arial, sans-serif;
             background: #121212;
             color: white;
-            text-align: center;
-            padding: 20px;
             margin: 0;
+            padding: 20px;
         }
 
-        h2 {
-            color: var(--neon-color);
-            text-shadow: var(--neon-shadow);
-            margin-bottom: 20px;
-            font-size: 2em;
+        .admin-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
         }
 
-        .upload-container {
-            background: rgba(34, 34, 34, 0.9);
-            padding: 25px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 400px;
-            margin: auto;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        .tab-button {
+            background: rgba(0, 0, 0, 0.5);
             border: 1px solid var(--neon-color);
-            text-align: left;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .tab-button.active {
+            background: var(--neon-color);
+            color: black;
+        }
+
+        .tab-content {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--neon-color);
+        }
+
+        h3 {
+            color: var(--neon-color);
+            margin-top: 0;
         }
 
         label {
             display: block;
-            margin-top: 15px;
-            color: var(--neon-color);
-            font-size: 1.1em;
+            margin: 10px 0 5px;
+            color: #fff;
         }
 
         select, input, textarea {
             width: 100%;
-            padding: 12px;
-            margin-top: 8px;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
             border: 1px solid var(--neon-color);
-            border-radius: 8px;
-            background: rgba(51, 51, 51, 0.8);
             color: white;
-            font-family: 'Arial', sans-serif;
-            transition: all 0.3s ease;
-        }
-
-        select:focus, input:focus, textarea:focus {
-            outline: none;
-            box-shadow: 0 0 10px var(--neon-color);
+            border-radius: 5px;
         }
 
         button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 8px;
             background: var(--neon-color);
-            color: #000;
-            font-weight: bold;
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Blackmoor', sans-serif;
-            font-size: 1.1em;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.3s;
         }
 
         button:hover {
-            background: #00ffdd;
             box-shadow: 0 0 15px var(--neon-color);
-            transform: translateY(-2px);
+        }
+
+        .preview-image {
+            max-width: 200px;
+            margin: 10px 0;
+            border-radius: 5px;
         }
 
         .progress-bar {
-            width: 100%;
-            height: 10px;
+            height: 5px;
             background: #333;
+            margin-top: 10px;
             border-radius: 5px;
-            margin-top: 15px;
             overflow: hidden;
-            display: none;
         }
 
         .progress {
-            width: 0%;
             height: 100%;
             background: var(--neon-color);
-            transition: width 0.3s ease;
-        }
-
-        @media (max-width: 480px) {
-            .upload-container {
-                width: 95%;
-                padding: 15px;
-            }
+            width: 0%;
+            transition: 0.3s;
         }
     </style>
 </head>
 <body>
-    <h2>Добавить новый пост</h2>
-    <div class="upload-container">
-        <form id="uploadForm">
-            <label for="category">Категория:</label>
-            <select id="category">
-                <option value="photo">Фото</option>
-                <option value="music">Музыка</option>
-                <option value="video">Видео (YouTube ссылка)</option>
-            </select>
+    <div class="admin-tabs">
+        <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+        <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
+        <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
+    </div>
 
-            <label for="fileInput">Файл (для фото/музыки):</label>
-            <input type="file" id="fileInput">
+    <!-- Вкладка добавления постов -->
+    <div id="posts" class="tab-content active">
+        <div class="form-group">
+            <h3>Добавить новый пост</h3>
+            <form id="uploadForm">
+                <label for="category">Категория:</label>
+                <select id="category" required>
+                    <option value="photo">Фото</option>
+                    <option value="music">Музыка</option>
+                    <option value="video">Видео</option>
+                </select>
 
-            <label for="youtubeLink">Ссылка на YouTube (для видео):</label>
-            <input type="url" id="youtubeLink" placeholder="Вставьте ссылку">
+                <div id="fileInputGroup">
+                    <label for="fileInput">Файл:</label>
+                    <input type="file" id="fileInput">
+                    <div class="preview-image" id="imagePreview"></div>
+                </div>
 
-            <label for="description">Описание:</label>
-            <textarea id="description" rows="3" placeholder="Добавьте описание"></textarea>
+                <div id="youtubeLinkGroup" style="display: none;">
+                    <label for="youtubeLink">Ссылка на YouTube:</label>
+                    <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+                </div>
 
-            <div class="progress-bar">
-                <div class="progress"></div>
-            </div>
+                <label for="description">Описание:</label>
+                <textarea id="description" rows="4" required></textarea>
 
-            <button type="submit">Загрузить</button>
-        </form>
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+
+                <button type="submit">Опубликовать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Вкладка настроек профиля -->
+    <div id="profile" class="tab-content">
+        <div class="form-group">
+            <h3>Настройки профиля</h3>
+            <form id="profileForm">
+                <label for="profilePhoto">Фото профиля:</label>
+                <input type="file" id="profilePhoto" accept="image/*">
+                <div class="preview-image" id="profilePreview"></div>
+
+                <label for="profileName">Имя профиля:</label>
+                <input type="text" id="profileName" value="whylovly">
+
+                <label for="profileBio">Описание профиля:</label>
+                <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
+
+                <button type="submit">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Вкладка общих настроек -->
+    <div id="settings" class="tab-content">
+        <div class="form-group">
+            <h3>Общие настройки</h3>
+            <form id="settingsForm">
+                <label for="siteTitle">Заголовок сайта:</label>
+                <input type="text" id="siteTitle" value="whylovly">
+
+                <label for="accentColor">Цвет акцента:</label>
+                <input type="color" id="accentColor" value="#00ffcc">
+
+                <button type="submit">Применить настройки</button>
+            </form>
+        </div>
     </div>
 
     <script type="module">
+        // Firebase импорты и конфигурация
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
@@ -160,87 +215,53 @@
         const storage = getStorage(app);
         const db = getFirestore(app);
 
-        // Показываем/скрываем поля в зависимости от выбранной категории
-        document.getElementById("category").addEventListener("change", function(e) {
-            const isVideo = e.target.value === "video";
-            document.getElementById("fileInput").parentElement.style.display = isVideo ? "none" : "block";
-            document.getElementById("youtubeLink").parentElement.style.display = isVideo ? "block" : "none";
+        // Функция переключения вкладок
+        window.showTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        };
+
+        // Обработка загрузки файлов
+        document.getElementById('category').addEventListener('change', function(e) {
+            const isVideo = e.target.value === 'video';
+            document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
+            document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
         });
 
-        document.getElementById("uploadForm").addEventListener("submit", async function(event) {
-            event.preventDefault();
-            
-            try {
-                const category = document.getElementById("category").value;
-                const fileInput = document.getElementById("fileInput");
-                const youtubeLink = document.getElementById("youtubeLink").value;
-                const description = document.getElementById("description").value;
-                const progressBar = document.querySelector(".progress-bar");
-                const progress = document.querySelector(".progress");
-
-                console.log("Начало загрузки:", { category, youtubeLink, description });
-
-                let fileURL = "";
-                let fileName = "";
-
-                progressBar.style.display = "block";
-                progress.style.width = "10%";
-
-                if (category === "video" && youtubeLink) {
-                    fileURL = youtubeLink;
-                    console.log("Добавление видео:", fileURL);
-                    progress.style.width = "50%";
-                } else if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    fileName = `${Date.now()}_${file.name}`;
-                    const storageRef = ref(storage, `${category}/${fileName}`);
-                    
-                    console.log("Загрузка файла в Storage...");
-                    progress.style.width = "30%";
-                    
-                    const snapshot = await uploadBytes(storageRef, file);
-                    console.log("Файл загружен:", snapshot);
-                    progress.style.width = "60%";
-                    
-                    fileURL = await getDownloadURL(storageRef);
-                    console.log("Получен URL файла:", fileURL);
-                    progress.style.width = "80%";
-                } else {
-                    throw new Error("Выберите файл или вставьте YouTube ссылку!");
-                }
-
-                const postData = {
-                    category,
-                    fileName,
-                    fileURL,
-                    description,
-                    timestamp: new Date().toISOString(),
-                    likes: 0,
-                    comments: []
+        // Предпросмотр изображений
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').innerHTML = 
+                        `<img src="${e.target.result}" style="max-width: 200px;">`;
                 };
-
-                console.log("Сохранение в Firestore:", postData);
-                const docRef = await addDoc(collection(db, category), postData);
-                console.log("Документ сохранен с ID:", docRef.id);
-
-                progress.style.width = "100%";
-                setTimeout(() => {
-                    progressBar.style.display = "none";
-                    progress.style.width = "0%";
-                }, 1000);
-
-                alert("Пост успешно загружен!");
-                document.getElementById("uploadForm").reset();
-
-            } catch (error) {
-                console.error("Ошибка при загрузке:", error);
-                alert(`Ошибка: ${error.message}`);
-                document.querySelector(".progress-bar").style.display = "none";
+                reader.readAsDataURL(file);
             }
         });
 
-        // Инициализация формы
-        document.getElementById("youtubeLink").parentElement.style.display = "none";
+        // Обработка форм
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            // ... ваш существующий код загрузки ...
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            // Код обновления профиля
+        });
+
+        document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            // Код обновления настроек
+        });
     </script>
 </body>
 </html>
