@@ -450,97 +450,77 @@
             }
         }
 
-        // Загрузка постов
-        async function loadPosts() {
-            try {
-                const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-                const querySnapshot = await getDocs(postsQuery);
-                
-                const posts = {
-                    photo: [],
-                    music: [],
-                    video: []
-                };
+       // Загрузка постов
+async function loadPosts() {
+    try {
+        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(postsQuery);
+        
+        const posts = {};
+        posts.all = [];
+        posts.photo = [];
+        posts.music = [];
+        posts.video = [];
 
-                querySnapshot.forEach((doc) => {
-                    const post = doc.data();
-                    post.id = doc.id;
-                    if (post.category) {
-                        posts[post.category].push(post);
-                    }
-                });
+        querySnapshot.forEach((doc) => {
+            const post = doc.data();
+            post.id = doc.id;
+            posts.all.push(post);
+            posts[post.category].push(post);
+        });
 
-                // Отображаем посты в соответствующих разделах
-                displayPosts('allPosts', posts.photo);
-                displayPosts('musicPosts', posts.music);
-                displayPosts('videoPosts', posts.video);
-            } catch (error) {
-                console.error('Ошибка загрузки постов:', error);
-            }
+        displayPosts('allPosts', posts.all);
+        displayPosts('musicPosts', posts.music);
+        displayPosts('videoPosts', posts.video);
+    } catch (error) {
+        console.error('Ошибка загрузки постов:', error);
+    }
+}
+
+// Отображение постов
+function displayPosts(containerId, posts) {
+    const container = document.getElementById(containerId);
+    if (!posts.length) {
+        container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+        return;
+    }
+
+    container.innerHTML = posts.map(post => {
+        const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
+        
+        let mediaContent = '';
+        if (post.category === 'photo') {
+            mediaContent = `<img src="${post.fileURL}" alt="Photo">`;
+        } else if (post.category === 'music') {
+            mediaContent = `
+                <div class="audio-player">
+                    <audio controls>
+                        <source src="${post.fileURL}" type="audio/mpeg">
+                        Ваш браузер не поддерживает аудио элемент.
+                    </audio>
+                </div>`;
+        } else if (post.category === 'video') {
+            const videoId = getYoutubeVideoId(post.fileURL);
+            mediaContent = `
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/embed/${videoId}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                    </iframe>
+                </div>`;
         }
-        // Отображение постов
-        function displayPosts(containerId, posts) {
-            const container = document.getElementById(containerId);
-            if (!posts.length) {
-                container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-                return;
-            }
 
-            container.innerHTML = posts.map(post => {
-                const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
-                const isAdmin = currentUser?.id === '5794174511'; // ID админа в Telegram
-                
-                let mediaContent = '';
-                if (post.category === 'photo') {
-                    mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
-                } else if (post.category === 'music') {
-                    mediaContent = `
-                        <div class="audio-post">
-                            <h3 class="audio-title">${post.description}</h3>
-                            <div class="audio-player">
-                                <audio controls preload="metadata">
-                                    <source src="${post.fileURL}" type="audio/mpeg">
-                                    Ваш браузер не поддерживает аудио элемент.
-                                </audio>
-                            </div>
-                        </div>`;
-                } else if (post.category === 'video') {
-                    const videoId = getYoutubeVideoId(post.fileURL);
-                    mediaContent = `
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/${videoId}" 
-                                    loading="lazy"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen>
-                            </iframe>
-                        </div>`;
-                }
-
-                const likes = post.likes || 0;
-                const isLiked = post.likedBy?.includes(currentUser?.id);
-
-                return `
-                    <div class="post" data-post-id="${post.id}">
-                        ${mediaContent}
-                        <div class="post-content">
-                            <div class="post-description">${post.description}</div>
-                            <div class="post-date">${date}</div>
-                            <div class="post-actions">
-                                <button class="action-btn ${isLiked ? 'liked' : ''}" 
-                                        onclick="handleLike('${post.id}', ${likes})">
-                                    ${isLiked ? '❤️' : '🤍'} ${likes}
-                                </button>
-                                ${isAdmin ? `
-                                    <button class="action-btn delete-btn" 
-                                            onclick="deletePost('${post.id}')">
-                                        🗑️ Удалить
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
+        return `
+            <div class="post">
+                ${mediaContent}
+                <div class="post-content">
+                    <div class="post-description">${post.description}</div>
+                    <div class="post-date">${date}</div>
+                </div>
+            </div>`;
+    }).join('');
+}
 
         // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
