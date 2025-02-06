@@ -225,26 +225,21 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        onAuthStateChanged(auth, (user) => {
-            if (user && user.email === 'sanatngelillya@gmail.com') {
+           onAuthStateChanged(auth, (user) => {
+            if (user) {
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('adminContent').style.display = 'block';
-                console.log('Авторизован как админ:', user.email);
+                console.log('Авторизован как:', user.email);
             } else {
                 document.getElementById('loginForm').style.display = 'block';
                 document.getElementById('adminContent').style.display = 'none';
-                if (user) auth.signOut();
-                console.log('Не авторизован или не админ');
+                console.log('Не авторизован');
             }
         });
 
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
-                const result = await signInWithPopup(auth, provider);
-                if (result.user.email !== 'sanatngelillya@gmail.com') {
-                    await auth.signOut();
-                    alert('Доступ запрещен. Используйте аккаунт администратора.');
-                }
+                await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error('Ошибка входа:', error);
                 alert('Ошибка входа: ' + error.message);
