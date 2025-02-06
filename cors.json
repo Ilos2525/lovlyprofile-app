@@ -1,4 +1,4 @@
-[
+echo [
   {
     "origin": [
       "https://lovlyprofile-app.vercel.app",
@@ -13,4 +13,4 @@
       "Authorization"
     ]
   }
-]
+] > cors.json
