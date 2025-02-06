@@ -400,22 +400,35 @@
             measurementId: "G-0MKF0C3WQJ"
         };
 
-        // Инициализация Firebase
+               // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        let currentUser = null;
+        // Отладка Telegram WebApp
+        console.log('Telegram WebApp объект:', window.Telegram?.WebApp);
+        console.log('Текущий пользователь:', currentUser);
+        
+        // Проверка инициализации Telegram
+        const tg = window.Telegram?.WebApp;
+        if (!tg) {
+            console.error('Telegram WebApp не найден');
+        } else {
+            console.log('Telegram WebApp инициализирован');
+            console.log('InitData:', tg.initData);
+            console.log('User:', tg.initDataUnsafe?.user);
+        }
 
-        // Инициализация Telegram WebApp
+        // Обновленная инициализация пользователя
+        let currentUser = null;
         try {
-            tg.expand();
-            currentUser = tg.initDataUnsafe?.user;
+            if (tg) {
+                tg.expand();
+                currentUser = tg.initDataUnsafe?.user;
+                console.log('Текущий пользователь после инициализации:', currentUser);
+            }
         } catch (e) {
             console.error('Ошибка инициализации Telegram WebApp:', e);
         }
-
         // Загрузка профиля
         async function loadProfile() {
             try {
