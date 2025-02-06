@@ -1,131 +1,293 @@
-<script type="module">
-    // Firebase импорты
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель | whylovly</title>
+    <style>
+        :root {
+            --neon-color: #00ffcc;
+        }
 
-    // Инициализация Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
-        authDomain: "whylovly-website.firebaseapp.com",
-        projectId: "whylovly-website",
-        storageBucket: "whylovly-website-8adcb.appspot.com",
-        messagingSenderId: "679128641326",
-        appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
-    };
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
 
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-    const db = getFirestore(app);
+        .admin-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
 
-    // Обработчик формы загрузки
-    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        console.log('Начало загрузки'); // Отладочный вывод
+        .tab-button {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-        const submitButton = this.querySelector('button[type="submit"]');
-        const progressBar = document.querySelector('.progress');
-        
-        try {
-            submitButton.disabled = true;
-            progressBar.style.width = '10%';
+        .tab-button.active {
+            background: var(--neon-color);
+            color: black;
+        }
 
-            const category = document.getElementById('category').value;
-            const description = document.getElementById('description').value;
-            const fileInput = document.getElementById('fileInput');
-            const youtubeLink = document.getElementById('youtubeLink').value;
+        .tab-content {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+        }
 
-            console.log('Данные формы:', { category, description }); // Отладочный вывод
+        .tab-content.active {
+            display: block;
+        }
 
-            let fileURL = '';
+        .form-group {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--neon-color);
+        }
 
-            if (category === 'video') {
-                if (!youtubeLink) {
-                    throw new Error('Укажите ссылку на YouTube');
+        h3 {
+            color: var(--neon-color);
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-color);
+            color: white;
+            border-radius: 5px;
+        }
+
+        button {
+            background: var(--neon-color);
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .preview-image {
+            max-width: 200px;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 5px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: var(--neon-color);
+            width: 0%;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-tabs">
+        <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+        <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
+        <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
+    </div>
+
+    <div id="posts" class="tab-content active">
+        <div class="form-group">
+            <h3>Добавить новый пост</h3>
+            <form id="uploadForm">
+                <label for="category">Категория:</label>
+                <select id="category" required>
+                    <option value="photo">Фото</option>
+                    <option value="music">Музыка</option>
+                    <option value="video">Видео</option>
+                </select>
+
+                <div id="fileInputGroup">
+                    <label for="fileInput">Файл:</label>
+                    <input type="file" id="fileInput">
+                    <div class="preview-image" id="imagePreview"></div>
+                </div>
+
+                <div id="youtubeLinkGroup" style="display: none;">
+                    <label for="youtubeLink">Ссылка на YouTube:</label>
+                    <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+                </div>
+
+                <label for="description">Описание:</label>
+                <textarea id="description" rows="4" required></textarea>
+
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+
+                <button type="submit">Опубликовать</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="profile" class="tab-content">
+        <div class="form-group">
+            <h3>Настройки профиля</h3>
+            <form id="profileForm">
+                <label for="profilePhoto">Фото профиля:</label>
+                <input type="file" id="profilePhoto" accept="image/*">
+                <div class="preview-image" id="profilePreview"></div>
+
+                <label for="profileName">Имя профиля:</label>
+                <input type="text" id="profileName" value="whylovly">
+
+                <label for="profileBio">Описание профиля:</label>
+                <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
+
+                <button type="submit">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="settings" class="tab-content">
+        <div class="form-group">
+            <h3>Общие настройки</h3>
+            <form id="settingsForm">
+                <label for="siteTitle">Заголовок сайта:</label>
+                <input type="text" id="siteTitle" value="whylovly">
+
+                <label for="accentColor">Цвет акцента:</label>
+                <input type="color" id="accentColor" value="#00ffcc">
+
+                <button type="submit">Применить настройки</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
+            authDomain: "whylovly-website.firebaseapp.com",
+            projectId: "whylovly-website",
+            storageBucket: "whylovly-website-8adcb.appspot.com",
+            messagingSenderId: "679128641326",
+            appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        const db = getFirestore(app);
+
+        // Переключение вкладок
+        window.showTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        };
+
+        // Переключение полей в зависимости от категории
+        document.getElementById('category').addEventListener('change', function(e) {
+            const isVideo = e.target.value === 'video';
+            document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
+            document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
+        });
+
+        // Загрузка файлов
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const progressBar = document.querySelector('.progress');
+
+            try {
+                submitButton.disabled = true;
+                progressBar.style.width = '10%';
+
+                const category = document.getElementById('category').value;
+                const description = document.getElementById('description').value;
+                let fileURL = '';
+
+                if (category === 'video') {
+                    fileURL = document.getElementById('youtubeLink').value;
+                    if (!fileURL) throw new Error('Укажите ссылку на YouTube');
+                } else {
+                    const fileInput = document.getElementById('fileInput');
+                    if (!fileInput.files.length) throw new Error('Выберите файл');
+                    
+                    const file = fileInput.files[0];
+                    const fileRef = ref(storage, `${category}/${Date.now()}_${file.name}`);
+                    
+                    progressBar.style.width = '30%';
+                    await uploadBytes(fileRef, file);
+                    progressBar.style.width = '60%';
+                    
+                    fileURL = await getDownloadURL(fileRef);
                 }
-                fileURL = youtubeLink;
-                console.log('YouTube ссылка:', fileURL); // Отладочный вывод
-            } else {
-                if (!fileInput.files.length) {
-                    throw new Error('Выберите файл');
-                }
 
-                const file = fileInput.files[0];
-                console.log('Загружаемый файл:', file.name); // Отладочный вывод
+                progressBar.style.width = '80%';
 
-                // Загрузка в Storage
-                const fileRef = storageRef(storage, `${category}/${Date.now()}_${file.name}`);
-                console.log('Начало загрузки в Storage'); // Отладочный вывод
-                
-                const snapshot = await uploadBytes(fileRef, file);
-                console.log('Файл загружен в Storage'); // Отладочный вывод
-                
-                fileURL = await getDownloadURL(snapshot.ref);
-                console.log('Получен URL файла:', fileURL); // Отладочный вывод
+                await addDoc(collection(db, 'posts'), {
+                    category,
+                    fileURL,
+                    description,
+                    timestamp: new Date().toISOString()
+                });
+
+                progressBar.style.width = '100%';
+                alert('Пост успешно опубликован!');
+                this.reset();
+                document.getElementById('imagePreview').innerHTML = '';
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert(`Ошибка: ${error.message}`);
+            } finally {
+                submitButton.disabled = false;
+                setTimeout(() => {
+                    progressBar.style.width = '0%';
+                }, 1000);
             }
-
-            progressBar.style.width = '50%';
-
-            // Сохранение в Firestore
-            const postData = {
-                category,
-                fileURL,
-                description,
-                createdAt: new Date().toISOString()
-            };
-
-            console.log('Сохранение в Firestore:', postData); // Отладочный вывод
-            
-            const docRef = await addDoc(collection(db, 'posts'), postData);
-            console.log('Документ сохранен с ID:', docRef.id); // Отладочный вывод
-
-            progressBar.style.width = '100%';
-            alert('Пост успешно опубликован!');
-            
-            // Сброс формы
-            this.reset();
-            document.getElementById('imagePreview').innerHTML = '';
-
-        } catch (error) {
-            console.error('Ошибка при загрузке:', error); // Отладочный вывод
-            alert(`Ошибка: ${error.message}`);
-        } finally {
-            submitButton.disabled = false;
-            setTimeout(() => {
-                progressBar.style.width = '0%';
-            }, 1000);
-        }
-    });
-
-    // Обработчик выбора категории
-    document.getElementById('category').addEventListener('change', function(e) {
-        const isVideo = e.target.value === 'video';
-        document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
-        document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
-    });
-
-    // Предпросмотр изображений
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('imagePreview').innerHTML = 
-                    `<img src="${e.target.result}" style="max-width: 200px;">`;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Функция переключения вкладок
-    window.showTab = function(tabId) {
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
         });
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.classList.remove('active');
+
+        // Предпросмотр изображений
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').innerHTML = 
+                        `<img src="${e.target.result}" style="max-width: 200px;">`;
+                };
+                reader.readAsDataURL(file);
+            }
         });
-        document.getElementById(tabId).classList.add('active');
-        event.target.classList.add('active');
-    };
-</script>
+    </script>
+</body>
+</html>
