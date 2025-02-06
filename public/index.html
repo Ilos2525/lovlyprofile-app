@@ -14,21 +14,14 @@
     <title>whylovly</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --neon-color: #00ffcc;
-            --bg-color: #121212;
-            --card-bg: rgba(0, 0, 0, 0.3);
-            --text-color: #ffffff;
-            --secondary-text: #cccccc;
-        }
-
         body {
             font-family: 'Roboto', Arial, sans-serif;
-            background: var(--bg-color);
-            color: var(--text-color);
+            background: #121212;
+            color: #ffffff;
             margin: 0;
             padding: 0;
             min-height: 100vh;
+            color-scheme: dark;
         }
 
         /* Профиль */
@@ -394,7 +387,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Инициализация переменных
+               // Инициализация переменных
         let currentUser = null;
         const tg = window.Telegram?.WebApp;
 
@@ -406,14 +399,18 @@
         if (tg) {
             try {
                 tg.expand();
-                currentUser = tg.initDataUnsafe?.user;
+                currentUser = tg.initDataUnsafe?.user || { id: 'test_user' }; // Временное решение для тестирования
                 console.log('Telegram WebApp инициализирован');
                 console.log('Текущий пользователь:', currentUser);
             } catch (e) {
                 console.error('Ошибка инициализации Telegram WebApp:', e);
+                // Временное решение для тестирования
+                currentUser = { id: 'test_user' };
             }
         } else {
             console.log('Telegram WebApp не найден - сайт открыт не через Telegram');
+            // Временное решение для тестирования
+            currentUser = { id: 'test_user' };
         }
 
         // Загрузка профиля
@@ -532,23 +529,19 @@
 
         // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
-            if (!currentUser) {
-                alert('Для оценки поста необходимо открыть сайт через Telegram');
-                return;
-            }
-
             try {
                 const postRef = doc(db, 'posts', postId);
                 const postDoc = await getDoc(postRef);
                 const post = postDoc.data();
                 const likedBy = post.likedBy || [];
-                const isLiked = likedBy.includes(currentUser.id);
+                const userId = currentUser?.id || 'test_user';
+                const isLiked = likedBy.includes(userId);
 
                 await updateDoc(postRef, {
                     likes: isLiked ? currentLikes - 1 : currentLikes + 1,
                     likedBy: isLiked 
-                        ? likedBy.filter(id => id !== currentUser.id)
-                        : [...likedBy, currentUser.id]
+                        ? likedBy.filter(id => id !== userId)
+                        : [...likedBy, userId]
                 });
 
                 loadPosts();
