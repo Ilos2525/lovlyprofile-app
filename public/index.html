@@ -386,8 +386,11 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+               import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Объявляем currentUser в начале
+        let currentUser = null;
 
         // Конфигурация Firebase
         const firebaseConfig = {
@@ -400,13 +403,12 @@
             measurementId: "G-0MKF0C3WQJ"
         };
 
-               // Инициализация Firebase
+        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         // Отладка Telegram WebApp
         console.log('Telegram WebApp объект:', window.Telegram?.WebApp);
-        console.log('Текущий пользователь:', currentUser);
         
         // Проверка инициализации Telegram
         const tg = window.Telegram?.WebApp;
@@ -416,6 +418,13 @@
             console.log('Telegram WebApp инициализирован');
             console.log('InitData:', tg.initData);
             console.log('User:', tg.initDataUnsafe?.user);
+            try {
+                tg.expand();
+                currentUser = tg.initDataUnsafe?.user;
+                console.log('Текущий пользователь после инициализации:', currentUser);
+            } catch (e) {
+                console.error('Ошибка инициализации Telegram WebApp:', e);
+            }
         }
 
         // Обновленная инициализация пользователя
