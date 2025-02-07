@@ -596,7 +596,6 @@
 
 async function initTelegram() {
     try {
-        // Добавляем логи для отладки
         console.log('1. Starting Telegram initialization');
         
         // Ждем загрузки Telegram WebApp
@@ -617,11 +616,8 @@ async function initTelegram() {
             if (tg.initDataUnsafe?.user) {
                 currentUser = tg.initDataUnsafe.user;
                 console.log('4. User authenticated:', currentUser);
-                
-                // Сохраняем данные пользователя в sessionStorage
                 sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
             } else {
-                // Пробуем получить сохраненные данные
                 const savedUser = sessionStorage.getItem('telegramUser');
                 if (savedUser) {
                     currentUser = JSON.parse(savedUser);
@@ -636,7 +632,6 @@ async function initTelegram() {
             currentUser = null;
         }
         
-        // Загружаем контент
         await loadProfile();
         await loadPosts();
         
@@ -648,31 +643,42 @@ async function initTelegram() {
     }
 }
 
-// Добавляем функцию проверки авторизации
 function isAuthorized() {
     return currentUser !== null && currentUser?.id !== undefined;
 }
 
-// Модифицируем handleLike
 window.handleLike = async function(postId) {
     if (!isAuthorized()) {
-        console.error('User auth status:', currentUser);
-        console.error('Telegram WebApp status:', tg);
-        alert('Ошибка авторизации. Попробуйте перезапустить приложение');
+        alert('Для лайков необходимо открыть сайт через @lovlyprofilebot');
+        window.location.href = 'https://t.me/lovlyprofilebot';
         return;
     }
-    // ... остальной код функции handleLike без изменений ...
+    
+    try {
+        const userId = currentUser.id;
+        const username = currentUser.username || currentUser.first_name || 'Unknown';
+        // ... остальной код функции handleLike ...
+    } catch (error) {
+        console.error('Ошибка лайка:', error);
+        alert('Произошла ошибка при обработке лайка');
+    }
 };
 
-// Модифицируем addComment
 window.addComment = async function(postId) {
     if (!isAuthorized()) {
-        console.error('User auth status:', currentUser);
-        console.error('Telegram WebApp status:', tg);
-        alert('Ошибка авторизации. Попробуйте перезапустить приложение');
+        alert('Для комментариев необходимо открыть сайт через @lovlyprofilebot');
+        window.location.href = 'https://t.me/lovlyprofilebot';
         return;
     }
-    // ... остальной код функции addComment без изменений ...
+    
+    try {
+        const input = document.getElementById(`comment-input-${postId}`);
+        const text = input.value.trim();
+        // ... остальной код функции addComment ...
+    } catch (error) {
+        console.error('Ошибка добавления комментария:', error);
+        alert('Ошибка при добавлении комментария');
+    }
 };
         async function loadProfile() {
             try {
