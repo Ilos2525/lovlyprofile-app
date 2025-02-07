@@ -553,7 +553,7 @@
             }).join('');
         }
 
-        // Обработка лайков
+                // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
             try {
                 const postRef = doc(db, 'posts', postId);
@@ -563,13 +563,22 @@
                 const userId = currentUser?.id || 'test_user';
                 const isLiked = likedBy.includes(userId);
 
-                await updateDoc(postRef, {
-                    likes: isLiked ? currentLikes - 1 : currentLikes + 1,
-                    likedBy: isLiked 
-                        ? likedBy.filter(id => id !== userId)
-                        : [...likedBy, userId]
-                });
+                // Проверяем, лайкнул ли текущий пользователь
+                if (isLiked) {
+                    // Убираем лайк текущего пользователя
+                    await updateDoc(postRef, {
+                        likes: post.likes - 1,
+                        likedBy: likedBy.filter(id => id !== userId)
+                    });
+                } else {
+                    // Добавляем лайк текущего пользователя
+                    await updateDoc(postRef, {
+                        likes: (post.likes || 0) + 1,
+                        likedBy: [...likedBy, userId]
+                    });
+                }
 
+                // Перезагружаем посты для обновления отображения
                 loadPosts();
             } catch (error) {
                 console.error('Ошибка при обработке лайка:', error);
