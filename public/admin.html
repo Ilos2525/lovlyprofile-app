@@ -120,6 +120,52 @@
             max-width: 300px;
             margin: 0 auto;
         }
+        /* Стили для управления постами */
+        .post-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--neon-color);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .post-item img {
+            max-width: 100px;
+            height: auto;
+            margin-right: 10px;
+            border-radius: 5px;
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .post-date {
+            color: var(--neon-color);
+            font-size: 0.9em;
+        }
+
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #ff0000;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--neon-color);
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -129,10 +175,13 @@
     </div>
 
     <div id="adminContent" style="display: none;">
-        <div class="admin-tabs">
-            <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
-            <button class="tab-button" onclick="showTab('profile')">Настройки профиля</button>
-            <button class="tab-button" onclick="showTab('settings')">Общие настройки</button>
+               <div id="manage" class="tab-content">
+            <div class="form-group">
+                <h3>Управление постами</h3>
+                <div id="postsList">
+                    <div class="loading">Загрузка постов...</div>
+                </div>
+            </div>
         </div>
 
         <div id="posts" class="tab-content active">
@@ -204,9 +253,9 @@
         </div>
     </div>
         <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+               import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -408,7 +457,77 @@
                 alert(`Ошибка: ${error.message}`);
             }
         });
+        // Загрузка списка постов
+        async function loadPosts() {
+            const postsList = document.getElementById('postsList');
+            try {
+                const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    postsList.innerHTML = '<div class="post-item">Нет постов</div>';
+                    return;
+                }
 
+                const postsHTML = [];
+                querySnapshot.forEach((doc) => {
+                    const post = doc.data();
+                    const date = new Date(post.timestamp).toLocaleString('ru-RU');
+                    let mediaPreview = '';
+                    
+                    if (post.category === 'photo') {
+                        mediaPreview = `<img src="${post.fileURL}" alt="Preview">`;
+                    } else if (post.category === 'video') {
+                        mediaPreview = '🎥 Видео';
+                    } else if (post.category === 'music') {
+                        mediaPreview = '🎵 Аудио';
+                    }
+
+                    postsHTML.push(`
+                        <div class="post-item">
+                            <div class="post-header">
+                                <div>
+                                    ${mediaPreview}
+                                    <span class="post-date">${date}</span>
+                                </div>
+                                <button class="delete-btn" onclick="deletePost('${doc.id}')">Удалить</button>
+                            </div>
+                            <div>${post.description}</div>
+                        </div>
+                    `);
+                });
+
+                postsList.innerHTML = postsHTML.join('');
+            } catch (error) {
+                console.error('Ошибка загрузки постов:', error);
+                postsList.innerHTML = '<div class="post-item">Ошибка загрузки постов</div>';
+            }
+        }
+
+        // Функция удаления поста
+        window.deletePost = async function(postId) {
+            if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'posts', postId));
+                alert('Пост удален!');
+                loadPosts(); // Перезагружаем список постов
+            } catch (error) {
+                console.error('Ошибка удаления поста:', error);
+                alert('Ошибка удаления поста: ' + error.message);
+            }
+        };
+
+        // Модифицируем функцию showTab для загрузки постов
+        const originalShowTab = window.showTab;
+        window.showTab = function(tabId) {
+            originalShowTab.call(this, tabId);
+            if (tabId === 'manage') {
+                loadPosts();
+            }
+        };
         console.log('Админ-панель инициализирована');
     </script>
 </body>
