@@ -367,6 +367,48 @@
             height: 250px;
         }
     }
+    /* Уведомления */
+    .notification {
+        position: fixed;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--neon-color);
+        border-radius: 12px;
+        padding: 15px 25px;
+        color: white;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 0 20px var(--neon-shadow);
+        transition: top 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .notification.show {
+        top: 20px;
+    }
+
+    .notification-icon {
+        font-size: 20px;
+    }
+
+    .notification-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .notification-user {
+        color: var(--neon-color);
+        font-weight: 500;
+    }
+
+    .notification-message {
+        font-size: 14px;
+        opacity: 0.9;
+    }
 </style>
 <body>
     <div class="profile-section">
@@ -433,6 +475,45 @@
         const db = getFirestore(app);
         let tg = null;
         let currentUser = null;
+        function showNotification(type, username) {
+            // Удаляем предыдущее уведомление, если есть
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // Создаем новое уведомление
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            let icon, message;
+            if (type === 'like') {
+                icon = '❤️';
+                message = 'поставил(а) лайк';
+            } else if (type === 'unlike') {
+                icon = '🤍';
+                message = 'убрал(а) лайк';
+            }
+
+            notification.innerHTML = `
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">
+                    <div class="notification-user">@${username}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+            
+            // Показываем уведомление
+            setTimeout(() => notification.classList.add('show'), 100);
+
+            // Скрываем через 3 секунды
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
 
         async function initTelegram() {
             try {
@@ -597,14 +678,16 @@
                     </div>`;
             }).join('');
         }
-        window.handleLike = async function(postId) {
+                window.handleLike = async function(postId) {
             try {
                 if (!currentUser?.id) {
                     console.error('Пользователь не авторизован');
                     return;
                 }
 
-                const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
+                const userId = currentUser.id;
+                const username = currentUser.username || currentUser.first_name || 'пользователь';
+                const likeRef = doc(db, 'likes', `${postId}_${userId}`);
                 const postRef = doc(db, 'posts', postId);
 
                 const [likeDoc, postDoc] = await Promise.all([
@@ -618,26 +701,33 @@
                 }
 
                 const post = postDoc.data();
+                const likedBy = post.likedBy || [];
                 const currentLikes = post.likes || 0;
 
-                if (likeDoc.exists()) {
+                if (likeDoc.exists() || likedBy.includes(userId)) {
+                    // Убираем лайк
                     await Promise.all([
                         deleteDoc(likeRef),
                         updateDoc(postRef, {
-                            likes: Math.max(0, currentLikes - 1)
+                            likes: Math.max(0, currentLikes - 1),
+                            likedBy: likedBy.filter(id => id !== userId)
                         })
                     ]);
+                    showNotification('unlike', username);
                 } else {
+                    // Добавляем лайк
                     await Promise.all([
                         setDoc(likeRef, {
-                            userId: currentUser.id,
+                            userId: userId,
                             postId,
                             timestamp: serverTimestamp()
                         }),
                         updateDoc(postRef, {
-                            likes: currentLikes + 1
+                            likes: currentLikes + 1,
+                            likedBy: [...likedBy, userId]
                         })
                     ]);
+                    showNotification('like', username);
                 }
 
                 loadPosts();
@@ -645,7 +735,6 @@
                 console.error('Ошибка лайка:', error);
             }
         };
-
         window.deletePost = async function(postId) {
             if (!currentUser || currentUser.id !== '5794174511') return;
 
