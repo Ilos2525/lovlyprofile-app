@@ -613,22 +613,34 @@ async function initTelegram() {
             tg.expand();
             
             // Проверяем данные пользователя
+            console.log('4. Raw user data:', tg.initDataUnsafe?.user);
+            
             if (tg.initDataUnsafe?.user) {
                 currentUser = tg.initDataUnsafe.user;
-                console.log('4. User authenticated:', currentUser);
+                console.log('5. User authenticated:', currentUser);
                 sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
             } else {
                 const savedUser = sessionStorage.getItem('telegramUser');
                 if (savedUser) {
                     currentUser = JSON.parse(savedUser);
-                    console.log('5. Using saved user data:', currentUser);
+                    console.log('6. Using saved user data:', currentUser);
                 } else {
-                    console.log('6. No user data available');
+                    console.log('7. No user data available');
                     currentUser = null;
                 }
             }
+            
+            // Добавляем дополнительную проверку
+            console.log('8. Final auth state:', {
+                currentUser,
+                initData: tg.initData,
+                initDataUnsafe: tg.initDataUnsafe,
+                isExpanded: tg.isExpanded,
+                version: tg.version
+            });
+            
         } else {
-            console.warn('7. Telegram WebApp not available');
+            console.warn('9. Telegram WebApp not available');
             currentUser = null;
         }
         
@@ -636,7 +648,8 @@ async function initTelegram() {
         await loadPosts();
         
     } catch (error) {
-        console.error('8. Telegram initialization error:', error);
+        console.error('10. Telegram initialization error:', error);
+        console.error('Full error details:', error);
         currentUser = null;
         await loadProfile();
         await loadPosts();
@@ -644,9 +657,40 @@ async function initTelegram() {
 }
 
 function isAuthorized() {
-    return currentUser !== null && currentUser?.id !== undefined;
+    const isAuth = currentUser !== null && currentUser?.id !== undefined;
+    console.log('Auth check:', { 
+        currentUser, 
+        isAuth,
+        webAppAvailable: !!window.Telegram?.WebApp,
+        initDataAvailable: !!window.Telegram?.WebApp?.initDataUnsafe
+    });
+    return isAuth;
 }
 
+// Также обновим проверку в handleLike
+window.handleLike = async function(postId) {
+    try {
+        console.log('Like attempt:', { 
+            isAuthorized: isAuthorized(),
+            currentUser,
+            tg: window.Telegram?.WebApp
+        });
+
+        if (!isAuthorized()) {
+            console.error('Необходима авторизация через Telegram');
+            alert('Этот сайт работает только через Telegram');
+            window.location.href = 'https://t.me/lovlyprofilebot';
+            return;
+        }
+        
+        // Остальной код handleLike без изменений
+        const userId = currentUser.id;
+        // ...
+    } catch (error) {
+        console.error('Ошибка лайка:', error);
+        alert('Произошла ошибка при обработке лайка');
+    }
+};
 window.handleLike = async function(postId) {
     if (!isAuthorized()) {
         alert('Для лайков необходимо открыть сайт через @lovlyprofilebot');
