@@ -409,6 +409,79 @@
         font-size: 14px;
         opacity: 0.9;
     }
+    /* Комментарии */
+    .comments-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(0,255,204,0.2);
+    }
+
+    .comment-form {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .comment-input {
+        flex: 1;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--neon-color);
+        border-radius: 10px;
+        padding: 10px;
+        color: var(--text-color);
+        resize: vertical;
+        min-height: 40px;
+        font-family: inherit;
+    }
+
+    .comment-submit {
+        background: var(--neon-color);
+        color: var(--bg-color);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .comment-submit:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .comments-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .comment {
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        padding: 15px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .comment-author {
+        color: var(--neon-color);
+        font-weight: 500;
+    }
+
+    .comment-date {
+        color: var(--secondary-text);
+        font-size: 0.9em;
+    }
+
+    .comment-text {
+        color: var(--text-color);
+        line-height: 1.4;
+    }
 </style>
 <body>
     <div class="profile-section">
@@ -447,19 +520,22 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { 
-            getFirestore, 
-            collection, 
-            query, 
-            orderBy, 
-            getDocs, 
-            doc, 
-            getDoc, 
-            updateDoc, 
-            deleteDoc, 
-            setDoc,
-            serverTimestamp 
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+       import { 
+    getFirestore, 
+    collection, 
+    query, 
+    orderBy, 
+    getDocs, 
+    doc, 
+    getDoc, 
+    updateDoc, 
+    deleteDoc, 
+    setDoc,
+    serverTimestamp,
+    writeBatch,
+    increment,
+    where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
@@ -475,25 +551,28 @@
         const db = getFirestore(app);
         let tg = null;
         let currentUser = null;
-        function showNotification(type, username) {
-            // Удаляем предыдущее уведомление, если есть
-            const existingNotification = document.querySelector('.notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
+      function showNotification(type, username) {
+    // Удаляем предыдущее уведомление, если есть
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
 
-            // Создаем новое уведомление
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            
-            let icon, message;
-            if (type === 'like') {
-                icon = '❤️';
-                message = 'поставил(а) лайк';
-            } else if (type === 'unlike') {
-                icon = '🤍';
-                message = 'убрал(а) лайк';
-            }
+    // Создаем новое уведомление
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    
+    let icon, message;
+    if (type === 'like') {
+        icon = '❤️';
+        message = 'поставил(а) лайк';
+    } else if (type === 'unlike') {
+        icon = '🤍';
+        message = 'убрал(а) лайк';
+    } else if (type === 'comment') {
+        icon = '💬';
+        message = 'добавил(а) комментарий';
+    }
 
             notification.innerHTML = `
                 <div class="notification-icon">${icon}</div>
@@ -620,64 +699,86 @@
                 return false;
             }
         }
-        function displayPosts(containerId, posts) {
-            const container = document.getElementById(containerId);
-            if (!posts.length) {
-                container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-                return;
-            }
+function displayPosts(containerId, posts) {
+    const container = document.getElementById(containerId);
+    if (!posts.length) {
+        container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+        return;
+    }
 
-            container.innerHTML = posts.map(post => {
-                const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
-                const isAdmin = currentUser?.id === '5794174511';
-                
-                let mediaContent = '';
-                if (post.category === 'photo') {
-                    mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
-                } else if (post.category === 'music') {
-                    mediaContent = `
-                        <div class="audio-post">
-                            <h3 class="audio-title">${post.description}</h3>
-                            <div class="audio-player">
-                                <audio controls preload="none">
-                                    <source src="${post.fileURL}" type="audio/mpeg">
-                                </audio>
-                            </div>
-                        </div>`;
-                } else if (post.category === 'video') {
-                    const videoId = getYoutubeVideoId(post.fileURL);
-                    mediaContent = `
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/${videoId}" 
-                                    loading="lazy"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen>
-                            </iframe>
-                        </div>`;
-                }
-
-                return `
-                    <div class="post" data-post-id="${post.id}">
-                        ${mediaContent}
-                        <div class="post-content">
-                            <div class="post-description">${post.description}</div>
-                            <div class="post-date">${date}</div>
-                            <div class="post-actions">
-                                <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
-                                        onclick="handleLike('${post.id}')">
-                                    ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
-                                </button>
-                                ${isAdmin ? `
-                                    <button class="action-btn delete-btn" 
-                                            onclick="deletePost('${post.id}')">
-                                        🗑️ Удалить
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>`;
-            }).join('');
+    container.innerHTML = posts.map(post => {
+        const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
+        const isAdmin = currentUser?.id === '5794174511';
+        
+        let mediaContent = '';
+        if (post.category === 'photo') {
+            mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
+        } else if (post.category === 'music') {
+            mediaContent = `
+                <div class="audio-post">
+                    <h3 class="audio-title">${post.description}</h3>
+                    <div class="audio-player">
+                        <audio controls preload="none">
+                            <source src="${post.fileURL}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                </div>`;
+        } else if (post.category === 'video') {
+            const videoId = getYoutubeVideoId(post.fileURL);
+            mediaContent = `
+                <div class="video-container">
+                    <iframe src="https://www.youtube.com/embed/${videoId}" 
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                    </iframe>
+                </div>`;
         }
+
+        return `
+            <div class="post" data-post-id="${post.id}">
+                ${mediaContent}
+                <div class="post-content">
+                    <div class="post-description">${post.description}</div>
+                    <div class="post-date">${date}</div>
+                    <div class="post-actions">
+                        <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
+                                onclick="handleLike('${post.id}')">
+                            ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
+                        </button>
+                        <button class="action-btn comment-btn" 
+                                onclick="toggleComments('${post.id}')">
+                            💬 ${post.commentsCount || 0}
+                        </button>
+                        ${isAdmin ? `
+                            <button class="action-btn delete-btn" 
+                                    onclick="deletePost('${post.id}')">
+                                🗑️ Удалить
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="comments-section" id="comments-${post.id}" style="display: none;">
+                        <div class="comments-container" id="comments-container-${post.id}">
+                            <!-- Комментарии будут загружены сюда -->
+                        </div>
+                        <div class="comment-form">
+                            <textarea 
+                                id="comment-input-${post.id}" 
+                                class="comment-input" 
+                                placeholder="Написать комментарий..."
+                            ></textarea>
+                            <button 
+                                class="comment-submit" 
+                                onclick="addComment('${post.id}')"
+                            >
+                                Отправить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+}
                 window.handleLike = async function(postId) {
             try {
                 if (!currentUser?.id) {
@@ -772,7 +873,104 @@
             
             document.getElementById(sectionId).classList.add('active');
         };
+        // Функция переключения отображения комментариев
+        window.toggleComments = async function(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            const commentsContainer = document.getElementById(`comments-container-${postId}`);
+            
+            if (commentsSection.style.display === 'none') {
+                commentsSection.style.display = 'block';
+                await loadComments(postId, commentsContainer);
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        };
 
+        // Функция загрузки комментариев
+        async function loadComments(postId, container) {
+            try {
+                const commentsQuery = query(
+                    collection(db, 'comments'),
+                    where('postId', '==', postId),
+                    orderBy('timestamp', 'desc')
+                );
+                
+                const commentsSnapshot = await getDocs(commentsQuery);
+                
+                if (commentsSnapshot.empty) {
+                    container.innerHTML = '<div class="comment">Нет комментариев</div>';
+                    return;
+                }
+
+                container.innerHTML = commentsSnapshot.docs.map(doc => {
+                    const comment = doc.data();
+                    const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
+                    return `
+                        <div class="comment">
+                            <div class="comment-header">
+                                <span class="comment-author">@${comment.username}</span>
+                                <span class="comment-date">${date}</span>
+                            </div>
+                            <div class="comment-text">${comment.text}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Ошибка загрузки комментариев:', error);
+                container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
+            }
+        }
+
+        // Функция добавления комментария
+        window.addComment = async function(postId) {
+            try {
+                if (!currentUser?.id) {
+                    alert('Необходимо авторизоваться');
+                    return;
+                }
+
+                const input = document.getElementById(`comment-input-${postId}`);
+                const text = input.value.trim();
+                
+                if (!text) {
+                    alert('Введите текст комментария');
+                    return;
+                }
+
+                const username = currentUser.username || currentUser.first_name || 'пользователь';
+                
+                // Добавляем комментарий
+                const commentRef = doc(collection(db, 'comments'));
+                await setDoc(commentRef, {
+                    postId,
+                    userId: currentUser.id,
+                    username,
+                    text,
+                    timestamp: serverTimestamp()
+                });
+
+                // Обновляем счетчик комментариев в посте
+                const postRef = doc(db, 'posts', postId);
+                await updateDoc(postRef, {
+                    commentsCount: increment(1)
+                });
+
+                // Очищаем поле ввода
+                input.value = '';
+                
+                // Перезагружаем комментарии
+                const container = document.getElementById(`comments-container-${postId}`);
+                await loadComments(postId, container);
+                
+                // Перезагружаем посты для обновления счетчика
+                loadPosts();
+                
+                showNotification('comment', username);
+            } catch (error) {
+                console.error('Ошибка добавления комментария:', error);
+                alert('Ошибка при добавлении комментария');
+            }
+        };
         window.addEventListener('load', initTelegram);
 
         document.addEventListener('error', function(e) {
