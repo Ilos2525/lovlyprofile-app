@@ -2,360 +2,373 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#121212">
+    <meta name="description" content="whylovly - личный блог">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <title>whylovly</title>
+    
+    <!-- Подключаем Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>whylovly</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-                /* Принудительно устанавливаем тёмную тему */
-        :root {
-            color-scheme: dark;
-        }
+    
+    <!-- Подключаем шрифт Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<style>
+    /* Основные переменные и настройки темы */
+    :root {
+        --neon-color: #00ffcc;
+        --neon-shadow: rgba(0, 255, 204, 0.3);
+        --bg-color: #121212;
+        --card-bg: rgba(0, 0, 0, 0.3);
+        --text-color: #ffffff;
+        --secondary-text: #cccccc;
+        --transition: all 0.3s ease;
+        --border-radius: 15px;
+    }
 
-        html {
-            background: #121212;
-            color-scheme: dark;
-        }
+    /* Сброс и базовые стили */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
 
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            background: #121212 !important;
-            color: #ffffff;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            color-scheme: dark;
-            -webkit-font-smoothing: antialiased;
-        }
+    html, body {
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Roboto', sans-serif;
+        line-height: 1.6;
+        min-height: 100vh;
+        overflow-x: hidden;
+        color-scheme: dark;
+    }
 
-        /* Остальные переменные */
-        :root {
-            --neon-color: #00ffcc;
-            --card-bg: rgba(0, 0, 0, 0.3);
-            --text-color: #ffffff;
-            --secondary-text: #cccccc;
-        }
+    /* Анимации */
+    @keyframes neonPulse {
+        0% { box-shadow: 0 0 10px var(--neon-shadow); }
+        50% { box-shadow: 0 0 20px var(--neon-shadow); }
+        100% { box-shadow: 0 0 10px var(--neon-shadow); }
+    }
 
-        /* Принудительно отключаем светлую тему */
-        @media (prefers-color-scheme: light) {
-            body {
-                background: #121212 !important;
-                color: #ffffff !important;
-            }
-        }
-        /* Профиль */
-        .profile-section {
-            text-align: center;
-            padding: 40px 20px;
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--neon-color);
-            position: relative;
-            overflow: hidden;
-        }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-        .profile-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(0,255,204,0.1) 0%, transparent 100%);
-            z-index: 0;
-        }
+    /* Профиль */
+    .profile-section {
+        text-align: center;
+        padding: 40px 20px;
+        background: var(--card-bg);
+        border-bottom: 2px solid var(--neon-color);
+        position: relative;
+        animation: fadeIn 0.5s ease;
+    }
 
-        .profile-content {
-            position: relative;
-            z-index: 1;
-        }
+    .profile-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(45deg, rgba(0,255,204,0.1) 0%, transparent 100%);
+        z-index: 0;
+    }
 
-        .profile-photo {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            border: 3px solid var(--neon-color);
-            object-fit: cover;
-            margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(0,255,204,0.3);
-            transition: transform 0.3s ease;
-        }
+    .profile-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
 
-        .profile-photo:hover {
-            transform: scale(1.05);
-        }
+    .profile-photo {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 3px solid var(--neon-color);
+        object-fit: cover;
+        margin-bottom: 20px;
+        animation: neonPulse 2s infinite;
+        transition: var(--transition);
+    }
 
-        .profile-name {
-            color: var(--neon-color);
-            font-size: 28px;
-            margin: 10px 0;
-            text-shadow: 0 0 10px rgba(0,255,204,0.5);
-        }
+    .profile-photo:hover {
+        transform: scale(1.05);
+    }
 
-        .profile-bio {
-            color: var(--secondary-text);
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-        /* Навигация */
-        .nav {
-            display: flex;
-            justify-content: center;
+    .profile-name {
+        color: var(--neon-color);
+        font-size: 28px;
+        margin: 10px 0;
+        text-shadow: 0 0 10px var(--neon-shadow);
+    }
+
+    .profile-bio {
+        color: var(--secondary-text);
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 16px;
+        opacity: 0.9;
+    }
+
+    /* Навигация */
+    .nav {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        padding: 20px;
+        background: var(--card-bg);
+        border-bottom: 2px solid var(--neon-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .nav-link {
+        color: var(--neon-color);
+        text-decoration: none;
+        padding: 10px 25px;
+        border: 1px solid var(--neon-color);
+        border-radius: var(--border-radius);
+        transition: var(--transition);
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nav-link::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--neon-color);
+        opacity: 0;
+        transition: var(--transition);
+        z-index: -1;
+    }
+
+    .nav-link:hover::before {
+        opacity: 0.1;
+    }
+
+    .nav-link.active {
+        background: var(--neon-color);
+        color: var(--bg-color);
+    }
+
+    /* Контейнер контента */
+    .content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Секции */
+    .section {
+        display: none;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: var(--transition);
+    }
+
+    .section.active {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+        animation: fadeIn 0.5s ease;
+    }
+</style>
+<style>
+    /* Посты */
+    .posts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 30px;
+        padding: 20px;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .post {
+        background: var(--card-bg);
+        border: 1px solid var(--neon-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .post:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px var(--neon-shadow);
+    }
+
+    .post img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        transition: var(--transition);
+    }
+
+    .post:hover img {
+        transform: scale(1.05);
+    }
+
+    .post-content {
+        padding: 20px;
+    }
+
+    .post-description {
+        color: var(--secondary-text);
+        line-height: 1.5;
+        margin-bottom: 15px;
+    }
+
+    .post-date {
+        color: var(--neon-color);
+        font-size: 0.9em;
+        opacity: 0.8;
+    }
+
+    /* Аудио посты */
+    .audio-post {
+        padding: 25px;
+        background: linear-gradient(45deg, rgba(0,255,204,0.05) 0%, transparent 100%);
+        border-radius: var(--border-radius);
+    }
+
+    .audio-title {
+        color: var(--neon-color);
+        margin-bottom: 15px;
+        font-size: 1.2em;
+    }
+
+    .audio-player {
+        width: 100%;
+        margin: 15px 0;
+    }
+
+    .audio-player audio {
+        width: 100%;
+        height: 40px;
+        border-radius: 20px;
+        background: transparent;
+    }
+
+    /* Видео контейнер */
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        border-radius: var(--border-radius);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* Кнопки действий */
+    .post-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(0,255,204,0.2);
+    }
+
+    .action-btn {
+        background: transparent;
+        border: none;
+        color: var(--secondary-text);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 15px;
+        border-radius: 20px;
+        transition: var(--transition);
+        font-size: 16px;
+    }
+
+    .action-btn:hover {
+        color: var(--neon-color);
+        background: rgba(0,255,204,0.1);
+    }
+
+    .action-btn.liked {
+        color: var(--neon-color);
+    }
+
+    /* Загрузка */
+    .loading {
+        text-align: center;
+        padding: 50px;
+        color: var(--neon-color);
+        position: relative;
+    }
+
+    .loading::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid transparent;
+        border-top-color: var(--neon-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        position: absolute;
+        top: calc(50% - 20px);
+        left: calc(50% - 20px);
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .posts-grid {
+            grid-template-columns: 1fr;
             gap: 20px;
-            padding: 20px;
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--neon-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
+            padding: 10px;
+        }
+
+        .nav {
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
         }
 
         .nav-link {
-            color: var(--neon-color);
-            text-decoration: none;
-            padding: 8px 20px;
-            border: 1px solid var(--neon-color);
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .nav-link::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: var(--neon-color);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0;
-            transition: width 0.6s ease, height 0.6s ease, opacity 0.3s ease;
-        }
-
-        .nav-link:hover::before {
-            width: 200px;
-            height: 200px;
-            opacity: 0.1;
-        }
-
-        .nav-link.active {
-            background: var(--neon-color);
-            color: var(--bg-color);
-        }
-
-        /* Контент */
-        .content {
-            max-width: 1200px;
+            width: 80%;
             margin: 0 auto;
-            padding: 20px;
+            text-align: center;
         }
 
-        .section {
-            display: none;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+        .profile-photo {
+            width: 120px;
+            height: 120px;
         }
 
-        .section.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Посты */
-        .posts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 30px;
-            padding: 20px;
-        }
-
-        .post {
-            background: var(--card-bg);
-            border: 1px solid var(--neon-color);
-            border-radius: 15px;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-        }
-
-        .post:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,255,204,0.2);
+        .profile-name {
+            font-size: 24px;
         }
 
         .post img {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            transition: transform 0.3s ease;
+            height: 250px;
         }
-
-        .post:hover img {
-            transform: scale(1.05);
-        }
-
-        .post-content {
-            padding: 20px;
-        }
-
-        .post-description {
-            margin: 10px 0;
-            color: var(--secondary-text);
-            line-height: 1.5;
-        }
-
-        .post-date {
-            color: var(--neon-color);
-            font-size: 0.9em;
-            margin-top: 10px;
-        }
-
-        /* Аудио и видео */
-        .audio-post {
-            padding: 25px;
-            background: linear-gradient(45deg, rgba(0,255,204,0.05) 0%, transparent 100%);
-            border-radius: 15px;
-        }
-
-        .audio-title {
-            color: var(--neon-color);
-            margin: 0 0 15px 0;
-            font-size: 1.2em;
-        }
-
-        .audio-player {
-            width: 100%;
-            margin: 15px 0;
-            position: relative;
-        }
-
-        .audio-player audio {
-            width: 100%;
-            height: 40px;
-            border-radius: 20px;
-            background: transparent;
-        }
-
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%;
-            height: 0;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Лайки и действия */
-        .post-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(0,255,204,0.2);
-        }
-
-        .action-btn {
-            background: transparent;
-            border: none;
-            color: var(--secondary-text);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-            color: var(--neon-color);
-            background: rgba(0,255,204,0.1);
-        }
-
-        .action-btn.liked {
-            color: var(--neon-color);
-        }
-
-        /* Загрузка */
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: var(--neon-color);
-            position: relative;
-        }
-
-        .loading::after {
-            content: '';
-            width: 40px;
-            height: 40px;
-            border: 3px solid transparent;
-            border-top-color: var(--neon-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            position: absolute;
-            top: calc(50% - 20px);
-            left: calc(50% - 20px);
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            .posts-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-                padding: 10px;
-            }
-
-            .nav {
-                flex-direction: column;
-                gap: 10px;
-                padding: 15px;
-            }
-
-            .nav-link {
-                width: 80%;
-                margin: 0 auto;
-                text-align: center;
-            }
-
-            .profile-photo {
-                width: 120px;
-                height: 120px;
-            }
-
-            .profile-name {
-                font-size: 24px;
-            }
-        }
-    </style>
-</head>
+    }
+</style>
 <body>
-    <!-- Профиль -->
     <div class="profile-section">
         <div class="profile-content">
             <img id="profileImage" src="https://placehold.co/150x150" class="profile-photo" alt="Profile Photo">
@@ -364,41 +377,48 @@
         </div>
     </div>
 
-    <!-- Навигация -->
     <div class="nav">
         <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
         <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
         <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
     </div>
 
-    <!-- Контент -->
     <div class="content">
-        <!-- Все посты (фото) -->
         <div id="all" class="section active">
             <div class="posts-grid" id="allPosts">
                 <div class="loading">Загрузка постов</div>
             </div>
         </div>
 
-        <!-- Музыка -->
         <div id="music" class="section">
             <div class="posts-grid" id="musicPosts">
                 <div class="loading">Загрузка музыки</div>
             </div>
         </div>
 
-        <!-- Видео -->
         <div id="video" class="section">
             <div class="posts-grid" id="videoPosts">
                 <div class="loading">Загрузка видео</div>
             </div>
         </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            orderBy, 
+            getDocs, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            deleteDoc, 
+            setDoc,
+            serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
             authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -409,37 +429,44 @@
             measurementId: "G-0MKF0C3WQJ"
         };
 
-        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-                      // Инициализация Telegram WebApp
-        const tg = window.Telegram?.WebApp;
+        let tg = null;
         let currentUser = null;
 
-        // Функция инициализации
-        function initTelegram() {
-            if (window.Telegram?.WebApp) {
-                try {
-                    window.Telegram.WebApp.ready();
-                    currentUser = window.Telegram.WebApp.initDataUnsafe?.user;
-                    if (currentUser) {
-                        alert('Telegram инициализирован. ID пользователя: ' + currentUser.id);
+        async function initTelegram() {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                tg = window.Telegram?.WebApp;
+                
+                if (tg) {
+                    tg.ready();
+                    tg.expand();
+                    
+                    currentUser = tg.initDataUnsafe?.user;
+                    if (currentUser?.id) {
+                        console.log('Telegram инициализирован, ID:', currentUser.id);
+                        loadProfile();
+                        loadPosts();
                     } else {
-                        alert('Ошибка: пользователь не определен');
+                        console.warn('Используем тестовый режим');
+                        currentUser = { id: 'test_user' };
+                        loadProfile();
+                        loadPosts();
                     }
-                } catch (e) {
-                    alert('Ошибка инициализации Telegram: ' + e.message);
+                } else {
+                    console.warn('WebApp не найден, тестовый режим');
+                    currentUser = { id: 'test_user' };
+                    loadProfile();
+                    loadPosts();
                 }
-            } else {
-                alert('Ошибка: Telegram WebApp не найден');
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                currentUser = { id: 'test_user' };
+                loadProfile();
+                loadPosts();
             }
         }
-
-        // Вызываем инициализацию при загрузке страницы
-        document.addEventListener('DOMContentLoaded', initTelegram);
-
-        // Загрузка профиля
         async function loadProfile() {
             try {
                 const profileDoc = await getDoc(doc(db, 'profile', 'main'));
@@ -455,10 +482,8 @@
             }
         }
 
-        // Загрузка постов
         async function loadPosts() {
             try {
-                console.log('Начало загрузки постов');
                 const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
                 const querySnapshot = await getDocs(postsQuery);
                 
@@ -468,15 +493,29 @@
                     video: []
                 };
 
+                const likePromises = [];
+
                 querySnapshot.forEach((doc) => {
                     const post = doc.data();
                     post.id = doc.id;
                     if (post.category) {
                         posts[post.category].push(post);
+                        if (currentUser?.id) {
+                            const likePromise = checkLikeStatus(post.id);
+                            likePromises.push(likePromise);
+                        }
                     }
                 });
 
-                console.log('Посты получены:', posts);
+                const likeStatuses = await Promise.all(likePromises);
+                let likeIndex = 0;
+
+                Object.keys(posts).forEach(category => {
+                    posts[category].forEach(post => {
+                        post.isLiked = likeStatuses[likeIndex++];
+                    });
+                });
+
                 await Promise.all([
                     displayPosts('allPosts', posts.photo),
                     displayPosts('musicPosts', posts.music),
@@ -490,7 +529,16 @@
             }
         }
 
-        // Отображение постов
+        async function checkLikeStatus(postId) {
+            try {
+                const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
+                const likeDoc = await getDoc(likeRef);
+                return likeDoc.exists();
+            } catch (error) {
+                console.error('Ошибка проверки лайка:', error);
+                return false;
+            }
+        }
         function displayPosts(containerId, posts) {
             const container = document.getElementById(containerId);
             if (!posts.length) {
@@ -499,7 +547,7 @@
             }
 
             container.innerHTML = posts.map(post => {
-                const date = new Date(post.timestamp).toLocaleDateString('ru-RU');
+                const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
                 const isAdmin = currentUser?.id === '5794174511';
                 
                 let mediaContent = '';
@@ -527,9 +575,6 @@
                         </div>`;
                 }
 
-                const likes = post.likes || 0;
-                const isLiked = post.likedBy?.includes(currentUser?.id);
-
                 return `
                     <div class="post" data-post-id="${post.id}">
                         ${mediaContent}
@@ -537,9 +582,9 @@
                             <div class="post-description">${post.description}</div>
                             <div class="post-date">${date}</div>
                             <div class="post-actions">
-                                <button class="action-btn ${isLiked ? 'liked' : ''}" 
-                                        onclick="handleLike('${post.id}', ${likes})">
-                                    ${isLiked ? '❤️' : '🤍'} ${likes}
+                                <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
+                                        onclick="handleLike('${post.id}')">
+                                    ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
                                 </button>
                                 ${isAdmin ? `
                                     <button class="action-btn delete-btn" 
@@ -552,78 +597,80 @@
                     </div>`;
             }).join('');
         }
-
-                                     // Обработка лайков
-        window.handleLike = async function(postId, currentLikes) {
+        window.handleLike = async function(postId) {
             try {
-                // Проверяем инициализацию Telegram
-                if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                    alert('Ошибка: Telegram WebApp не инициализирован');
+                if (!currentUser?.id) {
+                    console.error('Пользователь не авторизован');
                     return;
                 }
 
-                const userId = tg.initDataUnsafe.user.id;
-                alert('ID пользователя: ' + userId);
-
-                // Получаем пост
+                const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
                 const postRef = doc(db, 'posts', postId);
-                const postDoc = await getDoc(postRef);
-                
+
+                const [likeDoc, postDoc] = await Promise.all([
+                    getDoc(likeRef),
+                    getDoc(postRef)
+                ]);
+
                 if (!postDoc.exists()) {
-                    alert('Ошибка: Пост не найден');
+                    console.error('Пост не найден');
                     return;
                 }
 
                 const post = postDoc.data();
-                const likedBy = post.likedBy || [];
-                const currentLikesCount = post.likes || 0;
-                const isLiked = likedBy.includes(userId);
+                const currentLikes = post.likes || 0;
 
-                // Обновляем данные
-                if (isLiked) {
-                    // Убираем лайк
-                    await updateDoc(postRef, {
-                        likes: Math.max(0, currentLikesCount - 1),
-                        likedBy: likedBy.filter(id => id !== userId)
-                    });
-                    alert('Лайк убран');
+                if (likeDoc.exists()) {
+                    await Promise.all([
+                        deleteDoc(likeRef),
+                        updateDoc(postRef, {
+                            likes: Math.max(0, currentLikes - 1)
+                        })
+                    ]);
                 } else {
-                    // Добавляем лайк
-                    await updateDoc(postRef, {
-                        likes: currentLikesCount + 1,
-                        likedBy: [...likedBy, userId]
-                    });
-                    alert('Лайк добавлен');
+                    await Promise.all([
+                        setDoc(likeRef, {
+                            userId: currentUser.id,
+                            postId,
+                            timestamp: serverTimestamp()
+                        }),
+                        updateDoc(postRef, {
+                            likes: currentLikes + 1
+                        })
+                    ]);
                 }
 
-                // Перезагружаем посты
                 loadPosts();
             } catch (error) {
-                alert('Ошибка: ' + error.message);
+                console.error('Ошибка лайка:', error);
             }
         };
-        // Удаление поста
+
         window.deletePost = async function(postId) {
             if (!currentUser || currentUser.id !== '5794174511') return;
 
-            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
+            if (confirm('Удалить пост?')) {
                 try {
                     await deleteDoc(doc(db, 'posts', postId));
+                    const likesQuery = query(collection(db, 'likes'), where('postId', '==', postId));
+                    const likesSnapshot = await getDocs(likesQuery);
+                    
+                    const deleteLikes = likesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+                    await Promise.all(deleteLikes);
+                    
                     loadPosts();
                 } catch (error) {
-                    console.error('Ошибка при удалении поста:', error);
+                    console.error('Ошибка удаления:', error);
                 }
             }
         };
 
-        // Получение ID видео из YouTube URL
         function getYoutubeVideoId(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        // Переключение разделов
         window.showSection = function(sectionId) {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
@@ -637,13 +684,8 @@
             document.getElementById(sectionId).classList.add('active');
         };
 
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', () => {
-            loadProfile();
-            loadPosts();
-        });
+        window.addEventListener('load', initTelegram);
 
-        // Обработка ошибок загрузки изображений
         document.addEventListener('error', function(e) {
             if (e.target.tagName.toLowerCase() === 'img') {
                 e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
@@ -652,3 +694,5 @@
     </script>
 </body>
 </html>
+
+
