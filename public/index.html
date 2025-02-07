@@ -413,31 +413,31 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-               // Инициализация переменных
-        let currentUser = null;
+                      // Инициализация Telegram WebApp
         const tg = window.Telegram?.WebApp;
+        let currentUser = null;
 
-        // Отладка Telegram WebApp
-        console.log('Инициализация приложения...');
-        console.log('Telegram WebApp объект:', tg);
-
-        // Инициализация Telegram
-        if (tg) {
-            try {
-                tg.expand();
-                currentUser = tg.initDataUnsafe?.user || { id: 'test_user' }; // Временное решение для тестирования
-                console.log('Telegram WebApp инициализирован');
-                console.log('Текущий пользователь:', currentUser);
-            } catch (e) {
-                console.error('Ошибка инициализации Telegram WebApp:', e);
-                // Временное решение для тестирования
-                currentUser = { id: 'test_user' };
+        // Функция инициализации
+        function initTelegram() {
+            if (window.Telegram?.WebApp) {
+                try {
+                    window.Telegram.WebApp.ready();
+                    currentUser = window.Telegram.WebApp.initDataUnsafe?.user;
+                    if (currentUser) {
+                        alert('Telegram инициализирован. ID пользователя: ' + currentUser.id);
+                    } else {
+                        alert('Ошибка: пользователь не определен');
+                    }
+                } catch (e) {
+                    alert('Ошибка инициализации Telegram: ' + e.message);
+                }
+            } else {
+                alert('Ошибка: Telegram WebApp не найден');
             }
-        } else {
-            console.log('Telegram WebApp не найден - сайт открыт не через Telegram');
-            // Временное решение для тестирования
-            currentUser = { id: 'test_user' };
         }
+
+        // Вызываем инициализацию при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initTelegram);
 
         // Загрузка профиля
         async function loadProfile() {
