@@ -553,24 +553,24 @@
             }).join('');
         }
 
-                               // Обработка лайков
+                                     // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
             try {
                 // Проверяем инициализацию Telegram
                 if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                    console.error('Telegram WebApp не инициализирован');
+                    alert('Ошибка: Telegram WebApp не инициализирован');
                     return;
                 }
 
                 const userId = tg.initDataUnsafe.user.id;
-                console.log('Пользователь:', userId);
+                alert('ID пользователя: ' + userId);
 
                 // Получаем пост
                 const postRef = doc(db, 'posts', postId);
                 const postDoc = await getDoc(postRef);
                 
                 if (!postDoc.exists()) {
-                    console.error('Пост не найден');
+                    alert('Ошибка: Пост не найден');
                     return;
                 }
 
@@ -579,12 +579,6 @@
                 const currentLikesCount = post.likes || 0;
                 const isLiked = likedBy.includes(userId);
 
-                console.log('Текущее состояние:', {
-                    currentLikesCount,
-                    likedBy,
-                    isLiked
-                });
-
                 // Обновляем данные
                 if (isLiked) {
                     // Убираем лайк
@@ -592,23 +586,22 @@
                         likes: Math.max(0, currentLikesCount - 1),
                         likedBy: likedBy.filter(id => id !== userId)
                     });
-                    console.log('Лайк убран');
+                    alert('Лайк убран');
                 } else {
                     // Добавляем лайк
                     await updateDoc(postRef, {
                         likes: currentLikesCount + 1,
                         likedBy: [...likedBy, userId]
                     });
-                    console.log('Лайк добавлен');
+                    alert('Лайк добавлен');
                 }
 
                 // Перезагружаем посты
                 loadPosts();
             } catch (error) {
-                console.error('Ошибка при обработке лайка:', error);
+                alert('Ошибка: ' + error.message);
             }
         };
-
         // Удаление поста
         window.deletePost = async function(postId) {
             if (!currentUser || currentUser.id !== '5794174511') return;
