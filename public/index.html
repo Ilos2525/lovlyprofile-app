@@ -7,17 +7,11 @@
     <meta name="description" content="whylovly - личный блог">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    
     <title>whylovly</title>
-    
-    <!-- Подключаем Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Подключаем шрифт Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <style>
-    /* Основные переменные и настройки темы */
     :root {
         --neon-color: #00ffcc;
         --neon-shadow: rgba(0, 255, 204, 0.3);
@@ -29,7 +23,6 @@
         --border-radius: 15px;
     }
 
-    /* Сброс и базовые стили */
     * {
         margin: 0;
         padding: 0;
@@ -47,7 +40,6 @@
         color-scheme: dark;
     }
 
-    /* Анимации */
     @keyframes neonPulse {
         0% { box-shadow: 0 0 10px var(--neon-shadow); }
         50% { box-shadow: 0 0 20px var(--neon-shadow); }
@@ -58,7 +50,7 @@
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-
+<style>
     /* Профиль */
     .profile-section {
         text-align: center;
@@ -113,8 +105,7 @@
         font-size: 16px;
         opacity: 0.9;
     }
-</style>
-<style>
+
     /* Навигация */
     .nav {
         display: flex;
@@ -140,6 +131,7 @@
         font-weight: 500;
         position: relative;
         overflow: hidden;
+        cursor: pointer;
     }
 
     .nav-link::before {
@@ -160,15 +152,15 @@
         background: var(--neon-color);
         color: var(--bg-color);
     }
-
-    /* Контейнер контента */
+</style>
+<style>
+    /* Контейнер контента и секции */
     .content {
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
     }
 
-    /* Секции */
     .section {
         display: none;
         opacity: 0;
@@ -182,8 +174,7 @@
         transform: translateY(0);
         animation: fadeIn 0.5s ease;
     }
-</style>
-<style>
+
     /* Посты */
     .posts-grid {
         display: grid;
@@ -226,6 +217,7 @@
         color: var(--secondary-text);
         line-height: 1.5;
         margin-bottom: 15px;
+        word-wrap: break-word;
     }
 
     .post-date {
@@ -245,6 +237,7 @@
         color: var(--neon-color);
         margin-bottom: 15px;
         font-size: 1.2em;
+        word-wrap: break-word;
     }
 
     .audio-player {
@@ -334,41 +327,6 @@
 
     @keyframes spin {
         to { transform: rotate(360deg); }
-    }
-</style>
-<style>
-    /* Адаптивность */
-    @media (max-width: 768px) {
-        .posts-grid {
-            grid-template-columns: 1fr;
-            gap: 20px;
-            padding: 10px;
-        }
-
-        .nav {
-            flex-direction: column;
-            gap: 10px;
-            padding: 15px;
-        }
-
-        .nav-link {
-            width: 80%;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .profile-photo {
-            width: 120px;
-            height: 120px;
-        }
-
-        .profile-name {
-            font-size: 24px;
-        }
-
-        .post img {
-            height: 250px;
-        }
     }
 
     /* Уведомления */
@@ -487,6 +445,41 @@
     .comment-text {
         color: var(--text-color);
         line-height: 1.4;
+        word-wrap: break-word;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .posts-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .nav {
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .nav-link {
+            width: 80%;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .profile-photo {
+            width: 120px;
+            height: 120px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+        }
+
+        .post img {
+            height: 250px;
+        }
     }
 </style>
 <body>
@@ -499,9 +492,9 @@
     </div>
 
     <div class="nav">
-        <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
-        <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
-        <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
+        <a class="nav-link active" onclick="showSection('all')">Главная</a>
+        <a class="nav-link" onclick="showSection('music')">Музыка</a>
+        <a class="nav-link" onclick="showSection('video')">Видео</a>
     </div>
 
     <div class="content">
@@ -523,6 +516,7 @@
             </div>
         </div>
     </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { 
@@ -537,7 +531,6 @@
         deleteDoc, 
         setDoc,
         serverTimestamp,
-        writeBatch,
         increment,
         where
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -556,7 +549,6 @@
     const db = getFirestore(app);
     let tg = null;
     let currentUser = null;
-
     function showNotification(type, username) {
         const existingNotification = document.querySelector('.notification');
         if (existingNotification) {
@@ -593,412 +585,403 @@
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
-async function initTelegram() {
-    try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        tg = window.Telegram?.WebApp;
-        
-        if (tg && tg.initDataUnsafe?.user) {
-            tg.ready();
-            tg.expand();
-            
-            currentUser = tg.initDataUnsafe.user;
-            console.log('Данные пользователя из Telegram:', currentUser);
-            
-            if (currentUser?.id) {
-                console.log('Успешная авторизация через Telegram, ID:', currentUser.id);
-                loadProfile();
-                loadPosts();
-            } else {
-                console.warn('Откройте сайт через Telegram');
-                alert('Этот сайт работает только через Telegram');
-                currentUser = null;
-                window.location.href = 'https://t.me/whylovly_bot';
-            }
-        } else {
-            console.warn('Откройте сайт через Telegram');
-            alert('Этот сайт работает только через Telegram');
-            currentUser = null;
-            window.location.href = 'https://t.me/whylovly_bot';
-        }
-    } catch (error) {
-        console.error('Ошибка инициализации:', error);
-        alert('Этот сайт работает только через Telegram');
-        currentUser = null;
-        window.location.href = 'https://t.me/whylovly_bot';
-    }
-}
 
-async function loadProfile() {
-    try {
-        const profileDoc = await getDoc(doc(db, 'profile', 'main'));
-        if (profileDoc.exists()) {
-            const data = profileDoc.data();
-            if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
-            if (data.name) document.getElementById('profileName').textContent = data.name;
-            if (data.bio) document.getElementById('profileBio').textContent = data.bio;
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки профиля:', error);
-        document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
-    }
-}
-async function loadPosts() {
-    try {
-        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(postsQuery);
-        
-        const posts = {
-            photo: [],
-            music: [],
-            video: []
-        };
-
-        const likePromises = [];
-
-        querySnapshot.forEach((doc) => {
-            const post = doc.data();
-            post.id = doc.id;
-            if (post.category) {
-                posts[post.category].push(post);
-                if (currentUser?.id) {
-                    const likePromise = checkLikeStatus(post.id);
-                    likePromises.push(likePromise);
-                }
-            }
-        });
-
-        const likeStatuses = await Promise.all(likePromises);
-        let likeIndex = 0;
-
-        Object.keys(posts).forEach(category => {
-            posts[category].forEach(post => {
-                post.isLiked = likeStatuses[likeIndex++];
-            });
-        });
-
-        await Promise.all([
-            displayPosts('allPosts', posts.photo),
-            displayPosts('musicPosts', posts.music),
-            displayPosts('videoPosts', posts.video)
-        ]);
-    } catch (error) {
-        console.error('Ошибка загрузки постов:', error);
-        document.querySelectorAll('.loading').forEach(el => {
-            el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
-        });
-    }
-}
-
-async function checkLikeStatus(postId) {
-    try {
-        const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
-        const likeDoc = await getDoc(likeRef);
-        return likeDoc.exists();
-    } catch (error) {
-        console.error('Ошибка проверки лайка:', error);
-        return false;
-    }
-}
-function displayPosts(containerId, posts) {
-    const container = document.getElementById(containerId);
-    if (!posts.length) {
-        container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-        return;
-    }
-
-    container.innerHTML = posts.map(post => {
-        const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
-        const isAdmin = currentUser?.id === '5794174511';
-        
-        let mediaContent = '';
-        if (post.category === 'photo') {
-            mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
-        } else if (post.category === 'music') {
-            mediaContent = `
-                <div class="audio-post">
-                    <h3 class="audio-title">${post.description}</h3>
-                    <div class="audio-player">
-                        <audio controls preload="none">
-                            <source src="${post.fileURL}" type="audio/mpeg">
-                        </audio>
-                    </div>
-                </div>`;
-        } else if (post.category === 'video') {
-            const videoId = getYoutubeVideoId(post.fileURL);
-            mediaContent = `
-                <div class="video-container">
-                    <iframe src="https://www.youtube.com/embed/${videoId}" 
-                            loading="lazy"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen>
-                    </iframe>
-                </div>`;
-        }
-
-        return `
-            <div class="post" data-post-id="${post.id}">
-                ${mediaContent}
-                <div class="post-content">
-                    <div class="post-description">${post.description}</div>
-                    <div class="post-date">${date}</div>
-                    <div class="post-actions">
-                        <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
-                                onclick="handleLike('${post.id}')">
-                            ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
-                        </button>
-                        <button class="action-btn comment-btn" 
-                                onclick="toggleComments('${post.id}')">
-                            💬 ${post.commentsCount || 0}
-                        </button>
-                        ${isAdmin ? `
-                            <button class="action-btn delete-btn" 
-                                    onclick="deletePost('${post.id}')">
-                                🗑️ Удалить
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div class="comments-section" id="comments-${post.id}" style="display: none;">
-                        <div class="comments-container" id="comments-container-${post.id}">
-                            <!-- Комментарии будут загружены сюда -->
-                        </div>
-                        <div class="comment-form">
-                            <textarea 
-                                id="comment-input-${post.id}" 
-                                class="comment-input" 
-                                placeholder="Написать комментарий..."
-                            ></textarea>
-                            <button 
-                                class="comment-submit" 
-                                onclick="addComment('${post.id}')"
-                            >
-                                Отправить
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    }).join('');
-    setupMobileKeyboardHandling();
-}
-window.handleLike = async function(postId) {
-    try {
-        if (!currentUser?.id) {
-            console.error('Необходима авторизация через Telegram');
-            alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/whylovly_bot';
-            return;
-        }
-
-        const userId = currentUser.id;
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        const likeRef = doc(db, 'likes', `${postId}_${userId}`);
-        const postRef = doc(db, 'posts', postId);
-
-        const [likeDoc, postDoc] = await Promise.all([
-            getDoc(likeRef),
-            getDoc(postRef)
-        ]);
-
-        if (!postDoc.exists()) {
-            console.error('Пост не найден');
-            return;
-        }
-
-        const post = postDoc.data();
-        const likedBy = post.likedBy || [];
-        const currentLikes = post.likes || 0;
-
-        if (likeDoc.exists() || likedBy.includes(userId)) {
-            // Убираем лайк
-            await Promise.all([
-                deleteDoc(likeRef),
-                updateDoc(postRef, {
-                    likes: Math.max(0, currentLikes - 1),
-                    likedBy: likedBy.filter(id => id !== userId)
-                })
-            ]);
-            showNotification('unlike', username);
-        } else {
-            // Добавляем лайк
-            await Promise.all([
-                setDoc(likeRef, {
-                    userId: userId,
-                    postId,
-                    timestamp: serverTimestamp()
-                }),
-                updateDoc(postRef, {
-                    likes: currentLikes + 1,
-                    likedBy: [...likedBy, userId]
-                })
-            ]);
-            showNotification('like', username);
-        }
-
-        loadPosts();
-    } catch (error) {
-        console.error('Ошибка лайка:', error);
-        alert('Произошла ошибка при обработке лайка');
-    }
-};
-
-window.deletePost = async function(postId) {
-    if (!currentUser || currentUser.id !== '5794174511') return;
-
-    if (confirm('Удалить пост?')) {
+    async function initTelegram() {
         try {
-            await deleteDoc(doc(db, 'posts', postId));
-            const likesQuery = query(collection(db, 'likes'), where('postId', '==', postId));
-            const likesSnapshot = await getDocs(likesQuery);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            tg = window.Telegram?.WebApp;
             
-            const deleteLikes = likesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-            await Promise.all(deleteLikes);
+            if (tg && tg.initDataUnsafe?.user) {
+                tg.ready();
+                tg.expand();
+                
+                currentUser = tg.initDataUnsafe.user;
+                console.log('Данные пользователя из Telegram:', currentUser);
+            } else {
+                console.log('Гостевой режим');
+                currentUser = null;
+            }
             
+            loadProfile();
+            loadPosts();
+            
+        } catch (error) {
+            console.error('Ошибка инициализации:', error);
+            currentUser = null;
+            loadProfile();
+            loadPosts();
+        }
+    }
+
+    async function loadProfile() {
+        try {
+            const profileDoc = await getDoc(doc(db, 'profile', 'main'));
+            if (profileDoc.exists()) {
+                const data = profileDoc.data();
+                if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
+                if (data.name) document.getElementById('profileName').textContent = data.name;
+                if (data.bio) document.getElementById('profileBio').textContent = data.bio;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
+            document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
+        }
+    }
+    async function loadPosts() {
+        try {
+            const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+            const querySnapshot = await getDocs(postsQuery);
+            
+            const posts = {
+                photo: [],
+                music: [],
+                video: []
+            };
+
+            const likePromises = [];
+
+            querySnapshot.forEach((doc) => {
+                const post = doc.data();
+                post.id = doc.id;
+                if (post.category) {
+                    posts[post.category].push(post);
+                    if (currentUser?.id) {
+                        const likePromise = checkLikeStatus(post.id);
+                        likePromises.push(likePromise);
+                    }
+                }
+            });
+
+            const likeStatuses = currentUser?.id ? await Promise.all(likePromises) : [];
+            let likeIndex = 0;
+
+            Object.keys(posts).forEach(category => {
+                posts[category].forEach(post => {
+                    post.isLiked = currentUser?.id ? likeStatuses[likeIndex++] : false;
+                });
+            });
+
+            await Promise.all([
+                displayPosts('allPosts', posts.photo),
+                displayPosts('musicPosts', posts.music),
+                displayPosts('videoPosts', posts.video)
+            ]);
+        } catch (error) {
+            console.error('Ошибка загрузки постов:', error);
+            document.querySelectorAll('.loading').forEach(el => {
+                el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
+            });
+        }
+    }
+
+    async function checkLikeStatus(postId) {
+        try {
+            if (!currentUser?.id) return false;
+            const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
+            const likeDoc = await getDoc(likeRef);
+            return likeDoc.exists();
+        } catch (error) {
+            console.error('Ошибка проверки лайка:', error);
+            return false;
+        }
+    }
+
+    function displayPosts(containerId, posts) {
+        const container = document.getElementById(containerId);
+        if (!posts.length) {
+            container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+            return;
+        }
+
+        container.innerHTML = posts.map(post => {
+            const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
+            const isAdmin = currentUser?.id === '5794174511';
+            
+            let mediaContent = '';
+            if (post.category === 'photo') {
+                mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy" onerror="this.src='https://placehold.co/300x300?text=Error+loading+image'">`;
+            } else if (post.category === 'music') {
+                mediaContent = `
+                    <div class="audio-post">
+                        <h3 class="audio-title">${post.description}</h3>
+                        <div class="audio-player">
+                            <audio controls preload="none">
+                                <source src="${post.fileURL}" type="audio/mpeg">
+                            </audio>
+                        </div>
+                    </div>`;
+            } else if (post.category === 'video') {
+                const videoId = getYoutubeVideoId(post.fileURL);
+                mediaContent = `
+                    <div class="video-container">
+                        <iframe src="https://www.youtube.com/embed/${videoId}" 
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                        </iframe>
+                    </div>`;
+            }
+            return `
+                <div class="post" data-post-id="${post.id}">
+                    ${mediaContent}
+                    <div class="post-content">
+                        <div class="post-description">${post.description}</div>
+                        <div class="post-date">${date}</div>
+                        <div class="post-actions">
+                            <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
+                                    onclick="handleLike('${post.id}')">
+                                ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
+                            </button>
+                            <button class="action-btn comment-btn" 
+                                    onclick="toggleComments('${post.id}')">
+                                💬 ${post.commentsCount || 0}
+                            </button>
+                            ${isAdmin ? `
+                                <button class="action-btn delete-btn" 
+                                        onclick="deletePost('${post.id}')">
+                                    🗑️ Удалить
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="comments-section" id="comments-${post.id}" style="display: none;">
+                            <div class="comments-container" id="comments-container-${post.id}">
+                                <!-- Комментарии будут загружены сюда -->
+                            </div>
+                            <div class="comment-form">
+                                <textarea 
+                                    id="comment-input-${post.id}" 
+                                    class="comment-input" 
+                                    placeholder="Написать комментарий..."
+                                ></textarea>
+                                <button 
+                                    class="comment-submit" 
+                                    onclick="addComment('${post.id}')"
+                                >
+                                    Отправить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+        setupMobileKeyboardHandling();
+    }
+
+    window.handleLike = async function(postId) {
+        try {
+            if (!currentUser?.id) {
+                alert('Для лайков необходима авторизация через Telegram');
+                return;
+            }
+
+            const userId = currentUser.id;
+            const username = currentUser.username || currentUser.first_name || 'Unknown';
+            const likeRef = doc(db, 'likes', `${postId}_${userId}`);
+            const postRef = doc(db, 'posts', postId);
+
+            const [likeDoc, postDoc] = await Promise.all([
+                getDoc(likeRef),
+                getDoc(postRef)
+            ]);
+
+            if (!postDoc.exists()) {
+                console.error('Пост не найден');
+                return;
+            }
+
+            const post = postDoc.data();
+            const likedBy = post.likedBy || [];
+            const currentLikes = post.likes || 0;
+
+            if (likeDoc.exists() || likedBy.includes(userId)) {
+                await Promise.all([
+                    deleteDoc(likeRef),
+                    updateDoc(postRef, {
+                        likes: Math.max(0, currentLikes - 1),
+                        likedBy: likedBy.filter(id => id !== userId)
+                    })
+                ]);
+                showNotification('unlike', username);
+            } else {
+                await Promise.all([
+                    setDoc(likeRef, {
+                        userId: userId,
+                        postId,
+                        timestamp: serverTimestamp()
+                    }),
+                    updateDoc(postRef, {
+                        likes: currentLikes + 1,
+                        likedBy: [...likedBy, userId]
+                    })
+                ]);
+                showNotification('like', username);
+            }
+
             loadPosts();
         } catch (error) {
-            console.error('Ошибка удаления:', error);
+            console.error('Ошибка лайка:', error);
+            alert('Произошла ошибка при обработке лайка');
         }
-    }
-};
-window.toggleComments = async function(postId) {
-    const commentsSection = document.getElementById(`comments-${postId}`);
-    const commentsContainer = document.getElementById(`comments-container-${postId}`);
-    
-    if (commentsSection.style.display === 'none') {
-        commentsSection.style.display = 'block';
-        await loadComments(postId, commentsContainer);
-    } else {
-        commentsSection.style.display = 'none';
-    }
-};
+    };
+    window.deletePost = async function(postId) {
+        if (!currentUser || currentUser.id !== '5794174511') return;
 
-async function loadComments(postId, container) {
-    try {
-        console.log('Загрузка комментариев для поста:', postId);
-        const commentsQuery = query(
-            collection(db, 'comments'),
-            where('postId', '==', postId),
-            orderBy('timestamp', 'desc')
-        );
-        
-        console.log('Query создан');
-        const commentsSnapshot = await getDocs(commentsQuery);
-        console.log('Получены комментарии:', commentsSnapshot.size);
-        
-        if (commentsSnapshot.empty) {
-            container.innerHTML = '<div class="comment">Нет комментариев</div>';
-            return;
+        if (confirm('Удалить пост?')) {
+            try {
+                await deleteDoc(doc(db, 'posts', postId));
+                const likesQuery = query(collection(db, 'likes'), where('postId', '==', postId));
+                const commentsQuery = query(collection(db, 'comments'), where('postId', '==', postId));
+                
+                const [likesSnapshot, commentsSnapshot] = await Promise.all([
+                    getDocs(likesQuery),
+                    getDocs(commentsQuery)
+                ]);
+                
+                const deletePromises = [
+                    ...likesSnapshot.docs.map(doc => deleteDoc(doc.ref)),
+                    ...commentsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+                ];
+                
+                await Promise.all(deletePromises);
+                loadPosts();
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                alert('Ошибка при удалении поста');
+            }
         }
+    };
 
-        container.innerHTML = commentsSnapshot.docs.map(doc => {
-            const comment = doc.data();
-            console.log('Комментарий:', comment);
-            const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
-            return `
-                <div class="comment">
-                    <div class="comment-header">
-                        <span class="comment-author">@${comment.username}</span>
-                        <span class="comment-date">${date}</span>
+    window.toggleComments = async function(postId) {
+        const commentsSection = document.getElementById(`comments-${postId}`);
+        const commentsContainer = document.getElementById(`comments-container-${postId}`);
+        
+        if (commentsSection.style.display === 'none') {
+            commentsSection.style.display = 'block';
+            await loadComments(postId, commentsContainer);
+        } else {
+            commentsSection.style.display = 'none';
+        }
+    };
+
+    async function loadComments(postId, container) {
+        try {
+            const commentsQuery = query(
+                collection(db, 'comments'),
+                where('postId', '==', postId),
+                orderBy('timestamp', 'desc')
+            );
+            
+            const commentsSnapshot = await getDocs(commentsQuery);
+            
+            if (commentsSnapshot.empty) {
+                container.innerHTML = '<div class="comment">Нет комментариев</div>';
+                return;
+            }
+
+            container.innerHTML = commentsSnapshot.docs.map(doc => {
+                const comment = doc.data();
+                const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
+                return `
+                    <div class="comment">
+                        <div class="comment-header">
+                            <span class="comment-author">@${comment.username}</span>
+                            <span class="comment-date">${date}</span>
+                        </div>
+                        <div class="comment-text">${comment.text}</div>
                     </div>
-                    <div class="comment-text">${comment.text}</div>
-                </div>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Полная ошибка загрузки комментариев:', error);
-        container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
-    }
-}
-window.addComment = async function(postId) {
-    try {
-        if (!currentUser?.id) {
-            console.error('Необходима авторизация через Telegram');
-            alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/whylovly_bot';
-            return;
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Ошибка загрузки комментариев:', error);
+            container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
         }
+    }
+    window.addComment = async function(postId) {
+        try {
+            if (!currentUser?.id) {
+                alert('Для комментариев необходима авторизация через Telegram');
+                return;
+            }
 
-        const input = document.getElementById(`comment-input-${postId}`);
-        const text = input.value.trim();
-        
-        if (!text) {
-            alert('Введите текст комментария');
-            return;
+            const input = document.getElementById(`comment-input-${postId}`);
+            const text = input.value.trim();
+            
+            if (!text) {
+                alert('Введите текст комментария');
+                return;
+            }
+
+            const username = currentUser.username || currentUser.first_name || 'Unknown';
+            
+            const commentRef = doc(collection(db, 'comments'));
+            await setDoc(commentRef, {
+                postId,
+                userId: currentUser.id,
+                username,
+                text,
+                timestamp: serverTimestamp()
+            });
+
+            const postRef = doc(db, 'posts', postId);
+            await updateDoc(postRef, {
+                commentsCount: increment(1)
+            });
+
+            input.value = '';
+            
+            const container = document.getElementById(`comments-container-${postId}`);
+            await loadComments(postId, container);
+            
+            loadPosts();
+            
+            showNotification('comment', username);
+        } catch (error) {
+            console.error('Ошибка добавления комментария:', error);
+            alert('Ошибка при добавлении комментария');
         }
+    };
 
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        
-        // Добавляем комментарий
-        const commentRef = doc(collection(db, 'comments'));
-        await setDoc(commentRef, {
-            postId,
-            userId: currentUser.id,
-            username,
-            text,
-            timestamp: serverTimestamp()
+    function setupMobileKeyboardHandling() {
+        const inputs = document.querySelectorAll('.comment-input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                setTimeout(() => {
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+            
+            input.addEventListener('blur', () => {
+                window.scrollTo(0, window.scrollY);
+            });
         });
-
-        // Обновляем счетчик комментариев в посте
-        const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, {
-            commentsCount: increment(1)
-        });
-
-        // Очищаем поле ввода
-        input.value = '';
-        
-        // Перезагружаем комментарии
-        const container = document.getElementById(`comments-container-${postId}`);
-        await loadComments(postId, container);
-        
-        // Перезагружаем посты для обновления счетчика
-        loadPosts();
-        
-        showNotification('comment', username);
-    } catch (error) {
-        console.error('Ошибка добавления комментария:', error);
-        alert('Ошибка при добавлении комментария');
     }
-};
 
-function setupMobileKeyboardHandling() {
-    const inputs = document.querySelectorAll('.comment-input');
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => {
-            window.scrollTo(0, 0);
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-            }, 100);
-        });
-    });
-}
-
-function getYoutubeVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-}
-
-window.showSection = function(sectionId) {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    event.target.classList.add('active');
-
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    document.getElementById(sectionId).classList.add('active');
-};
-
-window.addEventListener('load', initTelegram);
-
-document.addEventListener('error', function(e) {
-    if (e.target.tagName.toLowerCase() === 'img') {
-        e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+    function getYoutubeVideoId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
     }
-}, true);
+
+    window.showSection = function(sectionId) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        document.getElementById(sectionId).classList.add('active');
+    };
+
+    window.addEventListener('load', initTelegram);
+
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName.toLowerCase() === 'img') {
+            e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+        }
+    }, true);
 </script>
 </body>
 </html>
