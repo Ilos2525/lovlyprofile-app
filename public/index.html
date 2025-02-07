@@ -594,39 +594,43 @@
             }, 3000);
         }
 
-        async function initTelegram() {
-            try {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                tg = window.Telegram?.WebApp;
-                
-                if (tg) {
-                    tg.ready();
-                    tg.expand();
-                    
-                    currentUser = tg.initDataUnsafe?.user;
-                    if (currentUser?.id) {
-                        console.log('Telegram инициализирован, ID:', currentUser.id);
-                        loadProfile();
-                        loadPosts();
-                    } else {
-                        console.warn('Используем тестовый режим');
-                        currentUser = { id: 'test_user' };
-                        loadProfile();
-                        loadPosts();
-                    }
-                } else {
-                    console.warn('WebApp не найден, тестовый режим');
-                    currentUser = { id: 'test_user' };
-                    loadProfile();
-                    loadPosts();
-                }
-            } catch (error) {
-                console.error('Ошибка инициализации:', error);
-                currentUser = { id: 'test_user' };
+   async function initTelegram() {
+    try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        tg = window.Telegram?.WebApp;
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            
+            currentUser = tg.initDataUnsafe?.user;
+            console.log('Данные пользователя:', currentUser);
+            
+            if (currentUser?.id) {
+                console.log('Telegram инициализирован, ID:', currentUser.id);
+                loadProfile();
+                loadPosts();
+            } else {
+                console.warn('Пользователь не авторизован в Telegram');
+                alert('Пожалуйста, откройте сайт через Telegram');
+                currentUser = null;
                 loadProfile();
                 loadPosts();
             }
+        } else {
+            console.warn('WebApp не найден');
+            alert('Пожалуйста, откройте сайт через Telegram');
+            currentUser = null;
+            loadProfile();
+            loadPosts();
         }
+    } catch (error) {
+        console.error('Ошибка инициализации:', error);
+        currentUser = null;
+        loadProfile();
+        loadPosts();
+    }
+}
         async function loadProfile() {
             try {
                 const profileDoc = await getDoc(doc(db, 'profile', 'main'));
@@ -778,6 +782,8 @@ function displayPosts(containerId, posts) {
                 </div>
             </div>`;
     }).join('');
+   // Добавьте только эту строку в конец функции
+    setupMobileKeyboardHandling();
 }
                 window.handleLike = async function(postId) {
             try {
@@ -886,40 +892,43 @@ function displayPosts(containerId, posts) {
             }
         };
 
-        // Функция загрузки комментариев
-        async function loadComments(postId, container) {
-            try {
-                const commentsQuery = query(
-                    collection(db, 'comments'),
-                    where('postId', '==', postId),
-                    orderBy('timestamp', 'desc')
-                );
-                
-                const commentsSnapshot = await getDocs(commentsQuery);
-                
-                if (commentsSnapshot.empty) {
-                    container.innerHTML = '<div class="comment">Нет комментариев</div>';
-                    return;
-                }
-
-                container.innerHTML = commentsSnapshot.docs.map(doc => {
-                    const comment = doc.data();
-                    const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
-                    return `
-                        <div class="comment">
-                            <div class="comment-header">
-                                <span class="comment-author">@${comment.username}</span>
-                                <span class="comment-date">${date}</span>
-                            </div>
-                            <div class="comment-text">${comment.text}</div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Ошибка загрузки комментариев:', error);
-                container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
-            }
+  async function loadComments(postId, container) {
+    try {
+        console.log('Загрузка комментариев для поста:', postId);
+        const commentsQuery = query(
+            collection(db, 'comments'),
+            where('postId', '==', postId),
+            orderBy('timestamp', 'desc')
+        );
+        
+        console.log('Query создан');
+        const commentsSnapshot = await getDocs(commentsQuery);
+        console.log('Получены комментарии:', commentsSnapshot.size);
+        
+        if (commentsSnapshot.empty) {
+            container.innerHTML = '<div class="comment">Нет комментариев</div>';
+            return;
         }
+
+        container.innerHTML = commentsSnapshot.docs.map(doc => {
+            const comment = doc.data();
+            console.log('Комментарий:', comment);
+            const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
+            return `
+                <div class="comment">
+                    <div class="comment-header">
+                        <span class="comment-author">@${comment.username}</span>
+                        <span class="comment-date">${date}</span>
+                    </div>
+                    <div class="comment-text">${comment.text}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Полная ошибка загрузки комментариев:', error);
+        container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
+    }
+}
 
         // Функция добавления комментария
         window.addComment = async function(postId) {
@@ -971,6 +980,18 @@ function displayPosts(containerId, posts) {
                 alert('Ошибка при добавлении комментария');
             }
         };
+function setupMobileKeyboardHandling() {
+    const inputs = document.querySelectorAll('.comment-input');
+    inputs.forEach(input => {
+        input.addEventListener('blur', () => {
+            window.scrollTo(0, 0);
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+    });
+}
+
         window.addEventListener('load', initTelegram);
 
         document.addEventListener('error', function(e) {
