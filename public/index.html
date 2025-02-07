@@ -113,7 +113,8 @@
         font-size: 16px;
         opacity: 0.9;
     }
-
+</style>
+<style>
     /* Навигация */
     .nav {
         display: flex;
@@ -257,7 +258,8 @@
         border-radius: 20px;
         background: transparent;
     }
-
+</style>
+<style>
     /* Видео контейнер */
     .video-container {
         position: relative;
@@ -333,7 +335,8 @@
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
-
+</style>
+<style>
     /* Адаптивность */
     @media (max-width: 768px) {
         .posts-grid {
@@ -367,6 +370,7 @@
             height: 250px;
         }
     }
+
     /* Уведомления */
     .notification {
         position: fixed;
@@ -409,6 +413,8 @@
         font-size: 14px;
         opacity: 0.9;
     }
+</style>
+<style>
     /* Комментарии */
     .comments-section {
         margin-top: 20px;
@@ -517,83 +523,76 @@
             </div>
         </div>
     </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, 
+        collection, 
+        query, 
+        orderBy, 
+        getDocs, 
+        doc, 
+        getDoc, 
+        updateDoc, 
+        deleteDoc, 
+        setDoc,
+        serverTimestamp,
+        writeBatch,
+        increment,
+        where
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-       import { 
-    getFirestore, 
-    collection, 
-    query, 
-    orderBy, 
-    getDocs, 
-    doc, 
-    getDoc, 
-    updateDoc, 
-    deleteDoc, 
-    setDoc,
-    serverTimestamp,
-    writeBatch,
-    increment,
-    where
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+        authDomain: "whylovly-website-8adcb.firebaseapp.com",
+        projectId: "whylovly-website-8adcb",
+        storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+        messagingSenderId: "749833792533",
+        appId: "1:749833792533:web:2494649a11b628cd84321c",
+        measurementId: "G-0MKF0C3WQJ"
+    };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-            authDomain: "whylovly-website-8adcb.firebaseapp.com",
-            projectId: "whylovly-website-8adcb",
-            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-            messagingSenderId: "749833792533",
-            appId: "1:749833792533:web:2494649a11b628cd84321c",
-            measurementId: "G-0MKF0C3WQJ"
-        };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let tg = null;
+    let currentUser = null;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        let tg = null;
-        let currentUser = null;
-      function showNotification(type, username) {
-    // Удаляем предыдущее уведомление, если есть
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
-    // Создаем новое уведомление
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    
-    let icon, message;
-    if (type === 'like') {
-        icon = '❤️';
-        message = 'поставил(а) лайк';
-    } else if (type === 'unlike') {
-        icon = '🤍';
-        message = 'убрал(а) лайк';
-    } else if (type === 'comment') {
-        icon = '💬';
-        message = 'добавил(а) комментарий';
-    }
-
-            notification.innerHTML = `
-                <div class="notification-icon">${icon}</div>
-                <div class="notification-content">
-                    <div class="notification-user">@${username}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-
-            document.body.appendChild(notification);
-            
-            // Показываем уведомление
-            setTimeout(() => notification.classList.add('show'), 100);
-
-            // Скрываем через 3 секунды
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
+    function showNotification(type, username) {
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
         }
 
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        
+        let icon, message;
+        if (type === 'like') {
+            icon = '❤️';
+            message = 'поставил(а) лайк';
+        } else if (type === 'unlike') {
+            icon = '🤍';
+            message = 'убрал(а) лайк';
+        } else if (type === 'comment') {
+            icon = '💬';
+            message = 'добавил(а) комментарий';
+        }
+
+        notification.innerHTML = `
+            <div class="notification-icon">${icon}</div>
+            <div class="notification-content">
+                <div class="notification-user">@${username}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.add('show'), 100);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 async function initTelegram() {
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -629,78 +628,78 @@ async function initTelegram() {
         window.location.href = 'https://t.me/whylovly_bot';
     }
 }
-        async function loadProfile() {
-            try {
-                const profileDoc = await getDoc(doc(db, 'profile', 'main'));
-                if (profileDoc.exists()) {
-                    const data = profileDoc.data();
-                    if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
-                    if (data.name) document.getElementById('profileName').textContent = data.name;
-                    if (data.bio) document.getElementById('profileBio').textContent = data.bio;
+
+async function loadProfile() {
+    try {
+        const profileDoc = await getDoc(doc(db, 'profile', 'main'));
+        if (profileDoc.exists()) {
+            const data = profileDoc.data();
+            if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
+            if (data.name) document.getElementById('profileName').textContent = data.name;
+            if (data.bio) document.getElementById('profileBio').textContent = data.bio;
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+        document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
+    }
+}
+async function loadPosts() {
+    try {
+        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(postsQuery);
+        
+        const posts = {
+            photo: [],
+            music: [],
+            video: []
+        };
+
+        const likePromises = [];
+
+        querySnapshot.forEach((doc) => {
+            const post = doc.data();
+            post.id = doc.id;
+            if (post.category) {
+                posts[post.category].push(post);
+                if (currentUser?.id) {
+                    const likePromise = checkLikeStatus(post.id);
+                    likePromises.push(likePromise);
                 }
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-                document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
             }
-        }
+        });
 
-        async function loadPosts() {
-            try {
-                const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-                const querySnapshot = await getDocs(postsQuery);
-                
-                const posts = {
-                    photo: [],
-                    music: [],
-                    video: []
-                };
+        const likeStatuses = await Promise.all(likePromises);
+        let likeIndex = 0;
 
-                const likePromises = [];
+        Object.keys(posts).forEach(category => {
+            posts[category].forEach(post => {
+                post.isLiked = likeStatuses[likeIndex++];
+            });
+        });
 
-                querySnapshot.forEach((doc) => {
-                    const post = doc.data();
-                    post.id = doc.id;
-                    if (post.category) {
-                        posts[post.category].push(post);
-                        if (currentUser?.id) {
-                            const likePromise = checkLikeStatus(post.id);
-                            likePromises.push(likePromise);
-                        }
-                    }
-                });
+        await Promise.all([
+            displayPosts('allPosts', posts.photo),
+            displayPosts('musicPosts', posts.music),
+            displayPosts('videoPosts', posts.video)
+        ]);
+    } catch (error) {
+        console.error('Ошибка загрузки постов:', error);
+        document.querySelectorAll('.loading').forEach(el => {
+            el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
+        });
+    }
+}
 
-                const likeStatuses = await Promise.all(likePromises);
-                let likeIndex = 0;
-
-                Object.keys(posts).forEach(category => {
-                    posts[category].forEach(post => {
-                        post.isLiked = likeStatuses[likeIndex++];
-                    });
-                });
-
-                await Promise.all([
-                    displayPosts('allPosts', posts.photo),
-                    displayPosts('musicPosts', posts.music),
-                    displayPosts('videoPosts', posts.video)
-                ]);
-            } catch (error) {
-                console.error('Ошибка загрузки постов:', error);
-                document.querySelectorAll('.loading').forEach(el => {
-                    el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
-                });
-            }
-        }
-
-        async function checkLikeStatus(postId) {
-            try {
-                const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
-                const likeDoc = await getDoc(likeRef);
-                return likeDoc.exists();
-            } catch (error) {
-                console.error('Ошибка проверки лайка:', error);
-                return false;
-            }
-        }
+async function checkLikeStatus(postId) {
+    try {
+        const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
+        const likeDoc = await getDoc(likeRef);
+        return likeDoc.exists();
+    } catch (error) {
+        console.error('Ошибка проверки лайка:', error);
+        return false;
+    }
+}
 function displayPosts(containerId, posts) {
     const container = document.getElementById(containerId);
     if (!posts.length) {
@@ -780,10 +779,9 @@ function displayPosts(containerId, posts) {
                 </div>
             </div>`;
     }).join('');
-   // Добавьте только эту строку в конец функции
     setupMobileKeyboardHandling();
 }
-               window.handleLike = async function(postId) {
+window.handleLike = async function(postId) {
     try {
         if (!currentUser?.id) {
             console.error('Необходима авторизация через Telegram');
@@ -844,38 +842,37 @@ function displayPosts(containerId, posts) {
     }
 };
 
-        function getYoutubeVideoId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+window.deletePost = async function(postId) {
+    if (!currentUser || currentUser.id !== '5794174511') return;
+
+    if (confirm('Удалить пост?')) {
+        try {
+            await deleteDoc(doc(db, 'posts', postId));
+            const likesQuery = query(collection(db, 'likes'), where('postId', '==', postId));
+            const likesSnapshot = await getDocs(likesQuery);
+            
+            const deleteLikes = likesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deleteLikes);
+            
+            loadPosts();
+        } catch (error) {
+            console.error('Ошибка удаления:', error);
         }
+    }
+};
+window.toggleComments = async function(postId) {
+    const commentsSection = document.getElementById(`comments-${postId}`);
+    const commentsContainer = document.getElementById(`comments-container-${postId}`);
+    
+    if (commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+        await loadComments(postId, commentsContainer);
+    } else {
+        commentsSection.style.display = 'none';
+    }
+};
 
-        window.showSection = function(sectionId) {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.getElementById(sectionId).classList.add('active');
-        };
-        // Функция переключения отображения комментариев
-        window.toggleComments = async function(postId) {
-            const commentsSection = document.getElementById(`comments-${postId}`);
-            const commentsContainer = document.getElementById(`comments-container-${postId}`);
-            
-            if (commentsSection.style.display === 'none') {
-                commentsSection.style.display = 'block';
-                await loadComments(postId, commentsContainer);
-            } else {
-                commentsSection.style.display = 'none';
-            }
-        };
-
-  async function loadComments(postId, container) {
+async function loadComments(postId, container) {
     try {
         console.log('Загрузка комментариев для поста:', postId);
         const commentsQuery = query(
@@ -912,8 +909,6 @@ function displayPosts(containerId, posts) {
         container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
     }
 }
-
-        // Функция добавления комментария
 window.addComment = async function(postId) {
     try {
         if (!currentUser?.id) {
@@ -965,6 +960,7 @@ window.addComment = async function(postId) {
         alert('Ошибка при добавлении комментария');
     }
 };
+
 function setupMobileKeyboardHandling() {
     const inputs = document.querySelectorAll('.comment-input');
     inputs.forEach(input => {
@@ -977,15 +973,32 @@ function setupMobileKeyboardHandling() {
     });
 }
 
-        window.addEventListener('load', initTelegram);
+function getYoutubeVideoId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
 
-        document.addEventListener('error', function(e) {
-            if (e.target.tagName.toLowerCase() === 'img') {
-                e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
-            }
-        }, true);
-    </script>
+window.showSection = function(sectionId) {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    document.getElementById(sectionId).classList.add('active');
+};
+
+window.addEventListener('load', initTelegram);
+
+document.addEventListener('error', function(e) {
+    if (e.target.tagName.toLowerCase() === 'img') {
+        e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+    }
+}, true);
+</script>
 </body>
 </html>
-
-
