@@ -834,13 +834,16 @@ function displayPosts(containerId, posts) {
    // Добавьте только эту строку в конец функции
     setupMobileKeyboardHandling();
 }
-               window.handleLike = async function(postId) {
+window.handleLike = async function(postId) {
     try {
         if (!currentUser?.id) {
             console.error('Необходима авторизация через Telegram');
             alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/whylovly_bot';
+            window.location.href = 'https://t.me/lovlyprofilebot'; // Исправлено здесь
             return;
+        }
+        // ... остальной код функции ...
+    
         }
 
         const userId = currentUser.id;
@@ -970,9 +973,11 @@ window.addComment = async function(postId) {
         if (!currentUser?.id) {
             console.error('Необходима авторизация через Telegram');
             alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/whylovly_bot';
+            window.location.href = 'https://t.me/lovlyprofilebot'; // Исправлено здесь
             return;
         }
+        // ... остальной код функции ...
+    }
 
         const input = document.getElementById(`comment-input-${postId}`);
         const text = input.value.trim();
