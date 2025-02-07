@@ -553,32 +553,58 @@
             }).join('');
         }
 
-                // Обработка лайков
+                        // Обработка лайков
         window.handleLike = async function(postId, currentLikes) {
             try {
-                const postRef = doc(db, 'posts', postId);
-                const postDoc = await getDoc(postRef);
-                const post = postDoc.data();
-                const likedBy = post.likedBy || [];
-                const userId = currentUser?.id || 'test_user';
-                const isLiked = likedBy.includes(userId);
-
-                // Проверяем, лайкнул ли текущий пользователь
-                if (isLiked) {
-                    // Убираем лайк текущего пользователя
-                    await updateDoc(postRef, {
-                        likes: post.likes - 1,
-                        likedBy: likedBy.filter(id => id !== userId)
-                    });
-                } else {
-                    // Добавляем лайк текущего пользователя
-                    await updateDoc(postRef, {
-                        likes: (post.likes || 0) + 1,
-                        likedBy: [...likedBy, userId]
-                    });
+                // Получаем текущего пользователя из Telegram
+                const userId = tg?.initDataUnsafe?.user?.id;
+                if (!userId) {
+                    console.error('Пользователь не авторизован');
+                    return;
                 }
 
-                // Перезагружаем посты для обновления отображения
+                // Получаем документ поста
+                const postRef = doc(db, 'posts', postId);
+                const postDoc = await getDoc(postRef);
+                
+                if (!postDoc.exists()) {
+                    console.error('Пост не найден');
+                    return;
+                }
+
+                const post = postDoc.data();
+                const likedBy = post.likedBy || [];
+                const isLiked = likedBy.includes(userId);
+
+                console.log('Текущий пользователь:', userId);
+                console.log('Текущие лайки:', post.likes);
+                console.log('Лайкнувшие:', likedBy);
+
+                let newLikes = post.likes || 0;
+                let newLikedBy = [...likedBy];
+
+                if (isLiked) {
+                    // Если пользователь уже лайкнул, убираем его лайк
+                    newLikes = Math.max(0, newLikes - 1);
+                    newLikedBy = newLikedBy.filter(id => id !== userId);
+                    console.log('Убираем лайк');
+                } else {
+                    // Если пользователь еще не лайкнул, добавляем его лайк
+                    newLikes = newLikes + 1;
+                    newLikedBy.push(userId);
+                    console.log('Добавляем лайк');
+                }
+
+                // Обновляем документ
+                await updateDoc(postRef, {
+                    likes: newLikes,
+                    likedBy: newLikedBy
+                });
+
+                console.log('Обновлено. Новые лайки:', newLikes);
+                console.log('Новый список лайкнувших:', newLikedBy);
+
+                // Перезагружаем посты
                 loadPosts();
             } catch (error) {
                 console.error('Ошибка при обработке лайка:', error);
