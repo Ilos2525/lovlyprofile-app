@@ -594,16 +594,16 @@
             }, 3000);
         }
 
-   async function initTelegram() {
+  async function initTelegram() {
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         tg = window.Telegram?.WebApp;
         
-        if (tg) {
+        if (tg && tg.initDataUnsafe?.user) {
             tg.ready();
             tg.expand();
             
-            currentUser = tg.initDataUnsafe?.user;
+            currentUser = tg.initDataUnsafe.user;
             console.log('Данные пользователя:', currentUser);
             
             if (currentUser?.id) {
@@ -611,22 +611,32 @@
                 loadProfile();
                 loadPosts();
             } else {
-                console.warn('Пользователь не авторизован в Telegram');
-                alert('Пожалуйста, откройте сайт через Telegram');
-                currentUser = null;
+                console.log('Используем тестовый режим - нет ID пользователя');
+                currentUser = { 
+                    id: `tg_${Date.now()}`,
+                    username: 'Гость',
+                    first_name: 'Гость'
+                };
                 loadProfile();
                 loadPosts();
             }
         } else {
-            console.warn('WebApp не найден');
-            alert('Пожалуйста, откройте сайт через Telegram');
-            currentUser = null;
+            console.log('Используем тестовый режим - нет WebApp');
+            currentUser = { 
+                id: `tg_${Date.now()}`,
+                username: 'Гость',
+                first_name: 'Гость'
+            };
             loadProfile();
             loadPosts();
         }
     } catch (error) {
         console.error('Ошибка инициализации:', error);
-        currentUser = null;
+        currentUser = { 
+            id: `tg_${Date.now()}`,
+            username: 'Гость',
+            first_name: 'Гость'
+        };
         loadProfile();
         loadPosts();
     }
@@ -931,55 +941,55 @@ function displayPosts(containerId, posts) {
 }
 
         // Функция добавления комментария
-        window.addComment = async function(postId) {
-            try {
-                if (!currentUser?.id) {
-                    alert('Необходимо авторизоваться');
-                    return;
-                }
+window.addComment = async function(postId) {
+    try {
+        if (!currentUser?.id) {
+            console.error('Нет данных пользователя');
+            return;
+        }
 
-                const input = document.getElementById(`comment-input-${postId}`);
-                const text = input.value.trim();
-                
-                if (!text) {
-                    alert('Введите текст комментария');
-                    return;
-                }
+        const input = document.getElementById(`comment-input-${postId}`);
+        const text = input.value.trim();
+        
+        if (!text) {
+            alert('Введите текст комментария');
+            return;
+        }
 
-                const username = currentUser.username || currentUser.first_name || 'пользователь';
-                
-                // Добавляем комментарий
-                const commentRef = doc(collection(db, 'comments'));
-                await setDoc(commentRef, {
-                    postId,
-                    userId: currentUser.id,
-                    username,
-                    text,
-                    timestamp: serverTimestamp()
-                });
+        const username = currentUser.username || currentUser.first_name || 'Гость';
+        
+        // Добавляем комментарий
+        const commentRef = doc(collection(db, 'comments'));
+        await setDoc(commentRef, {
+            postId,
+            userId: currentUser.id,
+            username,
+            text,
+            timestamp: serverTimestamp()
+        });
 
-                // Обновляем счетчик комментариев в посте
-                const postRef = doc(db, 'posts', postId);
-                await updateDoc(postRef, {
-                    commentsCount: increment(1)
-                });
+        // Обновляем счетчик комментариев в посте
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+            commentsCount: increment(1)
+        });
 
-                // Очищаем поле ввода
-                input.value = '';
-                
-                // Перезагружаем комментарии
-                const container = document.getElementById(`comments-container-${postId}`);
-                await loadComments(postId, container);
-                
-                // Перезагружаем посты для обновления счетчика
-                loadPosts();
-                
-                showNotification('comment', username);
-            } catch (error) {
-                console.error('Ошибка добавления комментария:', error);
-                alert('Ошибка при добавлении комментария');
-            }
-        };
+        // Очищаем поле ввода
+        input.value = '';
+        
+        // Перезагружаем комментарии
+        const container = document.getElementById(`comments-container-${postId}`);
+        await loadComments(postId, container);
+        
+        // Перезагружаем посты для обновления счетчика
+        loadPosts();
+        
+        showNotification('comment', username);
+    } catch (error) {
+        console.error('Ошибка добавления комментария:', error);
+        alert('Ошибка при добавлении комментария');
+    }
+};
 function setupMobileKeyboardHandling() {
     const inputs = document.querySelectorAll('.comment-input');
     inputs.forEach(input => {
