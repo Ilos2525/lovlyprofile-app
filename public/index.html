@@ -594,7 +594,7 @@
             }, 3000);
         }
 
-  async function initTelegram() {
+async function initTelegram() {
     try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         tg = window.Telegram?.WebApp;
@@ -604,41 +604,29 @@
             tg.expand();
             
             currentUser = tg.initDataUnsafe.user;
-            console.log('Данные пользователя:', currentUser);
+            console.log('Данные пользователя из Telegram:', currentUser);
             
             if (currentUser?.id) {
-                console.log('Telegram инициализирован, ID:', currentUser.id);
+                console.log('Успешная авторизация через Telegram, ID:', currentUser.id);
                 loadProfile();
                 loadPosts();
             } else {
-                console.log('Используем тестовый режим - нет ID пользователя');
-                currentUser = { 
-                    id: `tg_${Date.now()}`,
-                    username: 'Гость',
-                    first_name: 'Гость'
-                };
-                loadProfile();
-                loadPosts();
+                console.warn('Откройте сайт через Telegram');
+                alert('Этот сайт работает только через Telegram');
+                currentUser = null;
+                window.location.href = 'https://t.me/whylovly_bot';
             }
         } else {
-            console.log('Используем тестовый режим - нет WebApp');
-            currentUser = { 
-                id: `tg_${Date.now()}`,
-                username: 'Гость',
-                first_name: 'Гость'
-            };
-            loadProfile();
-            loadPosts();
+            console.warn('Откройте сайт через Telegram');
+            alert('Этот сайт работает только через Telegram');
+            currentUser = null;
+            window.location.href = 'https://t.me/whylovly_bot';
         }
     } catch (error) {
         console.error('Ошибка инициализации:', error);
-        currentUser = { 
-            id: `tg_${Date.now()}`,
-            username: 'Гость',
-            first_name: 'Гость'
-        };
-        loadProfile();
-        loadPosts();
+        alert('Этот сайт работает только через Telegram');
+        currentUser = null;
+        window.location.href = 'https://t.me/whylovly_bot';
     }
 }
         async function loadProfile() {
@@ -795,81 +783,66 @@ function displayPosts(containerId, posts) {
    // Добавьте только эту строку в конец функции
     setupMobileKeyboardHandling();
 }
-                window.handleLike = async function(postId) {
-            try {
-                if (!currentUser?.id) {
-                    console.error('Пользователь не авторизован');
-                    return;
-                }
+               window.handleLike = async function(postId) {
+    try {
+        if (!currentUser?.id) {
+            console.error('Необходима авторизация через Telegram');
+            alert('Этот сайт работает только через Telegram');
+            window.location.href = 'https://t.me/whylovly_bot';
+            return;
+        }
 
-                const userId = currentUser.id;
-                const username = currentUser.username || currentUser.first_name || 'пользователь';
-                const likeRef = doc(db, 'likes', `${postId}_${userId}`);
-                const postRef = doc(db, 'posts', postId);
+        const userId = currentUser.id;
+        const username = currentUser.username || currentUser.first_name || 'Unknown';
+        const likeRef = doc(db, 'likes', `${postId}_${userId}`);
+        const postRef = doc(db, 'posts', postId);
 
-                const [likeDoc, postDoc] = await Promise.all([
-                    getDoc(likeRef),
-                    getDoc(postRef)
-                ]);
+        const [likeDoc, postDoc] = await Promise.all([
+            getDoc(likeRef),
+            getDoc(postRef)
+        ]);
 
-                if (!postDoc.exists()) {
-                    console.error('Пост не найден');
-                    return;
-                }
+        if (!postDoc.exists()) {
+            console.error('Пост не найден');
+            return;
+        }
 
-                const post = postDoc.data();
-                const likedBy = post.likedBy || [];
-                const currentLikes = post.likes || 0;
+        const post = postDoc.data();
+        const likedBy = post.likedBy || [];
+        const currentLikes = post.likes || 0;
 
-                if (likeDoc.exists() || likedBy.includes(userId)) {
-                    // Убираем лайк
-                    await Promise.all([
-                        deleteDoc(likeRef),
-                        updateDoc(postRef, {
-                            likes: Math.max(0, currentLikes - 1),
-                            likedBy: likedBy.filter(id => id !== userId)
-                        })
-                    ]);
-                    showNotification('unlike', username);
-                } else {
-                    // Добавляем лайк
-                    await Promise.all([
-                        setDoc(likeRef, {
-                            userId: userId,
-                            postId,
-                            timestamp: serverTimestamp()
-                        }),
-                        updateDoc(postRef, {
-                            likes: currentLikes + 1,
-                            likedBy: [...likedBy, userId]
-                        })
-                    ]);
-                    showNotification('like', username);
-                }
+        if (likeDoc.exists() || likedBy.includes(userId)) {
+            // Убираем лайк
+            await Promise.all([
+                deleteDoc(likeRef),
+                updateDoc(postRef, {
+                    likes: Math.max(0, currentLikes - 1),
+                    likedBy: likedBy.filter(id => id !== userId)
+                })
+            ]);
+            showNotification('unlike', username);
+        } else {
+            // Добавляем лайк
+            await Promise.all([
+                setDoc(likeRef, {
+                    userId: userId,
+                    postId,
+                    timestamp: serverTimestamp()
+                }),
+                updateDoc(postRef, {
+                    likes: currentLikes + 1,
+                    likedBy: [...likedBy, userId]
+                })
+            ]);
+            showNotification('like', username);
+        }
 
-                loadPosts();
-            } catch (error) {
-                console.error('Ошибка лайка:', error);
-            }
-        };
-        window.deletePost = async function(postId) {
-            if (!currentUser || currentUser.id !== '5794174511') return;
-
-            if (confirm('Удалить пост?')) {
-                try {
-                    await deleteDoc(doc(db, 'posts', postId));
-                    const likesQuery = query(collection(db, 'likes'), where('postId', '==', postId));
-                    const likesSnapshot = await getDocs(likesQuery);
-                    
-                    const deleteLikes = likesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-                    await Promise.all(deleteLikes);
-                    
-                    loadPosts();
-                } catch (error) {
-                    console.error('Ошибка удаления:', error);
-                }
-            }
-        };
+        loadPosts();
+    } catch (error) {
+        console.error('Ошибка лайка:', error);
+        alert('Произошла ошибка при обработке лайка');
+    }
+};
 
         function getYoutubeVideoId(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -944,7 +917,9 @@ function displayPosts(containerId, posts) {
 window.addComment = async function(postId) {
     try {
         if (!currentUser?.id) {
-            console.error('Нет данных пользователя');
+            console.error('Необходима авторизация через Telegram');
+            alert('Этот сайт работает только через Telegram');
+            window.location.href = 'https://t.me/whylovly_bot';
             return;
         }
 
@@ -956,7 +931,7 @@ window.addComment = async function(postId) {
             return;
         }
 
-        const username = currentUser.username || currentUser.first_name || 'Гость';
+        const username = currentUser.username || currentUser.first_name || 'Unknown';
         
         // Добавляем комментарий
         const commentRef = doc(collection(db, 'comments'));
