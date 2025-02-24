@@ -878,58 +878,7 @@ async function loadStats() {
     }
 }
 
-        // Получаем статистику комментариев
-        const commentsSnapshot = await getDocs(collection(db, 'comments'));
-        const totalComments = commentsSnapshot.size;
-        document.getElementById('totalComments').textContent = totalComments;
-
-        // Получаем уникальных посетителей
-        const visitorsSnapshot = await getDocs(collection(db, 'visitors'));
-        const totalVisitors = visitorsSnapshot.size;
-        document.getElementById('totalVisitors').textContent = totalVisitors;
-
-        // Отображаем детальную статистику по постам
-        const postsWithLikesDiv = document.getElementById('postsWithLikes');
-        let postsStatsHTML = '<h4>Популярные посты</h4>';
-        
-        for (const doc of postsSnapshot.docs) {
-            const post = doc.data();
-            const postLikes = likesMap.get(doc.id) || [];
-            if (postLikes.length > 0) {
-                postsStatsHTML += `
-                    <div class="post-stats">
-                        <div class="post-title">${post.description.substring(0, 50)}...</div>
-                        <div class="post-likes">Лайков: ${postLikes.length}</div>
-                    </div>
-                `;
-            }
-        }
-        postsWithLikesDiv.innerHTML = postsStatsHTML;
-
-        // Отображаем список посетителей
-        const visitorsListDiv = document.getElementById('visitorsList');
-        let visitorsHTML = '<h4>Последние посетители</h4>';
-        
-        visitorsSnapshot.docs.forEach(doc => {
-            const visitor = doc.data();
-            const date = new Date(visitor.timestamp).toLocaleString('ru-RU');
-            visitorsHTML += `
-                <div class="visitor-item">
-                    <img src="${visitor.photoURL || 'default-avatar.png'}" alt="Avatar" class="visitor-photo">
-                    <div class="visitor-info">
-                        <div class="visitor-email">${visitor.email}</div>
-                        <div class="visitor-date">Последний визит: ${date}</div>
-                    </div>
-                </div>
-            `;
-        });
-        visitorsListDiv.innerHTML = visitorsHTML;
-
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-    }
-}
-        // Управление табами
+// Управление табами
 window.showTab = function(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
