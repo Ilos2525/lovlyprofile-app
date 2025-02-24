@@ -694,20 +694,35 @@
             }
         }
         // Авторизация
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('adminContent').style.display = 'block';
-                loadProfile();
-                loadPosts();
-                loadSettings();
-                console.log('Авторизован как:', user.email);
-            } else {
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('adminContent').style.display = 'none';
-                console.log('Не авторизован');
-            }
-        });
+   onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        
+        // Добавляем запись о посещении
+        try {
+            await addDoc(collection(db, 'visitors'), {
+                userEmail: user.email,
+                userPhoto: user.photoURL,
+                timestamp: new Date().toISOString(),
+                userId: user.uid,
+                displayName: user.displayName || 'Гость'
+            });
+        } catch (error) {
+            console.error('Ошибка при регистрации посещения:', error);
+        }
+
+        loadProfile();
+        loadPosts();
+        loadSettings();
+        loadStats();
+        console.log('Авторизован как:', user.email);
+    } else {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('adminContent').style.display = 'none';
+        console.log('Не авторизован');
+    }
+});
 
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
@@ -813,17 +828,26 @@ async function loadStats() {
         // Создаем детальную статистику по постам
         const postsMap = new Map();
         postsSnapshot.docs.forEach(doc => {
-            postsMap.set(doc.id, { ...doc.data(), id: doc.id, likes: [], comments: [] });
+            const data = doc.data();
+            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+            postsMap.set(doc.id, { 
+                ...data, 
+                id: doc.id, 
+                timestamp: timestamp,
+                likes: [], 
+                comments: [] 
+            });
         });
 
         // Добавляем информацию о лайках
         likesSnapshot.docs.forEach(doc => {
             const like = doc.data();
             if (postsMap.has(like.postId)) {
+                const timestamp = like.timestamp?.toDate?.() || new Date(like.timestamp);
                 postsMap.get(like.postId).likes.push({
                     userId: like.userId,
-                    timestamp: like.timestamp,
-                    userEmail: like.userEmail
+                    timestamp: timestamp,
+                    userEmail: like.userEmail || 'Гость'
                 });
             }
         });
@@ -832,10 +856,11 @@ async function loadStats() {
         commentsSnapshot.docs.forEach(doc => {
             const comment = doc.data();
             if (postsMap.has(comment.postId)) {
+                const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
                 postsMap.get(comment.postId).comments.push({
-                    author: comment.author,
+                    author: comment.author || 'Гость',
                     text: comment.text,
-                    timestamp: comment.timestamp
+                    timestamp: timestamp
                 });
             }
         });
@@ -845,7 +870,7 @@ async function loadStats() {
         let statsHTML = '';
 
         postsMap.forEach(post => {
-            const date = new Date(post.timestamp).toLocaleString('ru-RU');
+            const date = post.timestamp.toLocaleString('ru-RU');
             statsHTML += `
                 <div class="post-stat-item">
                     <div class="post-stat-header">
@@ -859,7 +884,7 @@ async function loadStats() {
                             <div class="likes-details">
                                 <small>Последние лайки:</small>
                                 ${post.likes.slice(0, 3).map(like => `
-                                    <div>${like.userEmail} - ${new Date(like.timestamp).toLocaleString('ru-RU')}</div>
+                                    <div>${like.userEmail} - ${like.timestamp.toLocaleString('ru-RU')}</div>
                                 `).join('')}
                             </div>
                         ` : ''}
@@ -1209,13 +1234,14 @@ async function loadActivityData(tab) {
         let html = '';
         snapshot.docs.forEach(doc => {
             const data = doc.data();
-            const date = new Date(data.timestamp).toLocaleString('ru-RU');
+            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+            const date = timestamp.toLocaleString('ru-RU');
             
             html += `
                 <div class="user-activity-item">
                     <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                     <div class="activity-info">
-                        <div class="user-email">${data.userEmail || data.author || 'Аноним'}</div>
+                        <div class="user-email">${data.userEmail || data.displayName || data.author || 'Гость'}</div>
                         <div class="activity-date">${date}</div>
                         ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
                     </div>
