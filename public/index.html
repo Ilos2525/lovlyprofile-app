@@ -1053,40 +1053,40 @@ function displayPosts(containerId, posts) {
             }
         };
 
-async function loadComments(postId, container) {
+async function loadComments(postId) {
     try {
-        if (!isAuthorized()) {
-            console.error('Требуется авторизация для просмотра комментариев');
+        const commentsContainer = document.getElementById(`comments-container-${postId}`);
+        
+        if (!commentsContainer) {
+            console.error('Container not found for comments');
             return;
         }
 
-        console.log('Загрузка комментариев для поста:', postId);
+        console.log('Loading comments for post:', postId);
+        
         const commentsQuery = query(
             collection(db, 'comments'),
             where('postId', '==', postId),
             orderBy('timestamp', 'desc')
         );
-        
-        // Используем кэширование
-        const cachedComments = sessionStorage.getItem(`comments_${postId}`);
-        if (cachedComments) {
-            container.innerHTML = JSON.parse(cachedComments);
-        }
 
         const commentsSnapshot = await getDocs(commentsQuery);
         
         if (commentsSnapshot.empty) {
-            container.innerHTML = '<div class="comment">Нет комментариев</div>';
+            commentsContainer.innerHTML = '<div class="comment">Нет комментариев</div>';
             return;
         }
 
-        const html = commentsSnapshot.docs.map(doc => {
+        const commentsHTML = commentsSnapshot.docs.map(doc => {
             const comment = doc.data();
-            const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
+            const date = comment.timestamp ? 
+                new Date(comment.timestamp.seconds * 1000).toLocaleString('ru-RU') : 
+                'Недавно';
+            
             return `
                 <div class="comment">
                     <div class="comment-header">
-                        <span class="comment-author">@${comment.username}</span>
+                        <span class="comment-author">@${comment.username || 'Аноним'}</span>
                         <span class="comment-date">${date}</span>
                     </div>
                     <div class="comment-text">${comment.text}</div>
@@ -1094,11 +1094,14 @@ async function loadComments(postId, container) {
             `;
         }).join('');
 
-        container.innerHTML = html;
-        sessionStorage.setItem(`comments_${postId}`, JSON.stringify(html));
+        commentsContainer.innerHTML = commentsHTML;
+
     } catch (error) {
-        console.error('Ошибка загрузки комментариев:', error);
-        container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
+        console.error('Error loading comments:', error);
+        const container = document.getElementById(`comments-container-${postId}`);
+        if (container) {
+            container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
+        }
     }
 }
         // Функция добавления комментария
