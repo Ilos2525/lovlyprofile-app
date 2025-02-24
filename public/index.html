@@ -482,6 +482,36 @@
         color: var(--text-color);
         line-height: 1.4;
     }
+/* ... ваши существующие стили ... */
+
+   /* Стили для предупреждения об авторизации */
+.auth-warning {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-color);
+    z-index: 9999;
+    padding: 20px;
+    text-align: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.auth-warning h2 {
+    color: var(--neon-color);
+    margin-bottom: 20px;
+}
+.auth-warning p {
+    color: var(--secondary-text);
+    margin-bottom: 15px;
+}
+.auth-warning a {
+    color: var(--neon-color);
+    text-decoration: none;
+}
 </style>
 <body>
     <div class="profile-section">
@@ -504,7 +534,7 @@
                 <div class="loading">Загрузка постов</div>
             </div>
         </div>
-
+        
         <div id="music" class="section">
             <div class="posts-grid" id="musicPosts">
                 <div class="loading">Загрузка музыки</div>
@@ -516,6 +546,14 @@
                 <div class="loading">Загрузка видео</div>
             </div>
         </div>
+    </div>
+
+    <!-- Блок предупреждения об авторизации -->
+    <div id="authWarning" class="auth-warning">
+        <h2>Требуется Telegram</h2>
+        <p>Этот сайт работает только через Telegram.</p>
+        <p>Пожалуйста, откройте через бота:</p>
+        <a href="https://t.me/lovlyprofilebot">@lovlyprofilebot</a>
     </div>
 
     <script type="module">
@@ -598,58 +636,59 @@ async function initTelegram() {
     try {
         console.log('1. Starting Telegram initialization');
         
-        // Пытаемся получить сохраненного пользователя
-        const savedUser = localStorage.getItem('telegramUser');
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
-            console.log('2. Using saved user:', currentUser);
-        }
-        
-        // Пробуем инициализировать WebApp
-        if (window.Telegram?.WebApp) {
-            tg = window.Telegram.WebApp;
-            console.log('3. Telegram WebApp found');
-            
-            tg.ready();
-            tg.expand();
-            
-            if (tg.initDataUnsafe?.user) {
-                currentUser = tg.initDataUnsafe.user;
-                localStorage.setItem('telegramUser', JSON.stringify(currentUser));
-                console.log('4. New user data saved:', currentUser);
-            }
-        }
-        
-        if (!currentUser) {
-            console.error('5. No user data available');
-            window.location.href = 'https://t.me/lovlyprofilebot';
+        // Проверяем доступность WebApp
+        if (!window.Telegram?.WebApp) {
+            console.error('WebApp не доступен');
+            isAuthorized(); // Показываем предупреждение
             return;
         }
         
-        await loadProfile();
-        await loadPosts();
+        tg = window.Telegram.WebApp;
+        console.log('2. Telegram WebApp found');
+        
+        tg.ready();
+        tg.expand();
+        
+        // Проверяем данные пользователя
+        if (tg.initDataUnsafe?.user) {
+            currentUser = tg.initDataUnsafe.user;
+            localStorage.setItem('telegramUser', JSON.stringify(currentUser));
+            console.log('3. User data saved:', currentUser);
+            
+            // Загружаем данные только если пользователь авторизован
+            await loadProfile();
+            await loadPosts();
+        } else {
+            console.error('4. No user data available');
+            isAuthorized(); // Показываем предупреждение
+        }
         
     } catch (error) {
-        console.error('6. Initialization error:', error);
-        if (!currentUser) {
-            window.location.href = 'https://t.me/lovlyprofilebot';
-        }
+        console.error('5. Initialization error:', error);
+        isAuthorized(); // Показываем предупреждение
     }
 }
 
 function isAuthorized() {
-    // Проверяем наличие WebApp
-    if (!window.Telegram?.WebApp) {
-        console.error('WebApp не доступен');
+    // Проверяем наличие WebApp и данных пользователя
+    if (!window.Telegram?.WebApp || !window.Telegram.WebApp.initDataUnsafe?.user) {
+        console.error('WebApp не доступен или пользователь не авторизован');
+        
+        // Показываем предупреждение
+        const authWarning = document.getElementById('authWarning');
+        if (authWarning) {
+            authWarning.style.display = 'flex';
+        }
+        
         return false;
     }
-
-    // Проверяем данные пользователя
-    if (!window.Telegram.WebApp.initDataUnsafe?.user) {
-        console.error('Данные пользователя не доступны');
-        return false;
+    
+    // Если предупреждение показано, скрываем его
+    const authWarning = document.getElementById('authWarning');
+    if (authWarning) {
+        authWarning.style.display = 'none';
     }
-
+    
     return true;
 }
 
@@ -1177,13 +1216,17 @@ window.addEventListener('online', () => loadPosts());
 window.addEventListener('offline', () => {
     document.body.classList.add('offline-mode');
 });
-        // Проверяем состояние авторизации каждые 5 секунд
-setInterval(() => {
-    if (!isAuthorized()) {
-        console.error('Потеряна авторизация');
-        window.location.href = 'https://t.me/lovlyprofilebot';
-    }
-}, 5000);
+
+// Обработка потери авторизации
+window.addEventListener('blur', () => {
+    setTimeout(() => {
+        isAuthorized(); // Проверяем авторизацию при возврате на страницу
+    }, 300);
+});
+
+window.addEventListener('focus', () => {
+    isAuthorized(); // Проверяем авторизацию при фокусе на странице
+});
 
 // Проверяем авторизацию перед любым действием с Firebase
 db.interceptors = async () => {
@@ -1191,13 +1234,14 @@ db.interceptors = async () => {
         throw new Error('Требуется авторизация');
     }
 };
-        window.addEventListener('load', initTelegram);
 
-        document.addEventListener('error', function(e) {
-            if (e.target.tagName.toLowerCase() === 'img') {
-                e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
-            }
-        }, true);
-    </script>
+window.addEventListener('load', initTelegram);
+
+document.addEventListener('error', function(e) {
+    if (e.target.tagName.toLowerCase() === 'img') {
+        e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+    }
+}, true);
+</script>
 </body>
 </html>
