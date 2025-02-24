@@ -598,58 +598,42 @@ async function initTelegram() {
     try {
         console.log('1. Starting Telegram initialization');
         
-        // Ждем загрузки Telegram WebApp
-        for (let i = 0; i < 10; i++) {
-            if (window.Telegram?.WebApp) break;
-            await new Promise(resolve => setTimeout(resolve, 100));
+        // Пытаемся получить сохраненного пользователя
+        const savedUser = localStorage.getItem('telegramUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            console.log('2. Using saved user:', currentUser);
         }
-
-        if (!window.Telegram?.WebApp) {
-            console.error('Telegram WebApp не доступен');
+        
+        // Пробуем инициализировать WebApp
+        if (window.Telegram?.WebApp) {
+            tg = window.Telegram.WebApp;
+            console.log('3. Telegram WebApp found');
+            
+            tg.ready();
+            tg.expand();
+            
+            if (tg.initDataUnsafe?.user) {
+                currentUser = tg.initDataUnsafe.user;
+                localStorage.setItem('telegramUser', JSON.stringify(currentUser));
+                console.log('4. New user data saved:', currentUser);
+            }
+        }
+        
+        if (!currentUser) {
+            console.error('5. No user data available');
             window.location.href = 'https://t.me/lovlyprofilebot';
             return;
         }
-        
-        tg = window.Telegram.WebApp;
-        console.log('2. Telegram WebApp object:', tg);
-        
-        tg.ready();
-        tg.expand();
-        
-        // Проверяем данные пользователя и hash
-        const webAppData = tg.initDataUnsafe;
-        console.log('4. Raw user data:', webAppData?.user);
-        
-        if (webAppData?.user && webAppData?.hash) {
-            currentUser = webAppData.user;
-            localStorage.setItem('telegramUser', JSON.stringify(currentUser));
-            sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
-            console.log('5. User authenticated:', currentUser);
-        } else {
-            const savedUser = localStorage.getItem('telegramUser') || sessionStorage.getItem('telegramUser');
-            if (!savedUser) {
-                console.error('6. No user data available');
-                window.location.href = 'https://t.me/lovlyprofilebot';
-                return;
-            }
-            currentUser = JSON.parse(savedUser);
-        }
-
-        console.log('7. Final auth state:', {
-            currentUser,
-            initData: tg.initData,
-            initDataUnsafe: webAppData,
-            isExpanded: tg.isExpanded,
-            version: tg.version,
-            hash: webAppData?.hash
-        });
         
         await loadProfile();
         await loadPosts();
         
     } catch (error) {
-        console.error('8. Telegram initialization error:', error);
-        window.location.href = 'https://t.me/lovlyprofilebot';
+        console.error('6. Initialization error:', error);
+        if (!currentUser) {
+            window.location.href = 'https://t.me/lovlyprofilebot';
+        }
     }
 }
 
