@@ -704,7 +704,60 @@ const firebaseConfig = {
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
         }
+async function loadProfile() {
+    try {
+        if (!currentUser?.id) {
+            console.error('No user ID available');
+            return;
+        }
 
+        const profileImage = document.getElementById('profileImage');
+        const profileName = document.getElementById('profileName');
+        const profileBio = document.getElementById('profileBio');
+
+        if (currentUser.photo_url) {
+            profileImage.src = currentUser.photo_url;
+        }
+        
+        profileName.textContent = currentUser.first_name || 'whylovly';
+        profileBio.textContent = 'Личный блог';
+
+        const profileDoc = await getDoc(doc(db, 'profiles', currentUser.id.toString()));
+        if (profileDoc.exists()) {
+            const profileData = profileDoc.data();
+            if (profileData.bio) profileBio.textContent = profileData.bio;
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+    }
+}
+
+async function loadPosts() {
+    try {
+        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+        const postsSnapshot = await getDocs(postsQuery);
+        
+        const posts = await Promise.all(postsSnapshot.docs.map(async doc => {
+            const post = { id: doc.id, ...doc.data() };
+            if (currentUser?.id) {
+                post.isLiked = await checkLikeStatus(doc.id);
+            }
+            return post;
+        }));
+
+        displayPosts('allPosts', posts.filter(post => post.category === 'photo'));
+        displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
+        displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        ['allPosts', 'musicPosts', 'videoPosts'].forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '<div class="post"><div class="post-content">Ошибка загрузки постов</div></div>';
+            }
+        });
+    }
+}
 async function initTelegram() {
     try {
         console.log('Starting initialization...');
@@ -963,103 +1016,8 @@ function displayPosts(containerId, posts) {
    // Добавьте только эту строку в конец функции
     setupMobileKeyboardHandling();
 }
-window.handleLike = async function(postId) {
-    try {
-        console.log('Like attempt:', { 
-            isAuthorized: isAuthorized(),
-            currentUser,
-            tg: window.Telegram?.WebApp
-        });
 
-        if (!isAuthorized()) {
-            console.error('Необходима авторизация через Telegram');
-            alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/lovlyprofilebot';
-            return;
-        }
 
-        const userId = currentUser.id;
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        
-        // Находим кнопку лайка и блокируем её на время операции
-        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
-        likeButton.disabled = true;
-
-        const likeRef = doc(db, 'likes', `${postId}_${userId}`);
-        const postRef = doc(db, 'posts', postId);
-
-        const [likeDoc, postDoc] = await Promise.all([
-            getDoc(likeRef),
-            getDoc(postRef)
-        ]);
-
-        if (!postDoc.exists()) {
-            console.error('Пост не найден');
-            return;
-        }
-
-        const post = postDoc.data();
-        const likedBy = post.likedBy || [];
-        const currentLikes = post.likes || 0;
-
-        // Используем batch для атомарной операции
-        const batch = writeBatch(db);
-
-        if (likeDoc.exists() || likedBy.includes(userId)) {
-            // Убираем лайк
-            batch.delete(likeRef);
-            batch.update(postRef, {
-                likes: Math.max(0, currentLikes - 1),
-                likedBy: likedBy.filter(id => id !== userId)
-            });
-            showNotification('unlike', username);
-        } else {
-            // Добавляем лайк
-            batch.set(likeRef, {
-                userId: userId,
-                postId,
-                timestamp: serverTimestamp()
-            });
-            batch.update(postRef, {
-                likes: currentLikes + 1,
-                likedBy: [...likedBy, userId]
-            });
-            showNotification('like', username);
-        }
-
-        await batch.commit();
-        
-        // Разблокируем кнопку и обновляем посты
-        likeButton.disabled = false;
-        loadPosts();
-
-    } catch (error) {
-        console.error('Ошибка лайка:', error);
-        alert('Произошла ошибка при обработке лайка');
-        // В случае ошибки тоже разблокируем кнопку
-        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
-        if (likeButton) likeButton.disabled = false;
-    }
-};
-
-        function getYoutubeVideoId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
-        window.showSection = function(sectionId) {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            document.getElementById(sectionId).classList.add('active');
-        };
         // Функция переключения отображения комментариев
         window.toggleComments = async function(postId) {
             const commentsSection = document.getElementById(`comments-${postId}`);
