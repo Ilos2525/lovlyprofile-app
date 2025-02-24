@@ -341,6 +341,52 @@
 .comment-text {
     margin: 0;
 }
+.detailed-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.post-stats {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.visitor-item {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.visitor-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.visitor-info {
+    flex-grow: 1;
+}
+
+.visitor-email {
+    color: var(--neon-color);
+    font-weight: 500;
+}
+
+.visitor-date {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
     </style>
 </head>
 <body>
@@ -488,6 +534,20 @@
             <div class="stat-item">
                 <h4>Комментариев</h4>
                 <div id="totalComments" class="stat-number">0</div>
+            </div>
+
+            <div class="stat-item">
+                <h4>Уникальных посетителей</h4>
+                <div id="totalVisitors" class="stat-number">0</div>
+            </div>
+        </div>
+
+        <!-- Блок с детальной статистикой -->
+        <div class="form-group">
+            <h3>Детальная статистика</h3>
+            <div class="detailed-stats">
+                <div id="postsWithLikes"></div>
+                <div id="visitorsList"></div>
             </div>
         </div>
 
@@ -667,7 +727,6 @@
                 preview.innerHTML = '';
             }
         });
-// Функция загрузки статистики
 async function loadStats() {
     try {
         // Получаем статистику постов
@@ -675,16 +734,67 @@ async function loadStats() {
         const totalPosts = postsSnapshot.size;
         document.getElementById('totalPosts').textContent = totalPosts;
 
-        // Получаем статистику лайков
-        let totalLikes = 0;
+        // Получаем статистику лайков и создаем мапу лайков по постам
         const likesSnapshot = await getDocs(collection(db, 'likes'));
-        totalLikes = likesSnapshot.size;
+        const totalLikes = likesSnapshot.size;
         document.getElementById('totalLikes').textContent = totalLikes;
+
+        // Создаем мапу лайков по постам
+        const likesMap = new Map();
+        likesSnapshot.docs.forEach(doc => {
+            const like = doc.data();
+            if (!likesMap.has(like.postId)) {
+                likesMap.set(like.postId, []);
+            }
+            likesMap.get(like.postId).push(like);
+        });
 
         // Получаем статистику комментариев
         const commentsSnapshot = await getDocs(collection(db, 'comments'));
         const totalComments = commentsSnapshot.size;
         document.getElementById('totalComments').textContent = totalComments;
+
+        // Получаем уникальных посетителей
+        const visitorsSnapshot = await getDocs(collection(db, 'visitors'));
+        const totalVisitors = visitorsSnapshot.size;
+        document.getElementById('totalVisitors').textContent = totalVisitors;
+
+        // Отображаем детальную статистику по постам
+        const postsWithLikesDiv = document.getElementById('postsWithLikes');
+        let postsStatsHTML = '<h4>Популярные посты</h4>';
+        
+        for (const doc of postsSnapshot.docs) {
+            const post = doc.data();
+            const postLikes = likesMap.get(doc.id) || [];
+            if (postLikes.length > 0) {
+                postsStatsHTML += `
+                    <div class="post-stats">
+                        <div class="post-title">${post.description.substring(0, 50)}...</div>
+                        <div class="post-likes">Лайков: ${postLikes.length}</div>
+                    </div>
+                `;
+            }
+        }
+        postsWithLikesDiv.innerHTML = postsStatsHTML;
+
+        // Отображаем список посетителей
+        const visitorsListDiv = document.getElementById('visitorsList');
+        let visitorsHTML = '<h4>Последние посетители</h4>';
+        
+        visitorsSnapshot.docs.forEach(doc => {
+            const visitor = doc.data();
+            const date = new Date(visitor.timestamp).toLocaleString('ru-RU');
+            visitorsHTML += `
+                <div class="visitor-item">
+                    <img src="${visitor.photoURL || 'default-avatar.png'}" alt="Avatar" class="visitor-photo">
+                    <div class="visitor-info">
+                        <div class="visitor-email">${visitor.email}</div>
+                        <div class="visitor-date">Последний визит: ${date}</div>
+                    </div>
+                </div>
+            `;
+        });
+        visitorsListDiv.innerHTML = visitorsHTML;
 
     } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
