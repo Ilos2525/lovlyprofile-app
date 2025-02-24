@@ -387,6 +387,74 @@
     opacity: 0.7;
     font-size: 0.9em;
 }
+        .activity-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.activity-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.activity-tab.active {
+    background: var(--neon-color);
+    color: var(--bg-dark);
+}
+
+.detailed-stats {
+    margin-top: 20px;
+}
+
+.post-stat-item {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.post-stat-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.post-stat-details {
+    margin-top: 10px;
+}
+
+.user-activity-item {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.activity-info {
+    flex-grow: 1;
+}
+
+.activity-date {
+    color: var(--neon-color);
+    font-size: 0.9em;
+}
     </style>
 </head>
 <body>
@@ -517,45 +585,44 @@
     </div>
 <div id="stats" class="tab-content">
     <div class="form-group">
-        <h3>Статистика сайта</h3>
-        
-        <!-- Блок с основными цифрами -->
+        <h3>Общая статистика</h3>
         <div class="stats-block">
             <div class="stat-item">
                 <h4>Всего постов</h4>
                 <div id="totalPosts" class="stat-number">0</div>
             </div>
-            
             <div class="stat-item">
                 <h4>Всего лайков</h4>
                 <div id="totalLikes" class="stat-number">0</div>
             </div>
-            
             <div class="stat-item">
                 <h4>Комментариев</h4>
                 <div id="totalComments" class="stat-number">0</div>
             </div>
-
             <div class="stat-item">
-                <h4>Уникальных посетителей</h4>
+                <h4>Посетителей</h4>
                 <div id="totalVisitors" class="stat-number">0</div>
             </div>
         </div>
 
-        <!-- Блок с детальной статистикой -->
+        <!-- Детальная статистика по постам -->
         <div class="form-group">
-            <h3>Детальная статистика</h3>
-            <div class="detailed-stats">
-                <div id="postsWithLikes"></div>
-                <div id="visitorsList"></div>
+            <h3>Статистика по постам</h3>
+            <div id="detailedPostStats" class="detailed-stats">
+                <!-- Сюда будет загружаться детальная статистика постов -->
             </div>
         </div>
 
-        <!-- Блок комментариев -->
+        <!-- Активность пользователей -->
         <div class="form-group">
-            <h3>Последние комментарии</h3>
-            <div id="commentsList" class="comments-list">
-                <!-- Комментарии будут загружаться сюда -->
+            <h3>Активность пользователей</h3>
+            <div class="activity-tabs">
+                <button class="activity-tab active" onclick="showActivityTab('likes')">Лайки</button>
+                <button class="activity-tab" onclick="showActivityTab('comments')">Комментарии</button>
+                <button class="activity-tab" onclick="showActivityTab('visits')">Посещения</button>
+            </div>
+            <div id="userActivity" class="user-activity">
+                <!-- Сюда будет загружаться информация об активности -->
             </div>
         </div>
     </div>
@@ -1102,6 +1169,138 @@ window.deleteComment = async function(commentId) {
         alert('Ошибка удаления комментария');
     }
 };
+async function loadStats() {
+    try {
+        // Загрузка основной статистики
+        const [postsSnapshot, likesSnapshot, commentsSnapshot, visitorsSnapshot] = await Promise.all([
+            getDocs(collection(db, 'posts')),
+            getDocs(collection(db, 'likes')),
+            getDocs(collection(db, 'comments')),
+            getDocs(collection(db, 'visitors'))
+        ]);
+
+        // Обновляем счетчики
+        document.getElementById('totalPosts').textContent = postsSnapshot.size;
+        document.getElementById('totalLikes').textContent = likesSnapshot.size;
+        document.getElementById('totalComments').textContent = commentsSnapshot.size;
+        document.getElementById('totalVisitors').textContent = visitorsSnapshot.size;
+
+        // Создаем детальную статистику по постам
+        const postsMap = new Map();
+        postsSnapshot.docs.forEach(doc => {
+            postsMap.set(doc.id, { ...doc.data(), id: doc.id, likes: [], comments: [] });
+        });
+
+        // Добавляем информацию о лайках
+        likesSnapshot.docs.forEach(doc => {
+            const like = doc.data();
+            if (postsMap.has(like.postId)) {
+                postsMap.get(like.postId).likes.push({
+                    userId: like.userId,
+                    timestamp: like.timestamp,
+                    userEmail: like.userEmail
+                });
+            }
+        });
+
+        // Добавляем информацию о комментариях
+        commentsSnapshot.docs.forEach(doc => {
+            const comment = doc.data();
+            if (postsMap.has(comment.postId)) {
+                postsMap.get(comment.postId).comments.push({
+                    author: comment.author,
+                    text: comment.text,
+                    timestamp: comment.timestamp
+                });
+            }
+        });
+
+        // Отображаем детальную статистику
+        const detailedStats = document.getElementById('detailedPostStats');
+        let statsHTML = '';
+
+        postsMap.forEach(post => {
+            const date = new Date(post.timestamp).toLocaleString('ru-RU');
+            statsHTML += `
+                <div class="post-stat-item">
+                    <div class="post-stat-header">
+                        <div class="post-title">${post.description ? post.description.substring(0, 50) + '...' : 'Без описания'}</div>
+                        <div class="post-date">${date}</div>
+                    </div>
+                    <div class="post-stat-details">
+                        <div>Лайков: ${post.likes.length}</div>
+                        <div>Комментариев: ${post.comments.length}</div>
+                        ${post.likes.length > 0 ? `
+                            <div class="likes-details">
+                                <small>Последние лайки:</small>
+                                ${post.likes.slice(0, 3).map(like => `
+                                    <div>${like.userEmail} - ${new Date(like.timestamp).toLocaleString('ru-RU')}</div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        detailedStats.innerHTML = statsHTML;
+        
+        // Загружаем первую вкладку активности по умолчанию
+        loadActivityData('likes');
+
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+    }
+}
+
+// Функция для переключения вкладок активности
+window.showActivityTab = function(tab) {
+    document.querySelectorAll('.activity-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[onclick="showActivityTab('${tab}')"]`).classList.add('active');
+    loadActivityData(tab);
+};
+
+// Функция загрузки данных об активности
+async function loadActivityData(tab) {
+    const activityDiv = document.getElementById('userActivity');
+    try {
+        let snapshot;
+        switch(tab) {
+            case 'likes':
+                snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+                break;
+            case 'comments':
+                snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+                break;
+            case 'visits':
+                snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+                break;
+        }
+
+        let html = '';
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const date = new Date(data.timestamp).toLocaleString('ru-RU');
+            
+            html += `
+                <div class="user-activity-item">
+                    <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                    <div class="activity-info">
+                        <div class="user-email">${data.userEmail || data.author || 'Аноним'}</div>
+                        <div class="activity-date">${date}</div>
+                        ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        activityDiv.innerHTML = html || '<p>Нет данных</p>';
+
+    } catch (error) {
+        console.error('Ошибка загрузки активности:', error);
+        activityDiv.innerHTML = '<p>Ошибка загрузки данных</p>';
+    }
+}
         // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     if (auth.currentUser) {
