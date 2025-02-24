@@ -633,7 +633,7 @@
         import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-       const firebaseConfig = {
+      const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
     projectId: "whylovly-website-8adcb",
@@ -647,14 +647,20 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 
-const ADMIN_EMAIL = 'iosinniy1@gmail.com'; // Ваш email
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+    try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        console.log('Вход выполнен:', result.user.email);
+    } catch (error) {
+        console.error('Ошибка входа:', error);
+        alert('Ошибка входа: ' + error.message);
+    }
+});
 
 onAuthStateChanged(auth, async (user) => {
-    console.log('Состояние авторизации изменилось:', user?.email);
-    
-    if (user && user.email === ADMIN_EMAIL) {
+    if (user) {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         
@@ -675,10 +681,6 @@ onAuthStateChanged(auth, async (user) => {
             console.error('Ошибка после входа:', error);
         }
     } else {
-        if (user) {
-            await auth.signOut();
-            alert('Доступ запрещен. Только администратор может войти в панель управления.');
-        }
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
