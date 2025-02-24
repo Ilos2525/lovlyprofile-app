@@ -1240,42 +1240,51 @@ async function loadActivityData(tab) {
         let html = '';
 
         if (tab === 'likes') {
+            // Сначала получаем все посты для получения информации о них
             const postsSnapshot = await getDocs(collection(db, 'posts'));
             const postsMap = new Map();
             postsSnapshot.docs.forEach(doc => {
                 postsMap.set(doc.id, doc.data());
             });
 
-            const likesSnapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+            // Затем получаем лайки
+            const likesSnapshot = await getDocs(query(
+                collection(db, 'likes'), 
+                orderBy('timestamp', 'desc')
+            ));
             
             likesSnapshot.docs.forEach(doc => {
                 const like = doc.data();
                 const post = postsMap.get(like.postId);
                 const timestamp = like.timestamp?.toDate?.() || new Date(like.timestamp);
                 const date = timestamp.toLocaleString('ru-RU');
-                
+                const userName = like.displayName || like.userEmail || 'Гость';
+                const userPhoto = like.userPhoto || 'default-avatar.png';
+
                 html += `
                     <div class="user-activity-item">
-                        <img src="${like.userPhoto || 'https://via.placeholder.com/40'}" alt="User" class="user-photo">
+                        <img src="${userPhoto}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${like.displayName || like.userEmail || 'Гость'}</div>
+                            <div class="user-email">${userName}</div>
                             <div class="activity-date">${date}</div>
-                            <div class="like-info">Лайк поста: ${post ? post.description.substring(0, 50) + '...' : 'Пост удален'}</div>
+                            <div>Понравился пост: ${post?.description || 'Пост удален'}</div>
                         </div>
                     </div>
                 `;
             });
-
         } else if (tab === 'comments') {
-            const snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
-            
-            snapshot.docs.forEach(doc => {
+            const commentsSnapshot = await getDocs(query(
+                collection(db, 'comments'), 
+                orderBy('timestamp', 'desc')
+            ));
+
+            commentsSnapshot.docs.forEach(doc => {
                 const comment = doc.data();
                 const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
                 const date = timestamp.toLocaleString('ru-RU');
-                const userName = comment.displayName || comment.author || comment.userEmail || 'Гость';
-                const userPhoto = comment.userPhoto || comment.photoURL || 'https://via.placeholder.com/40';
-                
+                const userName = comment.author || comment.userEmail || 'Гость';
+                const userPhoto = comment.userPhoto || 'default-avatar.png';
+
                 html += `
                     <div class="user-activity-item">
                         <img src="${userPhoto}" alt="User" class="user-photo">
@@ -1288,17 +1297,19 @@ async function loadActivityData(tab) {
                     </div>
                 `;
             });
-
         } else if (tab === 'visits') {
-            const snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
-            
-            snapshot.docs.forEach(doc => {
+            const visitsSnapshot = await getDocs(query(
+                collection(db, 'visitors'), 
+                orderBy('timestamp', 'desc')
+            ));
+
+            visitsSnapshot.docs.forEach(doc => {
                 const visit = doc.data();
                 const timestamp = visit.timestamp?.toDate?.() || new Date(visit.timestamp);
                 const date = timestamp.toLocaleString('ru-RU');
-                const userName = visit.displayName || visit.userEmail || visit.email || 'Гость';
-                const userPhoto = visit.userPhoto || visit.photoURL || 'https://via.placeholder.com/40';
-                
+                const userName = visit.displayName || visit.userEmail || 'Гость';
+                const userPhoto = visit.userPhoto || 'default-avatar.png';
+
                 html += `
                     <div class="user-activity-item">
                         <img src="${userPhoto}" alt="User" class="user-photo">
