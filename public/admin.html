@@ -629,11 +629,12 @@
 </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-      const firebaseConfig = {
+// Инициализация Firebase
+const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
     projectId: "whylovly-website-8adcb",
@@ -643,66 +644,60 @@
     measurementId: "G-0MKF0C3WQJ"
 };
 
+// Инициализация приложения
 const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-document.getElementById('googleSignIn').addEventListener('click', async () => {
-    try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        console.log('Вход выполнен:', result.user.email);
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        alert('Ошибка входа: ' + error.message);
-    }
+// Обработчик кнопки входа
+document.getElementById('googleSignIn').addEventListener('click', () => {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log('Успешный вход:', result.user.email);
+        })
+        .catch((error) => {
+            console.error('Ошибка входа:', error);
+            alert('Ошибка входа: ' + error.message);
+        });
 });
 
-onAuthStateChanged(auth, async (user) => {
+// Слушатель состояния авторизации
+onAuthStateChanged(auth, (user) => {
     if (user) {
+        console.log('Пользователь вошел:', user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         
-        try {
-            await addDoc(collection(db, 'visitors'), {
-                userEmail: user.email,
-                userPhoto: user.photoURL,
-                timestamp: new Date().toISOString(),
-                userId: user.uid,
-                displayName: user.displayName || 'Администратор'
-            });
-            
-            await loadProfile();
-            await loadPosts();
-            await loadSettings();
-            await loadStats();
-        } catch (error) {
-            console.error('Ошибка после входа:', error);
-        }
+        // Загрузка данных после входа
+        Promise.all([
+            loadProfile(),
+            loadPosts(),
+            loadSettings(),
+            loadStats()
+        ]).catch(error => {
+            console.error('Ошибка загрузки данных:', error);
+        });
+
+        // Добавление записи о посещении
+        addDoc(collection(db, 'visitors'), {
+            userEmail: user.email,
+            userPhoto: user.photoURL,
+            timestamp: new Date().toISOString(),
+            userId: user.uid,
+            displayName: user.displayName || 'Администратор'
+        }).catch(error => {
+            console.error('Ошибка записи посещения:', error);
+        });
     } else {
+        console.log('Пользователь вышел');
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
 });
 
-document.getElementById('googleSignIn').addEventListener('click', async () => {
-    try {
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-        const result = await signInWithPopup(auth, provider);
-        
-        if (result.user.email !== ADMIN_EMAIL) {
-            await auth.signOut();
-            alert('Доступ запрещен. Только администратор может войти в панель управления.');
-        }
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        alert('Ошибка входа: ' + error.message);
-    }
-});
-
+// Оставьте остальной код без изменений
         // Функции для работы с YouTube
         function getYoutubeVideoId(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
