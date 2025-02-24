@@ -1192,20 +1192,39 @@ async function loadComments() {
 }
 
 // Функция удаления комментария
-window.deleteComment = async function(commentId) {
+window.deleteComment = async function(commentId, postId) {
     if (!confirm('Удалить этот комментарий?')) return;
     
     try {
-        await deleteDoc(doc(db, 'comments', commentId));
-        loadComments();
+        const batch = writeBatch(db);
+        
+        // Удаляем комментарий
+        batch.delete(doc(db, 'comments', commentId));
+        
+        // Если есть postId, уменьшаем счетчик комментариев в посте
+        if (postId) {
+            const postRef = doc(db, 'posts', postId);
+            const postDoc = await getDoc(postRef);
+            if (postDoc.exists()) {
+                const currentCount = postDoc.data().commentsCount || 0;
+                batch.update(postRef, {
+                    commentsCount: Math.max(0, currentCount - 1)
+                });
+            }
+        }
+
+        await batch.commit();
+        
+        // Обновляем отображение
+        loadActivityData('comments');
         loadStats();
-        alert('Комментарий удален');
+        
+        alert('Комментарий успешно удален');
     } catch (error) {
         console.error('Ошибка удаления комментария:', error);
         alert('Ошибка удаления комментария');
     }
 };
-
 
 // Функция для переключения вкладок активности
 window.showActivityTab = function(tab) {
@@ -1241,9 +1260,12 @@ async function loadActivityData(tab) {
                 <div class="user-activity-item">
                     <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                     <div class="activity-info">
-                        <div class="user-email">${data.userEmail || data.displayName || data.author || 'Гость'}</div>
+                        <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
                         <div class="activity-date">${date}</div>
-                        ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
+                        ${tab === 'comments' ? `
+                            <div class="comment-text">${data.text}</div>
+                            <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
+                        ` : ''}
                     </div>
                 </div>
             `;
