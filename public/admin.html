@@ -635,39 +635,43 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from
 
 // Замените конфигурацию Firebase и код авторизации в начале файла
 // В начале файла, где инициализация Firebase
+// Замените этот блок в начале скрипта
 const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
     projectId: "whylovly-website-8adcb",
     storageBucket: "whylovly-website-8adcb.firebasestorage.app",
     messagingSenderId: "749833792533",
-    appId: "1:749833792533:web:2494649a11b628cd84321c",
-    measurementId: "G-0MKF0C3WQJ"
+    appId: "1:749833792533:web:2494649a11b628cd84321c"
 };
 
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
+const db = getFirestore();
+const storage = getStorage();
 
-// Простой вход через Google
-document.getElementById('googleSignIn').onclick = function() {
+// Обработчик кнопки входа
+document.getElementById('googleSignIn').addEventListener('click', function() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
-        .then(() => {
-            console.log("Успешный вход");
-            location.reload();
+        .then((result) => {
+            console.log("Вход выполнен:", result.user.email);
         })
         .catch((error) => {
             console.error("Ошибка входа:", error);
-            alert("Ошибка входа: " + error.message);
+            alert(error.message);
         });
-};
+});
 
-// Проверка авторизации
-auth.onAuthStateChanged(function(user) {
+// Слушатель состояния авторизации
+onAuthStateChanged(auth, (user) => {
     if (user) {
+        console.log("Пользователь авторизован:", user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
     } else {
+        console.log("Пользователь не авторизован");
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
