@@ -636,10 +636,16 @@ async function initTelegram() {
     try {
         console.log('1. Starting Telegram initialization');
         
-        // Проверяем доступность WebApp
+        // Ждем пока WebApp станет доступен
+        let attempts = 0;
+        while (!window.Telegram?.WebApp && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
         if (!window.Telegram?.WebApp) {
-            console.error('WebApp не доступен');
-            isAuthorized(); // Показываем предупреждение
+            console.error('WebApp не доступен после ожидания');
+            isAuthorized();
             return;
         }
         
@@ -650,25 +656,32 @@ async function initTelegram() {
         tg.ready();
         tg.expand();
         
-        // Пытаемся получить данные пользователя
-        currentUser = tg.initDataUnsafe?.user || {
-            id: tg.initDataUnsafe?.user?.id || 'guest',
-            username: tg.initDataUnsafe?.user?.username || 'Guest User',
-            first_name: tg.initDataUnsafe?.user?.first_name || 'Guest'
-        };
+        // Ждем данные пользователя
+        attempts = 0;
+        while (!tg.initDataUnsafe?.user && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
         
-        console.log('3. Current user:', currentUser);
+        if (!tg.initDataUnsafe?.user) {
+            console.error('Не удалось получить данные пользователя');
+            isAuthorized();
+            return;
+        }
         
-        // Сохраняем данные пользователя
+        // Сохраняем реальные данные пользователя
+        currentUser = tg.initDataUnsafe.user;
+        console.log('3. Real user data:', currentUser);
+        
         localStorage.setItem('telegramUser', JSON.stringify(currentUser));
         
-        // Загружаем данные
+        // Загружаем данные только если есть реальный пользователь
         await loadProfile();
         await loadPosts();
         
     } catch (error) {
         console.error('4. Initialization error:', error);
-        console.log('WebApp state:', {
+        console.log('Current state:', {
             tg: window.Telegram?.WebApp,
             user: window.Telegram?.WebApp?.initDataUnsafe?.user,
             currentUser
