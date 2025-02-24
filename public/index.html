@@ -573,6 +573,7 @@ import {
     writeBatch,
     increment,
     where
+    limit 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Глобальные переменные
@@ -710,8 +711,15 @@ async function loadProfile() {
         const profileName = document.getElementById('profileName');
         const profileBio = document.getElementById('profileBio');
 
-        // Устанавливаем фиксированные данные блога
-        profileImage.src = 'https://путь_к_вашей_аватарке.jpg'; // Укажите URL вашей аватарки
+        // Загружаем данные профиля админа
+        const adminProfileDoc = await getDoc(doc(db, 'profiles', '5794174511')); // ID админа
+        if (adminProfileDoc.exists()) {
+            const adminProfile = adminProfileDoc.data();
+            if (adminProfile.photo_url) {
+                profileImage.src = adminProfile.photo_url;
+            }
+        }
+        
         profileName.textContent = 'whylovly';
         profileBio.textContent = 'Личный блог';
 
@@ -719,7 +727,6 @@ async function loadProfile() {
         console.error('Error loading profile:', error);
     }
 }
-
 async function loadPosts() {
     try {
         console.log('Starting to load posts...');
