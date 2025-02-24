@@ -622,22 +622,48 @@
                 preview.innerHTML = '';
             }
         });
+// Функция загрузки статистики
+async function loadStats() {
+    try {
+        // Получаем статистику постов
+        const postsSnapshot = await getDocs(collection(db, 'posts'));
+        const totalPosts = postsSnapshot.size;
+        document.getElementById('totalPosts').textContent = totalPosts;
 
+        // Получаем статистику лайков
+        let totalLikes = 0;
+        const likesSnapshot = await getDocs(collection(db, 'likes'));
+        totalLikes = likesSnapshot.size;
+        document.getElementById('totalLikes').textContent = totalLikes;
+
+        // Получаем статистику комментариев
+        const commentsSnapshot = await getDocs(collection(db, 'comments'));
+        const totalComments = commentsSnapshot.size;
+        document.getElementById('totalComments').textContent = totalComments;
+
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+    }
+}
         // Управление табами
-        window.showTab = function(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
-            
-            if (tabId === 'manage') {
-                loadPosts();
-            }
-        };
+window.showTab = function(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    document.getElementById(tabId).classList.add('active');
+    document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+    
+    // Загрузка данных в зависимости от выбранной вкладки
+    if (tabId === 'manage') {
+        loadPosts();
+    }
+    if (tabId === 'stats') {
+        loadStats();
+    }
+};
 
         // Переключение типа поста
         document.getElementById('category').addEventListener('change', function(e) {
@@ -881,6 +907,29 @@
                 loadSettings();
             }
         });
+// Функция загрузки статистики
+async function loadStats() {
+    try {
+        // Получаем статистику постов
+        const postsSnapshot = await getDocs(collection(db, 'posts'));
+        const totalPosts = postsSnapshot.size;
+        document.getElementById('totalPosts').textContent = totalPosts;
+
+        // Получаем статистику лайков
+        let totalLikes = 0;
+        const likesSnapshot = await getDocs(collection(db, 'likes'));
+        totalLikes = likesSnapshot.size;
+        document.getElementById('totalLikes').textContent = totalLikes;
+
+        // Получаем статистику комментариев
+        const commentsSnapshot = await getDocs(collection(db, 'comments'));
+        const totalComments = commentsSnapshot.size;
+        document.getElementById('totalComments').textContent = totalComments;
+
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+    }
+}
     </script>
 </body>
 </html>
