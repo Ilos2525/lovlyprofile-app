@@ -734,20 +734,43 @@ async function loadProfile() {
 
 async function loadPosts() {
     try {
+        console.log('Starting to load posts...');
         const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
         const postsSnapshot = await getDocs(postsQuery);
         
+        if (postsSnapshot.empty) {
+            console.log('No posts found');
+            ['allPosts', 'musicPosts', 'videoPosts'].forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+                }
+            });
+            return;
+        }
+
         const posts = await Promise.all(postsSnapshot.docs.map(async doc => {
             const post = { id: doc.id, ...doc.data() };
-            if (currentUser?.id) {
-                post.isLiked = await checkLikeStatus(doc.id);
+            try {
+                if (currentUser?.id) {
+                    post.isLiked = await checkLikeStatus(doc.id);
+                }
+            } catch (error) {
+                console.error('Error checking like status:', error);
+                post.isLiked = false;
             }
             return post;
         }));
 
-        displayPosts('allPosts', posts.filter(post => post.category === 'photo'));
-        displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
-        displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
+        console.log('Loaded posts:', posts);
+
+        // Все посты показываем в разделе "Главная"
+        displayPosts('allPosts', posts);
+        
+        // Фильтруем по категориям
+        displayPosts('musicPosts', posts.filter(post => post.type === 'music'));
+        displayPosts('videoPosts', posts.filter(post => post.type === 'video'));
+
     } catch (error) {
         console.error('Error loading posts:', error);
         ['allPosts', 'musicPosts', 'videoPosts'].forEach(containerId => {
