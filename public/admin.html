@@ -634,6 +634,7 @@ import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteD
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Замените конфигурацию Firebase и код авторизации в начале файла
+// В начале файла, где инициализация Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -644,19 +645,16 @@ const firebaseConfig = {
     measurementId: "G-0MKF0C3WQJ"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
-const db = getFirestore();
-const storage = getStorage();
 
-// Простая авторизация
+// Простой вход через Google
 document.getElementById('googleSignIn').onclick = function() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
-        .then((result) => {
+        .then(() => {
             console.log("Успешный вход");
-            location.reload(); // Перезагрузка страницы после входа
+            location.reload();
         })
         .catch((error) => {
             console.error("Ошибка входа:", error);
@@ -664,7 +662,7 @@ document.getElementById('googleSignIn').onclick = function() {
         });
 };
 
-// Проверка состояния авторизации
+// Проверка авторизации
 auth.onAuthStateChanged(function(user) {
     if (user) {
         document.getElementById('loginForm').style.display = 'none';
