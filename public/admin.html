@@ -686,54 +686,45 @@ document.getElementById('googleSignIn').addEventListener('click', async function
         provider.setCustomParameters({
             prompt: 'select_account'
         });
-        
+
         const result = await signInWithPopup(auth, provider);
-        console.log("Успешный вход:", result.user.email);
-        
-        // Проверка на админа
-        if (result.user.email === 'whylovly@gmail.com') {
+        console.log("✅ Успешный вход. Пользователь:", result.user);
+
+        if (result.user.email === 'iosinniy1@gmail.com') {
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
         } else {
+            console.warn("❌ Доступ запрещен. Пользователь не админ:", result.user.email);
             await auth.signOut();
             alert('Доступ запрещен. Только администратор может войти в панель управления.');
         }
     } catch (error) {
-        console.error("Ошибка входа:", error);
-        let errorMessage = 'Произошла ошибка при входе';
-        
-        switch (error.code) {
-            case 'auth/popup-blocked':
-                errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
-                break;
-            case 'auth/popup-closed-by-user':
-                errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
-                break;
-            case 'auth/cancelled-popup-request':
-                errorMessage = 'Предыдущий запрос на вход еще выполняется';
-                break;
-            case 'auth/network-request-failed':
-                errorMessage = 'Проверьте подключение к интернету';
-                break;
-        }
-        
-        alert(errorMessage);
+        console.error("❌ Ошибка входа:", error);
+        alert(`Ошибка входа: ${error.message}`);
     }
 });
 
+
 // Слушатель состояния авторизации
 onAuthStateChanged(auth, (user) => {
-    if (user && user.email === 'whylovly@gmail.com') {
-        console.log("Администратор авторизован:", user.email);
+    console.log("Проверка авторизации. Пользователь:", user);
+
+if (user && user.email === 'iosinniy1@gmail.com') {
+        console.log("✅ Администратор авторизован:", user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         loadProfile(); // Загружаем профиль после успешной авторизации
+    } else if (user) {
+        console.warn("❌ Неадмин вошел:", user.email);
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('adminContent').style.display = 'none';
     } else {
-        console.log("Пользователь не авторизован или не является администратором");
+        console.warn("❌ Пользователь не авторизован или сессия не активна");
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
 });
+
 
 // Оставьте остальной код без изменений
         // Функции для работы с YouTube
