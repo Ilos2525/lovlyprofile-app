@@ -665,70 +665,71 @@ window.showTab = function(tabId) {
     }
 };
 
-        // Переключение типа поста
-        document.getElementById('category').addEventListener('change', function(e) {
-            const isVideo = e.target.value === 'video';
-            document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
-            document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
-            document.getElementById('filePreview').innerHTML = '';
-            document.getElementById('youtubePreview').innerHTML = '';
-        });
+       // Переключение типа поста
+document.getElementById('category').addEventListener('change', function(e) {
+    const isVideo = e.target.value === 'video';
+    document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
+    document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
+    document.getElementById('filePreview').innerHTML = '';
+    document.getElementById('youtubePreview').innerHTML = '';
+});
 
-        // Загрузка поста
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitButton = this.querySelector('button[type="submit"]');
-            const progressBar = document.querySelector('.progress');
+// Загрузка поста
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const submitButton = this.querySelector('button[type="submit"]');
+    const progressBar = document.querySelector('.progress');
 
-            try {
-                submitButton.disabled = true;
-                progressBar.style.width = '10%';
+    try {
+        submitButton.disabled = true;
+        progressBar.style.width = '10%';
 
-                const category = document.getElementById('category').value;
-                const description = document.getElementById('description').value;
-                let fileURL = '';
+        const category = document.getElementById('category').value;
+        const description = document.getElementById('description').value;
+        let fileURL = '';
 
-                if (category === 'video') {
-                    fileURL = document.getElementById('youtubeLink').value;
-                    if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-                    if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-                } else {
-                    const fileInput = document.getElementById('fileInput');
-                    if (!fileInput.files.length) throw new Error('Выберите файл');
-                    
-                    const file = fileInput.files[0];
-                    fileURL = await uploadFile(file, category);
-                }
+        if (category === 'video') {
+            fileURL = document.getElementById('youtubeLink').value;
+            if (!fileURL) throw new Error('Укажите ссылку на YouTube');
+            if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
+        } else {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) throw new Error('Выберите файл');
+            
+            const file = fileInput.files[0];
+            fileURL = await uploadFile(file, category);
+        }
 
-                progressBar.style.width = '80%';
+        progressBar.style.width = '80%';
 
-                const postData = {
-                    category,
-                    fileURL,
-                    description,
-                    timestamp: new Date().toISOString(),
-                    author: auth.currentUser.email
-                };
+        const postData = {
+            category,
+            fileURL,
+            description,
+            timestamp: new Date().toISOString(),
+            author: auth.currentUser.email
+        };
 
-                const docRef = await addDoc(collection(db, 'posts'), postData);
-                
-                progressBar.style.width = '100%';
-                alert('Пост успешно опубликован!');
-                
-                this.reset();
-                document.getElementById('filePreview').innerHTML = '';
-                document.getElementById('youtubePreview').innerHTML = '';
+        const docRef = await addDoc(collection(db, 'posts'), postData);
+        
+        progressBar.style.width = '100%';
+        alert('Пост успешно опубликован!');
+        loadStats(); // Добавлена эта строка
+        
+        this.reset();
+        document.getElementById('filePreview').innerHTML = '';
+        document.getElementById('youtubePreview').innerHTML = '';
 
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert(`Ошибка: ${error.message}`);
-            } finally {
-                submitButton.disabled = false;
-                setTimeout(() => {
-                    progressBar.style.width = '0%';
-                }, 1000);
-            }
-        });
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert(`Ошибка: ${error.message}`);
+    } finally {
+        submitButton.disabled = false;
+        setTimeout(() => {
+            progressBar.style.width = '0%';
+        }, 1000);
+    }
+});
         // Обновление профиля
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -883,53 +884,33 @@ window.showTab = function(tabId) {
             }
         }
 
-        // Удаление поста
-        window.deletePost = async function(postId) {
-            if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
-                return;
-            }
+        /// Удаление поста
+window.deletePost = async function(postId) {
+    if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
+        return;
+    }
 
-            try {
-                await deleteDoc(doc(db, 'posts', postId));
-                alert('Пост удален!');
-                loadPosts();
-            } catch (error) {
-                console.error('Ошибка удаления поста:', error);
-                alert('Ошибка удаления поста: ' + error.message);
-            }
-        };
+    try {
+        await deleteDoc(doc(db, 'posts', postId));
+        alert('Пост удален!');
+        loadPosts();
+        loadStats(); // Добавлена эта строка
+    } catch (error) {
+        console.error('Ошибка удаления поста:', error);
+        alert('Ошибка удаления поста: ' + error.message);
+    }
+};
 
         // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', () => {
-            if (auth.currentUser) {
-                loadPosts();
-                loadProfile();
-                loadSettings();
-            }
-        });
-// Функция загрузки статистики
-async function loadStats() {
-    try {
-        // Получаем статистику постов
-        const postsSnapshot = await getDocs(collection(db, 'posts'));
-        const totalPosts = postsSnapshot.size;
-        document.getElementById('totalPosts').textContent = totalPosts;
-
-        // Получаем статистику лайков
-        let totalLikes = 0;
-        const likesSnapshot = await getDocs(collection(db, 'likes'));
-        totalLikes = likesSnapshot.size;
-        document.getElementById('totalLikes').textContent = totalLikes;
-
-        // Получаем статистику комментариев
-        const commentsSnapshot = await getDocs(collection(db, 'comments'));
-        const totalComments = commentsSnapshot.size;
-        document.getElementById('totalComments').textContent = totalComments;
-
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
+document.addEventListener('DOMContentLoaded', () => {
+    if (auth.currentUser) {
+        loadPosts();
+        loadProfile();
+        loadSettings();
+        loadStats(); // Добавлена эта строка
     }
-}
+});
+
     </script>
 </body>
 </html>
