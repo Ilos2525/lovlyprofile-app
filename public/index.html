@@ -854,7 +854,6 @@ window.handleLike = async function(postId) {
             return;
         }
 
-        // Находим и блокируем кнопку
         const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
         if (likeButton) likeButton.disabled = true;
 
@@ -891,6 +890,8 @@ window.handleLike = async function(postId) {
             batch.set(likeRef, {
                 userId: userId,
                 postId,
+                userName: username,
+                userPhoto: currentUser.photo_url || '',
                 timestamp: serverTimestamp()
             });
             batch.update(postRef, {
@@ -902,7 +903,7 @@ window.handleLike = async function(postId) {
 
         await batch.commit();
         if (likeButton) likeButton.disabled = false;
-        loadPosts();
+        await loadPosts();
 
     } catch (error) {
         console.error('Ошибка лайка:', error);
