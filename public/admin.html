@@ -4,643 +4,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        .upload-container {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            margin: auto;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            text-align: left;
+        }
+        select, input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        select, input, textarea {
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #e50914;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div id="loginForm">
-        <h3>Вход в админ-панель</h3>
-        <button id="googleSignIn">Войти через Google</button>
+
+    <h2>Добавить новый пост</h2>
+    <div class="upload-container">
+        <form id="uploadForm">
+            <label for="category">Категория:</label>
+            <select id="category">
+                <option value="photo">Фото</option>
+                <option value="music">Музыка</option>
+                <option value="video">Видео (YouTube ссылка)</option>
+            </select>
+
+            <label for="fileInput">Файл (для фото/музыки):</label>
+            <input type="file" id="fileInput">
+
+            <label for="youtubeLink">Ссылка на YouTube (для видео):</label>
+            <input type="url" id="youtubeLink" placeholder="Вставьте ссылку">
+
+            <label for="description">Описание:</label>
+            <textarea id="description" rows="3" placeholder="Добавьте описание"></textarea>
+
+            <button type="submit">Загрузить</button>
+        </form>
     </div>
 
-    <div id="adminContent" style="display: none;">
-        <div class="admin-tabs">
-            <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
-            <button class="tab-button" onclick="showTab('manage')">Управление постами</button>
-            <button class="tab-button" onclick="showTab('profile')">Профиль</button>
-            <button class="tab-button" onclick="showTab('settings')">Настройки</button>
-        </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getDatabase, ref as dbRef, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        <div id="manage" class="tab-content">
-            <div class="form-group">
-                <h3>Управление постами</h3>
-                <div id="postsList">
-                    <div class="loading">Загрузка постов...</div>
-                </div>
-            </div>
-        </div>
+        // Firebase конфигурация
+        const firebaseConfig = {
+            apiKey: "AIzaSyAo5uvpI2B5p2GXLfWXZ29V-Z9cGD8wJ6U",
+            authDomain: "whylovly-website.firebaseapp.com",
+            projectId: "whylovly-website",
+            storageBucket: "whylovly-website.appspot.com",
+            messagingSenderId: "679128641326",
+            appId: "1:679128641326:web:27fe6fa6cd6f1e986cd4bf",
+            measurementId: "G-RFQRS6K1SX"
+        };
 
-        <div id="posts" class="tab-content active">
-            <div class="form-group">
-                <h3>Добавить новый пост</h3>
-                <form id="uploadForm">
-                    <label for="category">Категория:</label>
-                    <select id="category" required>
-                        <option value="photo">Фото</option>
-                        <option value="music">Музыка</option>
-                        <option value="video">Видео</option>
-                    </select>
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const storage = getStorage(app);
+        const database = getDatabase(app);
 
-                    <div id="fileInputGroup">
-                        <label for="fileInput">Файл:</label>
-                        <input type="file" id="fileInput">
-                        <div class="preview-container" id="filePreview"></div>
-                    </div>
+        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-                    <div id="youtubeLinkGroup" style="display: none;">
-                        <label for="youtubeLink">Ссылка на YouTube:</label>
-                        <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
-                        <div class="preview-container" id="youtubePreview"></div>
-                    </div>
+            const category = document.getElementById("category").value;
+            const fileInput = document.getElementById("fileInput");
+            const youtubeLink = document.getElementById("youtubeLink").value;
+            const description = document.getElementById("description").value;
 
-                    <label for="description">Описание:</label>
-                    <textarea id="description" rows="4" required></textarea>
+            let fileURL = "";
+            let fileName = "";
 
-                    <div class="progress-bar">
-                        <div class="progress"></div>
-                    </div>
+            if (category === "video" && youtubeLink) {
+                fileURL = youtubeLink;
+            } else if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName = file.name;
+                const storageRef = ref(storage, `${category}/${fileName}`);
+                await uploadBytes(storageRef, file);
+                fileURL = await getDownloadURL(storageRef);
+            } else {
+                return alert("Выберите файл или вставьте YouTube ссылку!");
+            }
 
-                    <button type="submit">Опубликовать</button>
-                </form>
-            </div>
-        </div>
+            // Отправка данных в Realtime Database
+            push(dbRef(database, category), {
+                fileName: fileName,
+                fileURL: fileURL,
+                description: description,
+                likes: 0,
+                comments: []
+            });
 
-        <div id="profile" class="tab-content">
-            <div class="form-group">
-                <h3>Настройки профиля</h3>
-                <form id="profileForm">
-                    <label for="profilePhoto">Фото профиля:</label>
-                    <input type="file" id="profilePhoto" accept="image/*">
-                    <div class="preview-container" id="profilePreview"></div>
+            alert("Пост успешно загружен!");
+            document.getElementById("uploadForm").reset();
+        });
+    </script>
 
-                    <label for="profileName">Имя профиля:</label>
-                    <input type="text" id="profileName" value="whylovly">
-
-                    <label for="profileBio">Описание профиля:</label>
-                    <textarea id="profileBio" rows="3">Музыкант | Создатель контента | Артист</textarea>
-
-                    <button type="submit">Сохранить изменения</button>
-                </form>
-            </div>
-        </div>
-
-        <div id="settings" class="tab-content">
-            <div class="form-group">
-                <h3>Общие настройки</h3>
-                <form id="settingsForm">
-                    <label for="siteTitle">Заголовок сайта:</label>
-                    <input type="text" id="siteTitle" value="whylovly">
-
-                    <label for="accentColor">Цвет акцента:</label>
-                    <input type="color" id="accentColor" value="#00ffcc">
-
-                    <button type="submit">Применить настройки</button>
-                </form>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
-:root {
-    --neon-color: #00ffcc;
-    --bg-color: #121212;
-    --card-bg: rgba(0, 0, 0, 0.3);
-    --text-color: #ffffff;
-    --error-color: #ff4444;
-}
-
-body {
-    font-family: 'Roboto', sans-serif;
-    background: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 20px;
-    min-height: 100vh;
-}
-
-.admin-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-}
-
-.tab-button {
-    background: var(--card-bg);
-    border: 1px solid var(--neon-color);
-    color: var(--text-color);
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-}
-
-.tab-button:hover {
-    background: rgba(0, 255, 204, 0.1);
-}
-
-.tab-button.active {
-    background: var(--neon-color);
-    color: var(--bg-color);
-}
-
-.tab-content {
-    display: none;
-    max-width: 800px;
-    margin: 0 auto;
-    animation: fadeIn 0.3s ease;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-.form-group {
-    background: var(--card-bg);
-    padding: 25px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    border: 1px solid var(--neon-color);
-    box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
-}
-
-h3 {
-    color: var(--neon-color);
-    margin-top: 0;
-    font-size: 1.5em;
-    margin-bottom: 20px;
-}
-
-label {
-    display: block;
-    margin: 15px 0 8px;
-    color: var(--text-color);
-    font-weight: 500;
-}
-
-select, input, textarea {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--neon-color);
-    color: var(--text-color);
-    border-radius: 8px;
-    font-family: inherit;
-    transition: all 0.3s ease;
-}
-
-select:focus, input:focus, textarea:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.3);
-}
-
-button {
-    background: var(--neon-color);
-    color: var(--bg-color);
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 15px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-button:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.preview-container {
-    margin: 15px 0;
-    max-width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.preview-container img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-}
-
-.preview-container audio {
-    width: 100%;
-    margin: 10px 0;
-}
-
-.progress-bar {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 20px 0;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress {
-    height: 100%;
-    background: var(--neon-color);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-#loginForm {
-    text-align: center;
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 30px;
-    background: var(--card-bg);
-    border-radius: 12px;
-    border: 1px solid var(--neon-color);
-    box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
-}
-
-.post-item {
-    background: var(--card-bg);
-    border: 1px solid var(--neon-color);
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 12px;
-    animation: fadeIn 0.3s ease;
-}
-
-.post-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.post-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.post-category {
-    color: var(--neon-color);
-    font-weight: 500;
-}
-
-.post-date {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9em;
-}
-
-.delete-btn {
-    background: var(--error-color);
-    padding: 8px 16px;
-    width: auto;
-    margin: 0;
-}
-
-.loading {
-    text-align: center;
-    color: var(--neon-color);
-    padding: 20px;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-    
-    .admin-tabs {
-        flex-direction: column;
-    }
-    
-    .tab-button {
-        width: 100%;
-    }
-}
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-import { getFirestore, collection, addDoc, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-    authDomain: "whylovly-website-8adcb.firebaseapp.com",
-    projectId: "whylovly-website-8adcb",
-    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-    messagingSenderId: "749833792533",
-    appId: "1:749833792533:web:2494649a11b628cd84321c",
-    measurementId: "G-0MKF0C3WQJ"
-};
-
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-
-// Функции для работы с YouTube
-function getYoutubeVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-}
-
-function generateYoutubePreview(videoId) {
-    return `
-        <div class="video-preview">
-            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
-            <div class="play-icon">▶️</div>
-        </div>
-    `;
-}
-
-// Авторизация
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        loadPosts(); // Загружаем посты при авторизации
-        console.log('Авторизован как:', user.email);
-    } else {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('adminContent').style.display = 'none';
-        console.log('Не авторизован');
-    }
-});
-
-document.getElementById('googleSignIn').addEventListener('click', async () => {
-    try {
-        await signInWithPopup(auth, provider);
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        alert('Ошибка входа: ' + error.message);
-    }
-});
-
-// Загрузка файлов
-async function uploadFile(file, category) {
-    return new Promise((resolve, reject) => {
-        const timestamp = Date.now();
-        const storageRef = ref(storage, `${category}/${timestamp}_${file.name}`);
-        
-        const metadata = {
-            contentType: file.type
-        };
-
-        const uploadTask = uploadBytesResumable(storageRef, file, metadata);
-        const progressBar = document.querySelector('.progress');
-
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                progressBar.style.width = `${progress}%`;
-            },
-            (error) => {
-                console.error('Ошибка загрузки:', error);
-                reject(error);
-            },
-            async () => {
-                try {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    resolve(downloadURL);
-                } catch (error) {
-                    reject(error);
-                }
-            }
-        );
-    });
-}
-
-// Обработка превью файлов
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('filePreview');
-    
-    if (file) {
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-            };
-            reader.readAsDataURL(file);
-        } else if (file.type.startsWith('audio/')) {
-            preview.innerHTML = `
-                <audio controls>
-                    <source src="${URL.createObjectURL(file)}" type="${file.type}">
-                </audio>`;
-        }
-    }
-});
-
-// Обработка YouTube ссылок
-document.getElementById('youtubeLink').addEventListener('input', function(e) {
-    const videoId = getYoutubeVideoId(e.target.value);
-    const preview = document.getElementById('youtubePreview');
-    
-    if (videoId) {
-        preview.innerHTML = generateYoutubePreview(videoId);
-    } else {
-        preview.innerHTML = '';
-    }
-});
-// Управление табами
-window.showTab = function(tabId) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    document.getElementById(tabId).classList.add('active');
-    document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
-    
-    if (tabId === 'manage') {
-        loadPosts();
-    }
-};
-
-// Переключение типа поста
-document.getElementById('category').addEventListener('change', function(e) {
-    const isVideo = e.target.value === 'video';
-    document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
-    document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('filePreview').innerHTML = '';
-    document.getElementById('youtubePreview').innerHTML = '';
-});
-
-// Загрузка поста
-document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const submitButton = this.querySelector('button[type="submit"]');
-    const progressBar = document.querySelector('.progress');
-
-    try {
-        submitButton.disabled = true;
-        progressBar.style.width = '10%';
-
-        const category = document.getElementById('category').value;
-        const description = document.getElementById('description').value;
-        let fileURL = '';
-
-        if (category === 'video') {
-            fileURL = document.getElementById('youtubeLink').value;
-            if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-            if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-        } else {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) throw new Error('Выберите файл');
-            
-            const file = fileInput.files[0];
-            fileURL = await uploadFile(file, category);
-        }
-
-        progressBar.style.width = '80%';
-
-        const postData = {
-            category,
-            fileURL,
-            description,
-            timestamp: new Date().toISOString(),
-            author: auth.currentUser.email
-        };
-
-        const docRef = await addDoc(collection(db, 'posts'), postData);
-        
-        progressBar.style.width = '100%';
-        alert('Пост успешно опубликован!');
-        
-        // Сброс формы
-        this.reset();
-        document.getElementById('filePreview').innerHTML = '';
-        document.getElementById('youtubePreview').innerHTML = '';
-        
-        // Обновляем список постов
-        if (document.getElementById('manage').classList.contains('active')) {
-            loadPosts();
-        }
-
-    } catch (error) {
-        console.error('Ошибка:', error);
-        alert(`Ошибка: ${error.message}`);
-    } finally {
-        submitButton.disabled = false;
-        setTimeout(() => {
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
-
-// Обновление профиля
-document.getElementById('profileForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    try {
-        const profilePhoto = document.getElementById('profilePhoto').files[0];
-        const profileName = document.getElementById('profileName').value;
-        const profileBio = document.getElementById('profileBio').value;
-
-        let photoURL = '';
-        if (profilePhoto) {
-            photoURL = await uploadFile(profilePhoto, 'profile');
-        }
-
-        await setDoc(doc(db, 'profiles', '5794174511'), {
-            first_name: profileName,
-            bio: profileBio,
-            photo_url: photoURL || null,
-            updatedAt: new Date().toISOString()
-        });
-
-        alert('Профиль обновлен!');
-    } catch (error) {
-        console.error('Ошибка обновления профиля:', error);
-        alert(`Ошибка: ${error.message}`);
-    }
-});
-
-// Загрузка списка постов
-async function loadPosts() {
-    const postsList = document.getElementById('postsList');
-    try {
-        const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            postsList.innerHTML = '<div class="post-item">Нет постов</div>';
-            return;
-        }
-
-        const postsHTML = querySnapshot.docs.map(doc => {
-            const post = doc.data();
-            const date = new Date(post.timestamp).toLocaleString('ru-RU');
-            let mediaPreview = '';
-            
-            switch(post.category) {
-                case 'photo':
-                    mediaPreview = `<img src="${post.fileURL}" alt="Preview">`;
-                    break;
-                case 'video':
-                    const videoId = getYoutubeVideoId(post.fileURL);
-                    mediaPreview = generateYoutubePreview(videoId);
-                    break;
-                case 'music':
-                    mediaPreview = `
-                        <audio controls>
-                            <source src="${post.fileURL}" type="audio/mpeg">
-                        </audio>`;
-                    break;
-            }
-
-            return `
-                <div class="post-item">
-                    <div class="post-header">
-                        <div class="post-info">
-                            <div class="post-category">${post.category}</div>
-                            <div class="post-date">${date}</div>
-                        </div>
-                        <button class="delete-btn" onclick="deletePost('${doc.id}')">Удалить</button>
-                    </div>
-                    <div class="media-preview">${mediaPreview}</div>
-                    <div class="post-description">${post.description}</div>
-                </div>
-            `;
-        }).join('');
-
-        postsList.innerHTML = postsHTML;
-    } catch (error) {
-        console.error('Ошибка загрузки постов:', error);
-        postsList.innerHTML = '<div class="post-item">Ошибка загрузки постов</div>';
-    }
-}
-
-// Удаление поста
-window.deletePost = async function(postId) {
-    if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
-        return;
-    }
-
-    try {
-        await deleteDoc(doc(db, 'posts', postId));
-        alert('Пост удален!');
-        loadPosts();
-    } catch (error) {
-        console.error('Ошибка удаления поста:', error);
-        alert('Ошибка удаления поста: ' + error.message);
-    }
-};
-
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-    if (auth.currentUser) {
-        loadPosts();
-    }
-});
