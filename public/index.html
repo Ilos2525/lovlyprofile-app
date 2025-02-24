@@ -557,7 +557,7 @@
     </div>
 
     <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, 
     collection, 
@@ -577,20 +577,39 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        /// Глобальные переменные
+// Конфигурация Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+    authDomain: "whylovly-website-8adcb.firebaseapp.com",
+    projectId: "whylovly-website-8adcb",
+    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+    messagingSenderId: "749833792533",
+    appId: "1:749833792533:web:2494649a11b628cd84321c",
+    measurementId: "G-0MKF0C3WQJ"
+};
+
+// Инициализация Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Глобальные переменные
 let tg = null;
 let currentUser = null;
 
-
-
-// В обработчике авторизации
-onAuthStateChanged(auth, (user) => {
-    recordVisit(user);
-});
-
-// Также добавьте для неавторизованных пользователей
-if (!auth.currentUser) {
-    recordVisit(null);
+async function recordVisit(user) {
+    try {
+        await addDoc(collection(db, 'visitors'), {
+            timestamp: serverTimestamp(),
+            userEmail: user?.email || 'Гость',
+            userPhoto: user?.photoURL || null,
+            displayName: user?.displayName || 'Гость',
+            page: window.location.pathname,
+            userAgent: navigator.userAgent
+        });
+    } catch (error) {
+        console.error('Ошибка записи посещения:', error);
+    }
 }
 
 async function verifyTelegramWebAppData(initData) {
@@ -658,20 +677,6 @@ function isAuthorized() {
     return !!user;
 }
 
-const firebaseConfig = {
-    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-    authDomain: "whylovly-website-8adcb.firebaseapp.com",
-    projectId: "whylovly-website-8adcb",
-    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-    messagingSenderId: "749833792533",
-    appId: "1:749833792533:web:2494649a11b628cd84321c",
-    measurementId: "G-0MKF0C3WQJ"
-};
-
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
         
       function showNotification(type, username) {
     // Удаляем предыдущее уведомление, если есть
@@ -818,7 +823,11 @@ async function initTelegram() {
         }
 
         // Записываем посещение
-        await recordVisit();
+       await recordVisit({
+    email: currentUser.username || 'Гость',
+    photoURL: null,
+    displayName: currentUser.first_name || 'Гость'
+});
 
         // Скрываем предупреждение
         const authWarning = document.getElementById('authWarning');
