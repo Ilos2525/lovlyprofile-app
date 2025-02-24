@@ -672,34 +672,10 @@ function isAuthorized() {
     return !!(currentUser && currentUser.id);
 }
 
-// Также обновим проверку в handleLike
 window.handleLike = async function(postId) {
     try {
-        console.log('Like attempt:', { 
-            isAuthorized: isAuthorized(),
-            currentUser,
-            tg: window.Telegram?.WebApp
-        });
-
         if (!isAuthorized()) {
-            console.error('Необходима авторизация через Telegram');
             alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/lovlyprofilebot';
-            return;
-        }
-        
-        // Остальной код handleLike без изменений
-        const userId = currentUser.id;
-        // ...
-    } catch (error) {
-        console.error('Ошибка лайка:', error);
-        alert('Произошла ошибка при обработке лайка');
-    }
-};
-window.handleLike = async function(postId) {
-    try {
-        if (!isAuthorized()) {
-            window.location.href = 'https://t.me/lovlyprofilebot';
             return;
         }
 
@@ -759,84 +735,59 @@ window.handleLike = async function(postId) {
         if (likeButton) likeButton.disabled = false;
     }
 };
-
 window.addComment = async function(postId) {
     if (!isAuthorized()) {
-        alert('Для комментариев необходимо открыть сайт через @lovlyprofilebot');
-        window.location.href = 'https://t.me/lovlyprofilebot';
+        alert('Этот сайт работает только через Telegram');
         return;
     }
     
     try {
         const input = document.getElementById(`comment-input-${postId}`);
         const text = input.value.trim();
-        // ... остальной код функции addComment ...
+        
+        if (!text) {
+            alert('Введите текст комментария');
+            return;
+        }
+
+        const submitButton = input.nextElementSibling;
+        submitButton.disabled = true;
+
+        const username = currentUser.username || currentUser.first_name || 'Unknown';
+        
+        const batch = writeBatch(db);
+        
+        const commentRef = doc(collection(db, 'comments'));
+        batch.set(commentRef, {
+            postId,
+            userId: currentUser.id,
+            username,
+            text,
+            timestamp: serverTimestamp()
+        });
+
+        const postRef = doc(db, 'posts', postId);
+        batch.update(postRef, {
+            commentsCount: increment(1)
+        });
+
+        await batch.commit();
+        
+        input.value = '';
+        const container = document.getElementById(`comments-container-${postId}`);
+        await loadComments(postId, container);
+        loadPosts();
+        
+        showNotification('comment', username);
+        submitButton.disabled = false;
+
     } catch (error) {
         console.error('Ошибка добавления комментария:', error);
         alert('Ошибка при добавлении комментария');
+        const submitButton = document.querySelector(`#comment-input-${postId}`).nextElementSibling;
+        if (submitButton) submitButton.disabled = false;
     }
 };
-        async function loadProfile() {
-            try {
-                const profileDoc = await getDoc(doc(db, 'profile', 'main'));
-                if (profileDoc.exists()) {
-                    const data = profileDoc.data();
-                    if (data.photoURL) document.getElementById('profileImage').src = data.photoURL;
-                    if (data.name) document.getElementById('profileName').textContent = data.name;
-                    if (data.bio) document.getElementById('profileBio').textContent = data.bio;
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-                document.getElementById('profileBio').textContent = 'Ошибка загрузки профиля';
-            }
-        }
-
-        async function loadPosts() {
-            try {
-                const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-                const querySnapshot = await getDocs(postsQuery);
-                
-                const posts = {
-                    photo: [],
-                    music: [],
-                    video: []
-                };
-
-                const likePromises = [];
-
-                querySnapshot.forEach((doc) => {
-                    const post = doc.data();
-                    post.id = doc.id;
-                    if (post.category) {
-                        posts[post.category].push(post);
-                        if (currentUser?.id) {
-                            const likePromise = checkLikeStatus(post.id);
-                            likePromises.push(likePromise);
-                        }
-                    }
-                });
-
-                const likeStatuses = await Promise.all(likePromises);
-                let likeIndex = 0;
-
-                Object.keys(posts).forEach(category => {
-                    posts[category].forEach(post => {
-                        post.isLiked = likeStatuses[likeIndex++];
-                    });
-                });
-
-                await Promise.all([
-                    displayPosts('allPosts', posts.photo),
-                    displayPosts('musicPosts', posts.music),
-                    displayPosts('videoPosts', posts.video)
-                ]);
-            } catch (error) {
-                console.error('Ошибка загрузки постов:', error);
-                document.querySelectorAll('.loading').forEach(el => {
-                    el.innerHTML = 'Ошибка загрузки. Попробуйте обновить страницу.';
-                });
-            }
-        }
 
         async function checkLikeStatus(postId) {
             try {
