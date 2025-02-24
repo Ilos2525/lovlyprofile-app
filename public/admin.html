@@ -649,23 +649,12 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-document.getElementById('googleSignIn').addEventListener('click', async () => {
-    try {
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-        const result = await signInWithPopup(auth, provider);
-        console.log('Успешный вход:', result.user.email);
-    } catch (error) {
-        console.error('Ошибка входа:', error);
-        alert('Ошибка входа: ' + error.message);
-    }
-});
+const ADMIN_EMAIL = 'iosinniy1@gmail.com'; // Ваш email
 
 onAuthStateChanged(auth, async (user) => {
     console.log('Состояние авторизации изменилось:', user?.email);
     
-    if (user) {
+    if (user && user.email === ADMIN_EMAIL) {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         
@@ -686,8 +675,29 @@ onAuthStateChanged(auth, async (user) => {
             console.error('Ошибка после входа:', error);
         }
     } else {
+        if (user) {
+            await auth.signOut();
+            alert('Доступ запрещен. Только администратор может войти в панель управления.');
+        }
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
+    }
+});
+
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+    try {
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        const result = await signInWithPopup(auth, provider);
+        
+        if (result.user.email !== ADMIN_EMAIL) {
+            await auth.signOut();
+            alert('Доступ запрещен. Только администратор может войти в панель управления.');
+        }
+    } catch (error) {
+        console.error('Ошибка входа:', error);
+        alert('Ошибка входа: ' + error.message);
     }
 });
 
