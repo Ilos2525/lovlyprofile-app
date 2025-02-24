@@ -276,6 +276,33 @@
                 width: 100%;
             }
         }
+/* Стили для статистики */
+.stats-block {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-item {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5em;
+    color: var(--neon-color);
+    margin: 10px 0;
+}
+
+.stat-item h4 {
+    margin: 0;
+    color: var(--text-color);
+    opacity: 0.8;
+}
     </style>
 </head>
 <body>
@@ -294,11 +321,12 @@
         </div>
 
         <div class="admin-tabs">
-            <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
-            <button class="tab-button" onclick="showTab('manage')">Управление постами</button>
-            <button class="tab-button" onclick="showTab('profile')">Профиль</button>
-            <button class="tab-button" onclick="showTab('settings')">Настройки</button>
-        </div>
+    <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+    <button class="tab-button" onclick="showTab('manage')">Управление постами</button>
+    <button class="tab-button" onclick="showTab('stats')">Статистика</button>  <!-- Новая кнопка -->
+    <button class="tab-button" onclick="showTab('profile')">Профиль</button>
+    <button class="tab-button" onclick="showTab('settings')">Настройки</button>
+</div>
 
         <div id="posts" class="tab-content active">
             <div class="form-group">
@@ -403,6 +431,30 @@
             </div>
         </div>
     </div>
+<!-- Добавьте этот код после других tab-content блоков -->
+<div id="stats" class="tab-content">
+    <div class="form-group">
+        <h3>Статистика сайта</h3>
+        
+        <!-- Блок с основными цифрами -->
+        <div class="stats-block">
+            <div class="stat-item">
+                <h4>Всего постов</h4>
+                <div id="totalPosts" class="stat-number">0</div>
+            </div>
+            
+            <div class="stat-item">
+                <h4>Всего лайков</h4>
+                <div id="totalLikes" class="stat-number">0</div>
+            </div>
+            
+            <div class="stat-item">
+                <h4>Комментариев</h4>
+                <div id="totalComments" class="stat-number">0</div>
+            </div>
+        </div>
+    </div>
+</div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
