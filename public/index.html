@@ -634,42 +634,44 @@
 
 async function initTelegram() {
     try {
-        console.log('Starting init');
-
+        console.log('WebApp initialization started');
+        
         if (!window.Telegram?.WebApp) {
-            console.warn('Telegram WebApp not found');
-            const authWarning = document.getElementById('authWarning');
-            if (authWarning) authWarning.style.display = 'flex';
-            return;
+            throw new Error('Telegram WebApp not found');
         }
 
         tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        await tg.ready();
 
-        currentUser = tg.initDataUnsafe?.user || null;
-        console.log('Got user:', currentUser);
-
+        console.log('WebApp user data:', tg.initDataUnsafe?.user);
+        
+        currentUser = tg.initDataUnsafe?.user;
+        
         if (!currentUser) {
-            const authWarning = document.getElementById('authWarning');
-            if (authWarning) authWarning.style.display = 'flex';
-            return;
+            throw new Error('No user data available');
         }
 
-        localStorage.setItem('telegramUser', JSON.stringify(currentUser));
+        const authWarning = document.getElementById('authWarning');
+        if (authWarning) authWarning.style.display = 'none';
+
         await loadProfile();
         await loadPosts();
 
     } catch (err) {
-        console.error('initTelegram error:', err);
+        console.error('Telegram initialization error:', err);
         const authWarning = document.getElementById('authWarning');
         if (authWarning) authWarning.style.display = 'flex';
     }
 }
 
 function isAuthorized() {
-    // Проверяем только наличие currentUser с id
-    return !!(currentUser && currentUser.id);
+    const webAppData = window.Telegram?.WebApp;
+    const userData = webAppData?.initDataUnsafe?.user;
+    console.log('Authorization check:', {
+        webAppExists: !!webAppData,
+        userData: userData
+    });
+    return !!(webAppData && userData?.id);
 }
 
 window.handleLike = async function(postId) {
@@ -1149,13 +1151,34 @@ window.addEventListener('offline', () => {
 });
 
 
-window.addEventListener('load', initTelegram);
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing WebApp');
+    try {
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.ready();
+            console.log('WebApp ready called');
+        }
+        await initTelegram();
+    } catch (err) {
+        console.error('Initialization error:', err);
+    }
+});
 
+// Обработка ошибок изображений
 document.addEventListener('error', function(e) {
     if (e.target.tagName.toLowerCase() === 'img') {
         e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
     }
 }, true);
+
+// Обработчик видимости окна
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        console.log('Window became visible, checking auth');
+        isAuthorized();
+    }
+});
 </script>
 </body>
 </html>
