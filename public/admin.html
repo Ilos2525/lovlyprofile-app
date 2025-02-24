@@ -1256,15 +1256,28 @@ async function loadActivityData(tab) {
             const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
             const date = timestamp.toLocaleString('ru-RU');
             
+            // Определяем имя пользователя в зависимости от типа активности
+            let userName;
+            if (tab === 'likes') {
+                userName = data.author || data.userName || data.userEmail || 'Гость';
+            } else if (tab === 'comments') {
+                userName = data.author || data.username || data.userEmail || 'Гость';
+            } else { // visits
+                userName = data.displayName || data.userEmail || 'Гость';
+            }
+            
             html += `
                 <div class="user-activity-item">
                     <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                     <div class="activity-info">
-                        <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
+                        <div class="user-email">${userName}</div>
                         <div class="activity-date">${date}</div>
                         ${tab === 'comments' ? `
                             <div class="comment-text">${data.text}</div>
                             <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
+                        ` : ''}
+                        ${tab === 'likes' ? `
+                            <div class="like-text">${data.postDescription || ''}</div>
                         ` : ''}
                     </div>
                 </div>
