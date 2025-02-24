@@ -1282,21 +1282,11 @@ async function loadActivityData(tab) {
             const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
             const date = timestamp.toLocaleString('ru-RU');
             
-            // Получаем имя пользователя из нужного поля в зависимости от типа активности
-            let userName;
-            if (tab === 'likes') {
-                userName = data.userName;
-            } else if (tab === 'comments') {
-                userName = data.author;
-            } else { // visits
-                userName = data.displayName;
-            }
-            
             html += `
                 <div class="user-activity-item">
                     <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                     <div class="activity-info">
-                        <div class="user-email">${userName || 'Гость'}</div>
+                        <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
                         <div class="activity-date">${date}</div>
                         ${tab === 'comments' ? `
                             <div class="comment-text">${data.text}</div>
