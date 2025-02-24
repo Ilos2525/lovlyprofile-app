@@ -575,9 +575,14 @@ import {
     where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Глобальные переменные и проверка WebApp
+        // Глобальные переменные
 let tg = null;
 let currentUser = null;
+
+// Обработчик ошибок
+window.addEventListener('error', function(e) {
+    console.error('Global error:', e.error);
+});
 
 async function verifyTelegramWebAppData(initData) {
     try {
@@ -705,12 +710,12 @@ async function initTelegram() {
     try {
         console.log('Starting initialization...');
         
-        // Проверяем наличие WebApp
         if (!window.Telegram?.WebApp) {
             throw new Error('Telegram WebApp not found');
         }
 
         tg = window.Telegram.WebApp;
+        console.log('WebApp object:', tg);
         
         // Расширяем окно и сообщаем о готовности
         tg.expand();
@@ -718,6 +723,7 @@ async function initTelegram() {
 
         // Проверяем данные
         const isVerified = await verifyTelegramWebAppData(tg.initData);
+        console.log('Verification status:', isVerified);
         
         if (!isVerified) {
             throw new Error('WebApp data verification failed');
@@ -725,19 +731,18 @@ async function initTelegram() {
 
         // Получаем данные пользователя
         currentUser = tg.initDataUnsafe.user;
+        console.log('Current user:', currentUser);
         
         if (!currentUser?.id) {
             throw new Error('No user data available');
         }
 
-        console.log('Successfully initialized:', {
-            user: currentUser,
-            initData: tg.initData
-        });
-
         // Скрываем предупреждение
         const authWarning = document.getElementById('authWarning');
-        if (authWarning) authWarning.style.display = 'none';
+        if (authWarning) {
+            authWarning.style.display = 'none';
+            console.log('Auth warning hidden');
+        }
 
         // Загружаем данные
         await loadProfile();
@@ -745,6 +750,7 @@ async function initTelegram() {
 
     } catch (error) {
         console.error('Initialization failed:', error);
+        console.error('Error details:', error.message);
         const authWarning = document.getElementById('authWarning');
         if (authWarning) authWarning.style.display = 'flex';
     }
@@ -1262,6 +1268,25 @@ window.addEventListener('load', () => {
         document.getElementById('authWarning').style.display = 'flex';
     }
 });
+window.showSection = function(sectionId) {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+    if (clickedLink) {
+        clickedLink.classList.add('active');
+    }
+
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+};
 </script>
 </body>
 </html>
