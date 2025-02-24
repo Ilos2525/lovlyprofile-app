@@ -557,13 +557,14 @@
     </div>
 
     <script type="module">
-   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, 
     collection, 
     query, 
     orderBy, 
-    getDocs, 
+    getDocs,
+    addDoc,
     doc, 
     getDoc, 
     updateDoc, 
@@ -574,10 +575,40 @@ import {
     increment,
     where 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Глобальные переменные
+        /// Глобальные переменные
 let tg = null;
 let currentUser = null;
+
+// Обработчик ошибок
+window.addEventListener('error', function(e) {
+    console.error('Global error:', e.error);
+});
+
+// Функция записи посещений
+async function recordVisit() {
+    try {
+        const visitData = {
+            timestamp: serverTimestamp(),
+            userAgent: navigator.userAgent,
+            page: window.location.pathname
+        };
+
+        // Добавляем данные Telegram если они есть
+        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+            visitData.telegramId = tgUser.id;
+            visitData.username = tgUser.username;
+            visitData.firstName = tgUser.first_name;
+        }
+
+        await addDoc(collection(db, 'visitors'), visitData);
+        console.log('Посещение записано:', visitData);
+    } catch (error) {
+        console.error('Ошибка записи посещения:', error);
+    }
+}
 
 // Обработчик ошибок
 window.addEventListener('error', function(e) {
@@ -685,8 +716,10 @@ const firebaseConfig = {
     measurementId: "G-0MKF0C3WQJ"
 };
 
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
         
       function showNotification(type, username) {
     // Удаляем предыдущее уведомление, если есть
@@ -831,6 +864,9 @@ async function initTelegram() {
         if (!currentUser?.id) {
             throw new Error('No user data available');
         }
+
+        // Записываем посещение
+        await recordVisit();
 
         // Скрываем предупреждение
         const authWarning = document.getElementById('authWarning');
