@@ -661,8 +661,7 @@ const firebaseConfig = {
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        let tg = null;
-        let currentUser = null;
+        
       function showNotification(type, username) {
     // Удаляем предыдущее уведомление, если есть
     const existingNotification = document.querySelector('.notification');
