@@ -764,12 +764,12 @@ async function loadPosts() {
 
         console.log('Loaded posts:', posts);
 
-        // Все посты показываем в разделе "Главная"
-        displayPosts('allPosts', posts);
+        // Показываем все фото посты в разделе "Главная"
+        displayPosts('allPosts', posts.filter(post => post.category === 'photo'));
         
-        // Фильтруем по категориям
-        displayPosts('musicPosts', posts.filter(post => post.type === 'music'));
-        displayPosts('videoPosts', posts.filter(post => post.type === 'video'));
+        // Фильтруем музыку и видео
+        displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
+        displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
 
     } catch (error) {
         console.error('Error loading posts:', error);
