@@ -1240,6 +1240,13 @@ async function loadActivityData(tab) {
         let snapshot;
         switch(tab) {
             case 'likes':
+                // Получаем информацию о постах для отображения их описания
+                const postsSnapshot = await getDocs(collection(db, 'posts'));
+                const postsMap = new Map();
+                postsSnapshot.docs.forEach(doc => {
+                    postsMap.set(doc.id, doc.data().description);
+                });
+                
                 snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
                 break;
             case 'comments':
@@ -1265,6 +1272,9 @@ async function loadActivityData(tab) {
                         ${tab === 'comments' ? `
                             <div class="comment-text">${data.text}</div>
                             <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
+                        ` : ''}
+                        ${tab === 'likes' ? `
+                            <div class="like-info">Лайк поста: ${postsMap.get(data.postId)?.substring(0, 50) || 'Пост удален'}...</div>
                         ` : ''}
                     </div>
                 </div>
