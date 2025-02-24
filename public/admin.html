@@ -303,6 +303,44 @@
     color: var(--text-color);
     opacity: 0.8;
 }
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.comments-list {
+    margin-top: 20px;
+}
+
+.comment-item {
+    background: var(--bg-card);
+    border: 1px solid var(--neon-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.comment-author {
+    color: var(--neon-color);
+    font-weight: 500;
+}
+
+.comment-date {
+    opacity: 0.7;
+}
+
+.comment-text {
+    margin: 0;
+}
     </style>
 </head>
 <body>
@@ -431,7 +469,6 @@
             </div>
         </div>
     </div>
-<!-- Добавьте этот код после других tab-content блоков -->
 <div id="stats" class="tab-content">
     <div class="form-group">
         <h3>Статистика сайта</h3>
@@ -451,6 +488,14 @@
             <div class="stat-item">
                 <h4>Комментариев</h4>
                 <div id="totalComments" class="stat-number">0</div>
+            </div>
+        </div>
+
+        <!-- Блок комментариев -->
+        <div class="form-group">
+            <h3>Последние комментарии</h3>
+            <div id="commentsList" class="comments-list">
+                <!-- Комментарии будут загружаться сюда -->
             </div>
         </div>
     </div>
@@ -900,7 +945,53 @@ window.deletePost = async function(postId) {
         alert('Ошибка удаления поста: ' + error.message);
     }
 };
+// Функция загрузки комментариев
+async function loadComments() {
+    try {
+        const commentsDiv = document.getElementById('commentsList');
+        const q = query(collection(db, 'comments'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            commentsDiv.innerHTML = '<p>Нет комментариев</p>';
+            return;
+        }
 
+        const commentsHTML = querySnapshot.docs.map(doc => {
+            const comment = doc.data();
+            const date = new Date(comment.timestamp).toLocaleString('ru-RU');
+            return `
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">${comment.author || 'Аноним'}</span>
+                        <span class="comment-date">${date}</span>
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                    <button class="delete-btn" onclick="deleteComment('${doc.id}')">Удалить</button>
+                </div>
+            `;
+        }).join('');
+
+        commentsDiv.innerHTML = commentsHTML;
+    } catch (error) {
+        console.error('Ошибка загрузки комментариев:', error);
+    }
+}
+
+// Функция удаления комментария
+window.deleteComment = async function(commentId) {
+    if (!confirm('Удалить этот комментарий?')) return;
+    
+    try {
+        await deleteDoc(doc(db, 'comments', commentId));
+        loadComments();
+        loadStats();
+        alert('Комментарий удален');
+    } catch (error) {
+        console.error('Ошибка удаления комментария:', error);
+        alert('Ошибка удаления комментария');
+    }
+};
         // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     if (auth.currentUser) {
