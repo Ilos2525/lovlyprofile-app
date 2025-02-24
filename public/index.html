@@ -706,27 +706,15 @@ const firebaseConfig = {
         }
 async function loadProfile() {
     try {
-        if (!currentUser?.id) {
-            console.error('No user ID available');
-            return;
-        }
-
         const profileImage = document.getElementById('profileImage');
         const profileName = document.getElementById('profileName');
         const profileBio = document.getElementById('profileBio');
 
-        if (currentUser.photo_url) {
-            profileImage.src = currentUser.photo_url;
-        }
-        
-        profileName.textContent = currentUser.first_name || 'whylovly';
+        // Устанавливаем фиксированные данные блога
+        profileImage.src = 'https://путь_к_вашей_аватарке.jpg'; // Укажите URL вашей аватарки
+        profileName.textContent = 'whylovly';
         profileBio.textContent = 'Личный блог';
 
-        const profileDoc = await getDoc(doc(db, 'profiles', currentUser.id.toString()));
-        if (profileDoc.exists()) {
-            const profileData = profileDoc.data();
-            if (profileData.bio) profileBio.textContent = profileData.bio;
-        }
     } catch (error) {
         console.error('Error loading profile:', error);
     }
@@ -1059,7 +1047,7 @@ function displayPosts(containerId, posts) {
             }
         };
 
-async function loadComments(postId, container, limit = 10) {
+async function loadComments(postId, container, limitCount = 10) {
     try {
         if (!isAuthorized()) {
             console.error('Требуется авторизация для просмотра комментариев');
@@ -1071,7 +1059,7 @@ async function loadComments(postId, container, limit = 10) {
             collection(db, 'comments'),
             where('postId', '==', postId),
             orderBy('timestamp', 'desc'),
-            limit(limit)
+            limit(limitCount)  // Используем limitCount вместо limit
         );
         
         // Используем кэширование
