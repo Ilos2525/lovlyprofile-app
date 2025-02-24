@@ -634,81 +634,42 @@
 
 async function initTelegram() {
     try {
-        console.log('1. Starting Telegram initialization');
-        
-        // Ждем пока WebApp станет доступен
-        let attempts = 0;
-        while (!window.Telegram?.WebApp && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        
+        console.log('Starting init');
+
         if (!window.Telegram?.WebApp) {
-            console.error('WebApp не доступен после ожидания');
-            isAuthorized();
+            console.warn('Telegram WebApp not found');
+            const authWarning = document.getElementById('authWarning');
+            if (authWarning) authWarning.style.display = 'flex';
             return;
         }
-        
+
         tg = window.Telegram.WebApp;
-        console.log('2. Telegram WebApp found:', tg);
-        
-        // Ждем готовности WebApp
         tg.ready();
         tg.expand();
-        
-        // Ждем данные пользователя
-        attempts = 0;
-        while (!tg.initDataUnsafe?.user && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        
-        if (!tg.initDataUnsafe?.user) {
-            console.error('Не удалось получить данные пользователя');
-            isAuthorized();
+
+        currentUser = tg.initDataUnsafe?.user || null;
+        console.log('Got user:', currentUser);
+
+        if (!currentUser) {
+            const authWarning = document.getElementById('authWarning');
+            if (authWarning) authWarning.style.display = 'flex';
             return;
         }
-        
-        // Сохраняем реальные данные пользователя
-        currentUser = tg.initDataUnsafe.user;
-        console.log('3. Real user data:', currentUser);
-        
+
         localStorage.setItem('telegramUser', JSON.stringify(currentUser));
-        
-        // Загружаем данные только если есть реальный пользователь
         await loadProfile();
         await loadPosts();
-        
-    } catch (error) {
-        console.error('4. Initialization error:', error);
-        console.log('Current state:', {
-            tg: window.Telegram?.WebApp,
-            user: window.Telegram?.WebApp?.initDataUnsafe?.user,
-            currentUser
-        });
+
+    } catch (err) {
+        console.error('initTelegram error:', err);
+        const authWarning = document.getElementById('authWarning');
+        if (authWarning) authWarning.style.display = 'flex';
     }
 }
 
 function isAuthorized() {
-    // Проверяем только наличие WebApp
-    if (!window.Telegram?.WebApp) {
-        console.error('WebApp не доступен');
-        
-        // Показываем предупреждение
-        const authWarning = document.getElementById('authWarning');
-        if (authWarning) {
-            authWarning.style.display = 'flex';
-        }
-        return false;
-    }
-    
-    // Если WebApp есть, считаем что пользователь авторизован
-    const authWarning = document.getElementById('authWarning');
-    if (authWarning) {
-        authWarning.style.display = 'none';
-    }
-    
-    return true;
+    // Проверяем только наличие currentUser с id
+    return !!(currentUser && currentUser.id);
 }
 
 // Также обновим проверку в handleLike
@@ -1236,23 +1197,6 @@ window.addEventListener('offline', () => {
     document.body.classList.add('offline-mode');
 });
 
-// Обработка потери авторизации
-window.addEventListener('blur', () => {
-    setTimeout(() => {
-        isAuthorized(); // Проверяем авторизацию при возврате на страницу
-    }, 300);
-});
-
-window.addEventListener('focus', () => {
-    isAuthorized(); // Проверяем авторизацию при фокусе на странице
-});
-
-// Проверяем авторизацию перед любым действием с Firebase
-db.interceptors = async () => {
-    if (!isAuthorized()) {
-        throw new Error('Требуется авторизация');
-    }
-};
 
 window.addEventListener('load', initTelegram);
 
