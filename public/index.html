@@ -612,15 +612,19 @@ async function initTelegram() {
             tg.ready();
             tg.expand();
             
-            // Проверяем данные пользователя
-            console.log('4. Raw user data:', tg.initDataUnsafe?.user);
+            // Проверяем данные пользователя и hash
+            const webAppData = tg.initDataUnsafe;
+            console.log('4. Raw user data:', webAppData?.user);
             
-            if (tg.initDataUnsafe?.user) {
-                currentUser = tg.initDataUnsafe.user;
+            if (webAppData?.user && webAppData?.hash) {
+                currentUser = webAppData.user;
                 console.log('5. User authenticated:', currentUser);
+                // Сохраняем в оба хранилища для надежности
+                localStorage.setItem('telegramUser', JSON.stringify(currentUser));
                 sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
             } else {
-                const savedUser = sessionStorage.getItem('telegramUser');
+                // Пытаемся восстановить из localStorage сначала
+                const savedUser = localStorage.getItem('telegramUser') || sessionStorage.getItem('telegramUser');
                 if (savedUser) {
                     currentUser = JSON.parse(savedUser);
                     console.log('6. Using saved user data:', currentUser);
@@ -630,13 +634,14 @@ async function initTelegram() {
                 }
             }
             
-            // Добавляем дополнительную проверку
+            // Сохраняем расширенную информацию о состоянии
             console.log('8. Final auth state:', {
                 currentUser,
                 initData: tg.initData,
-                initDataUnsafe: tg.initDataUnsafe,
+                initDataUnsafe: webAppData,
                 isExpanded: tg.isExpanded,
-                version: tg.version
+                version: tg.version,
+                hash: webAppData?.hash
             });
             
         } else {
@@ -880,7 +885,13 @@ function displayPosts(containerId, posts) {
 }
 window.handleLike = async function(postId) {
     try {
-        if (!currentUser?.id) {
+        console.log('Like attempt:', { 
+            isAuthorized: isAuthorized(),
+            currentUser,
+            tg: window.Telegram?.WebApp
+        });
+
+        if (!isAuthorized()) {
             console.error('Необходима авторизация через Telegram');
             alert('Этот сайт работает только через Telegram');
             window.location.href = 'https://t.me/lovlyprofilebot';
@@ -889,6 +900,11 @@ window.handleLike = async function(postId) {
 
         const userId = currentUser.id;
         const username = currentUser.username || currentUser.first_name || 'Unknown';
+        
+        // Находим кнопку лайка и блокируем её на время операции
+        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
+        likeButton.disabled = true;
+
         const likeRef = doc(db, 'likes', `${postId}_${userId}`);
         const postRef = doc(db, 'posts', postId);
 
@@ -906,36 +922,43 @@ window.handleLike = async function(postId) {
         const likedBy = post.likedBy || [];
         const currentLikes = post.likes || 0;
 
+        // Используем batch для атомарной операции
+        const batch = writeBatch(db);
+
         if (likeDoc.exists() || likedBy.includes(userId)) {
             // Убираем лайк
-            await Promise.all([
-                deleteDoc(likeRef),
-                updateDoc(postRef, {
-                    likes: Math.max(0, currentLikes - 1),
-                    likedBy: likedBy.filter(id => id !== userId)
-                })
-            ]);
+            batch.delete(likeRef);
+            batch.update(postRef, {
+                likes: Math.max(0, currentLikes - 1),
+                likedBy: likedBy.filter(id => id !== userId)
+            });
             showNotification('unlike', username);
         } else {
             // Добавляем лайк
-            await Promise.all([
-                setDoc(likeRef, {
-                    userId: userId,
-                    postId,
-                    timestamp: serverTimestamp()
-                }),
-                updateDoc(postRef, {
-                    likes: currentLikes + 1,
-                    likedBy: [...likedBy, userId]
-                })
-            ]);
+            batch.set(likeRef, {
+                userId: userId,
+                postId,
+                timestamp: serverTimestamp()
+            });
+            batch.update(postRef, {
+                likes: currentLikes + 1,
+                likedBy: [...likedBy, userId]
+            });
             showNotification('like', username);
         }
 
+        await batch.commit();
+        
+        // Разблокируем кнопку и обновляем посты
+        likeButton.disabled = false;
         loadPosts();
+
     } catch (error) {
         console.error('Ошибка лайка:', error);
         alert('Произошла ошибка при обработке лайка');
+        // В случае ошибки тоже разблокируем кнопку
+        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
+        if (likeButton) likeButton.disabled = false;
     }
 };
 
@@ -970,27 +993,31 @@ window.handleLike = async function(postId) {
             }
         };
 
-  async function loadComments(postId, container) {
+  async function loadComments(postId, container, limit = 10) {
     try {
         console.log('Загрузка комментариев для поста:', postId);
         const commentsQuery = query(
             collection(db, 'comments'),
             where('postId', '==', postId),
-            orderBy('timestamp', 'desc')
+            orderBy('timestamp', 'desc'),
+            limit(limit)
         );
         
-        console.log('Query создан');
+        // Используем кэширование
+        const cachedComments = sessionStorage.getItem(`comments_${postId}`);
+        if (cachedComments) {
+            container.innerHTML = JSON.parse(cachedComments);
+        }
+
         const commentsSnapshot = await getDocs(commentsQuery);
-        console.log('Получены комментарии:', commentsSnapshot.size);
         
         if (commentsSnapshot.empty) {
             container.innerHTML = '<div class="comment">Нет комментариев</div>';
             return;
         }
 
-        container.innerHTML = commentsSnapshot.docs.map(doc => {
+        const html = commentsSnapshot.docs.map(doc => {
             const comment = doc.data();
-            console.log('Комментарий:', comment);
             const date = new Date(comment.timestamp?.seconds * 1000).toLocaleDateString('ru-RU');
             return `
                 <div class="comment">
@@ -1002,8 +1029,11 @@ window.handleLike = async function(postId) {
                 </div>
             `;
         }).join('');
+
+        container.innerHTML = html;
+        sessionStorage.setItem(`comments_${postId}`, JSON.stringify(html));
     } catch (error) {
-        console.error('Полная ошибка загрузки комментариев:', error);
+        console.error('Ошибка загрузки комментариев:', error);
         container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
     }
 }
@@ -1011,7 +1041,13 @@ window.handleLike = async function(postId) {
         // Функция добавления комментария
 window.addComment = async function(postId) {
     try {
-        if (!currentUser?.id) {
+        console.log('Comment attempt:', { 
+            isAuthorized: isAuthorized(),
+            currentUser,
+            tg: window.Telegram?.WebApp
+        });
+
+        if (!isAuthorized()) {
             console.error('Необходима авторизация через Telegram');
             alert('Этот сайт работает только через Telegram');
             window.location.href = 'https://t.me/lovlyprofilebot';
@@ -1026,11 +1062,18 @@ window.addComment = async function(postId) {
             return;
         }
 
+        // Блокируем кнопку отправки на время операции
+        const submitButton = input.nextElementSibling;
+        submitButton.disabled = true;
+
         const username = currentUser.username || currentUser.first_name || 'Unknown';
+        
+        // Используем batch для атомарной операции
+        const batch = writeBatch(db);
         
         // Добавляем комментарий
         const commentRef = doc(collection(db, 'comments'));
-        await setDoc(commentRef, {
+        batch.set(commentRef, {
             postId,
             userId: currentUser.id,
             username,
@@ -1040,9 +1083,11 @@ window.addComment = async function(postId) {
 
         // Обновляем счетчик комментариев в посте
         const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, {
+        batch.update(postRef, {
             commentsCount: increment(1)
         });
+
+        await batch.commit();
 
         // Очищаем поле ввода
         input.value = '';
@@ -1055,9 +1100,16 @@ window.addComment = async function(postId) {
         loadPosts();
         
         showNotification('comment', username);
+
+        // Разблокируем кнопку
+        submitButton.disabled = false;
+
     } catch (error) {
         console.error('Ошибка добавления комментария:', error);
         alert('Ошибка при добавлении комментария');
+        // Разблокируем кнопку в случае ошибки
+        const submitButton = document.querySelector(`#comment-input-${postId}`).nextElementSibling;
+        if (submitButton) submitButton.disabled = false;
     }
 };
 function setupMobileKeyboardHandling() {
@@ -1071,7 +1123,27 @@ function setupMobileKeyboardHandling() {
         });
     });
 }
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
+// Применяем дебаунсинг
+window.handleLike = debounce(window.handleLike, 300);
+window.addComment = debounce(window.addComment, 300);
+
+// Добавляем обработку офлайн-режима
+window.addEventListener('online', () => loadPosts());
+window.addEventListener('offline', () => {
+    document.body.classList.add('offline-mode');
+});
         window.addEventListener('load', initTelegram);
 
         document.addEventListener('error', function(e) {
