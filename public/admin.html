@@ -633,21 +633,63 @@
         import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-            authDomain: "whylovly-website-8adcb.firebaseapp.com",
-            projectId: "whylovly-website-8adcb",
-            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-            messagingSenderId: "749833792533",
-            appId: "1:749833792533:web:2494649a11b628cd84321c",
-            measurementId: "G-0MKF0C3WQJ"
-        };
+       const firebaseConfig = {
+    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+    authDomain: "whylovly-website-8adcb.firebaseapp.com",
+    projectId: "whylovly-website-8adcb",
+    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+    messagingSenderId: "749833792533",
+    appId: "1:749833792533:web:2494649a11b628cd84321c",
+    measurementId: "G-0MKF0C3WQJ"
+};
 
-        const app = initializeApp(firebaseConfig);
-        const storage = getStorage(app);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+    try {
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        const result = await signInWithPopup(auth, provider);
+        console.log('Успешный вход:', result.user.email);
+    } catch (error) {
+        console.error('Ошибка входа:', error);
+        alert('Ошибка входа: ' + error.message);
+    }
+});
+
+onAuthStateChanged(auth, async (user) => {
+    console.log('Состояние авторизации изменилось:', user?.email);
+    
+    if (user) {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        
+        try {
+            await addDoc(collection(db, 'visitors'), {
+                userEmail: user.email,
+                userPhoto: user.photoURL,
+                timestamp: new Date().toISOString(),
+                userId: user.uid,
+                displayName: user.displayName || 'Администратор'
+            });
+            
+            await loadProfile();
+            await loadPosts();
+            await loadSettings();
+            await loadStats();
+        } catch (error) {
+            console.error('Ошибка после входа:', error);
+        }
+    } else {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('adminContent').style.display = 'none';
+    }
+});
 
         // Функции для работы с YouTube
         function getYoutubeVideoId(url) {
@@ -693,54 +735,8 @@
                 console.error('Ошибка загрузки профиля:', error);
             }
         }
-        // Авторизация
-onAuthStateChanged(auth, async (user) => {
-    try {
-        if (user) {
-            console.log('Авторизация успешна. Пользователь:', user.email);
-
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
-
-            // Добавляем запись о посещении
-            try {
-                await addDoc(collection(db, 'visitors'), {
-                    userEmail: user.email,
-                    userPhoto: user.photoURL,
-                    timestamp: new Date().toISOString(),
-                    userId: user.uid,
-                    displayName: user.displayName || 'Гость'
-                });
-                console.log('Посещение зарегистрировано успешно.');
-            } catch (error) {
-                console.error('Ошибка при регистрации посещения:', error);
-            }
-
-            // Загрузка данных
-            await loadProfile();
-            await loadPosts();
-            await loadSettings();
-            await loadStats();
-            console.log('Данные успешно загружены.');
-        } else {
-            console.warn('Пользователь не авторизован.');
-            document.getElementById('loginForm').style.display = 'block';
-            document.getElementById('adminContent').style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Ошибка в процессе авторизации:', error);
-    }
-});
-
-
-        document.getElementById('googleSignIn').addEventListener('click', async () => {
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error('Ошибка входа:', error);
-                alert('Ошибка входа: ' + error.message);
-            }
-        });
+        
+        
 
         // Загрузка файлов
         async function uploadFile(file, category) {
