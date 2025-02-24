@@ -633,7 +633,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { getFirestore, collection, addDoc, doc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Инициализация Firebase
+// Замените конфигурацию Firebase и код авторизации в начале файла
 const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -644,54 +644,32 @@ const firebaseConfig = {
     measurementId: "G-0MKF0C3WQJ"
 };
 
-// Инициализация приложения
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+const auth = getAuth();
+const db = getFirestore();
+const storage = getStorage();
 
-// Обработчик кнопки входа
-document.getElementById('googleSignIn').addEventListener('click', () => {
+// Простая авторизация
+document.getElementById('googleSignIn').onclick = function() {
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
         .then((result) => {
-            console.log('Успешный вход:', result.user.email);
+            console.log("Успешный вход");
+            location.reload(); // Перезагрузка страницы после входа
         })
         .catch((error) => {
-            console.error('Ошибка входа:', error);
-            alert('Ошибка входа: ' + error.message);
+            console.error("Ошибка входа:", error);
+            alert("Ошибка входа: " + error.message);
         });
-});
+};
 
-// Слушатель состояния авторизации
-onAuthStateChanged(auth, (user) => {
+// Проверка состояния авторизации
+auth.onAuthStateChanged(function(user) {
     if (user) {
-        console.log('Пользователь вошел:', user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
-        
-        // Загрузка данных после входа
-        Promise.all([
-            loadProfile(),
-            loadPosts(),
-            loadSettings(),
-            loadStats()
-        ]).catch(error => {
-            console.error('Ошибка загрузки данных:', error);
-        });
-
-        // Добавление записи о посещении
-        addDoc(collection(db, 'visitors'), {
-            userEmail: user.email,
-            userPhoto: user.photoURL,
-            timestamp: new Date().toISOString(),
-            userId: user.uid,
-            displayName: user.displayName || 'Администратор'
-        }).catch(error => {
-            console.error('Ошибка записи посещения:', error);
-        });
     } else {
-        console.log('Пользователь вышел');
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
