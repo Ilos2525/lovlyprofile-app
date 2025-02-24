@@ -557,8 +557,8 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-       import { 
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
     getFirestore, 
     collection, 
     query, 
@@ -575,15 +575,57 @@
     where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-            authDomain: "whylovly-website-8adcb.firebaseapp.com",
-            projectId: "whylovly-website-8adcb",
-            storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-            messagingSenderId: "749833792533",
-            appId: "1:749833792533:web:2494649a11b628cd84321c",
-            measurementId: "G-0MKF0C3WQJ"
-        };
+// Глобальные переменные и проверка WebApp
+let tg = null;
+let currentUser = null;
+
+// Функция проверки параметров WebApp
+function checkWebAppParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const webAppData = urlParams.get('tgWebAppData');
+    
+    console.log('URL Parameters:', {
+        hasWebAppData: !!webAppData,
+        fullURL: window.location.href,
+        search: window.location.search
+    });
+
+    // Проверяем инициализацию WebApp
+    const webApp = window.Telegram?.WebApp;
+    console.log('WebApp Status:', {
+        exists: !!webApp,
+        initData: webApp?.initData,
+        user: webApp?.initDataUnsafe?.user
+    });
+
+    return !!webApp && !!webApp.initData;
+}
+
+// Функция проверки авторизации
+function isAuthorized() {
+    if (!window.Telegram?.WebApp) {
+        console.warn('WebApp not available');
+        return false;
+    }
+
+    const user = window.Telegram.WebApp.initDataUnsafe?.user;
+    console.log('Authorization check:', {
+        hasUser: !!user,
+        userData: user
+    });
+
+    return !!user;
+}
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+    authDomain: "whylovly-website-8adcb.firebaseapp.com",
+    projectId: "whylovly-website-8adcb",
+    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+    messagingSenderId: "749833792533",
+    appId: "1:749833792533:web:2494649a11b628cd84321c",
+    measurementId: "G-0MKF0C3WQJ"
+};
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -634,46 +676,47 @@
 
 async function initTelegram() {
     try {
-        console.log('WebApp initialization started');
-        
-        if (!window.Telegram?.WebApp) {
-            throw new Error('Telegram WebApp not found');
+        // Проверяем параметры WebApp
+        if (!checkWebAppParams()) {
+            throw new Error('Invalid WebApp parameters');
         }
 
+        // Получаем объект WebApp
         tg = window.Telegram.WebApp;
-        await tg.ready();
-
-        console.log('WebApp user data:', tg.initDataUnsafe?.user);
         
-        currentUser = tg.initDataUnsafe?.user;
+        // Расширяем окно на весь экран
+        tg.expand();
         
-        if (!currentUser) {
-            throw new Error('No user data available');
+        // Сообщаем о готовности
+        tg.ready();
+        
+        // Проверяем авторизацию
+        if (!isAuthorized()) {
+            throw new Error('User not authorized');
         }
 
+        // Получаем данные пользователя
+        currentUser = tg.initDataUnsafe.user;
+        
+        console.log('Initialization successful:', {
+            webAppData: tg.initData,
+            user: currentUser
+        });
+
+        // Скрываем предупреждение
         const authWarning = document.getElementById('authWarning');
         if (authWarning) authWarning.style.display = 'none';
 
+        // Загружаем данные
         await loadProfile();
         await loadPosts();
 
     } catch (err) {
-        console.error('Telegram initialization error:', err);
+        console.error('Initialization failed:', err);
         const authWarning = document.getElementById('authWarning');
         if (authWarning) authWarning.style.display = 'flex';
     }
 }
-
-function isAuthorized() {
-    const webAppData = window.Telegram?.WebApp;
-    const userData = webAppData?.initDataUnsafe?.user;
-    console.log('Authorization check:', {
-        webAppExists: !!webAppData,
-        userData: userData
-    });
-    return !!(webAppData && userData?.id);
-}
-
 window.handleLike = async function(postId) {
     try {
         if (!isAuthorized()) {
@@ -1153,15 +1196,24 @@ window.addEventListener('offline', () => {
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded, initializing WebApp');
     try {
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.ready();
-            console.log('WebApp ready called');
+        const tg = window.Telegram?.WebApp;
+        
+        if (!tg) {
+            console.error('No Telegram WebApp found');
+            document.getElementById('authWarning').style.display = 'flex';
+            return;
         }
+
+        tg.ready();
+        console.log('Init Data:', tg.initData);
+        console.log('User Data:', tg.initDataUnsafe.user);
+
         await initTelegram();
+
     } catch (err) {
-        console.error('Initialization error:', err);
+        console.error('Auth error:', err);
+        document.getElementById('authWarning').style.display = 'flex';
     }
 });
 
@@ -1172,11 +1224,10 @@ document.addEventListener('error', function(e) {
     }
 }, true);
 
-// Обработчик видимости окна
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        console.log('Window became visible, checking auth');
-        isAuthorized();
+window.addEventListener('load', () => {
+    if (!window.Telegram?.WebApp) {
+        console.warn('Not in Telegram WebApp');
+        document.getElementById('authWarning').style.display = 'flex';
     }
 });
 </script>
