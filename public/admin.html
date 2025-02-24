@@ -694,35 +694,44 @@
             }
         }
         // Авторизация
-   onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        
-        // Добавляем запись о посещении
-        try {
-            await addDoc(collection(db, 'visitors'), {
-                userEmail: user.email,
-                userPhoto: user.photoURL,
-                timestamp: new Date().toISOString(),
-                userId: user.uid,
-                displayName: user.displayName || 'Гость'
-            });
-        } catch (error) {
-            console.error('Ошибка при регистрации посещения:', error);
-        }
+onAuthStateChanged(auth, async (user) => {
+    try {
+        if (user) {
+            console.log('Авторизация успешна. Пользователь:', user.email);
 
-        loadProfile();
-        loadPosts();
-        loadSettings();
-        loadStats();
-        console.log('Авторизован как:', user.email);
-    } else {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('adminContent').style.display = 'none';
-        console.log('Не авторизован');
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+
+            // Добавляем запись о посещении
+            try {
+                await addDoc(collection(db, 'visitors'), {
+                    userEmail: user.email,
+                    userPhoto: user.photoURL,
+                    timestamp: new Date().toISOString(),
+                    userId: user.uid,
+                    displayName: user.displayName || 'Гость'
+                });
+                console.log('Посещение зарегистрировано успешно.');
+            } catch (error) {
+                console.error('Ошибка при регистрации посещения:', error);
+            }
+
+            // Загрузка данных
+            await loadProfile();
+            await loadPosts();
+            await loadSettings();
+            await loadStats();
+            console.log('Данные успешно загружены.');
+        } else {
+            console.warn('Пользователь не авторизован.');
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('adminContent').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Ошибка в процессе авторизации:', error);
     }
 });
+
 
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
