@@ -1240,56 +1240,42 @@ async function loadActivityData(tab) {
         let html = '';
 
         if (tab === 'likes') {
-            // Сначала получаем все посты для получения информации о них
+            const likesSnapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
             const postsSnapshot = await getDocs(collection(db, 'posts'));
-            const postsMap = new Map();
+            const posts = {};
+            
             postsSnapshot.docs.forEach(doc => {
-                postsMap.set(doc.id, doc.data());
+                posts[doc.id] = doc.data();
             });
 
-            // Затем получаем лайки
-            const likesSnapshot = await getDocs(query(
-                collection(db, 'likes'), 
-                orderBy('timestamp', 'desc')
-            ));
-            
             likesSnapshot.docs.forEach(doc => {
                 const like = doc.data();
-                const post = postsMap.get(like.postId);
-                const timestamp = like.timestamp?.toDate?.() || new Date(like.timestamp);
-                const date = timestamp.toLocaleString('ru-RU');
-                const userName = like.displayName || like.userEmail || 'Гость';
-                const userPhoto = like.userPhoto || 'default-avatar.png';
-
+                const post = posts[like.postId];
+                const date = new Date(like.timestamp).toLocaleString('ru-RU');
+                
                 html += `
                     <div class="user-activity-item">
-                        <img src="${userPhoto}" alt="User" class="user-photo">
+                        <img src="${like.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${userName}</div>
+                            <div class="user-email">${like.displayName || like.userEmail || 'Гость'}</div>
                             <div class="activity-date">${date}</div>
-                            <div>Понравился пост: ${post?.description || 'Пост удален'}</div>
+                            <div>Лайк на пост: ${post ? post.description.substring(0, 50) + '...' : 'Пост удален'}</div>
                         </div>
                     </div>
                 `;
             });
         } else if (tab === 'comments') {
-            const commentsSnapshot = await getDocs(query(
-                collection(db, 'comments'), 
-                orderBy('timestamp', 'desc')
-            ));
-
+            const commentsSnapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+            
             commentsSnapshot.docs.forEach(doc => {
                 const comment = doc.data();
-                const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
-                const date = timestamp.toLocaleString('ru-RU');
-                const userName = comment.author || comment.userEmail || 'Гость';
-                const userPhoto = comment.userPhoto || 'default-avatar.png';
-
+                const date = new Date(comment.timestamp).toLocaleString('ru-RU');
+                
                 html += `
                     <div class="user-activity-item">
-                        <img src="${userPhoto}" alt="User" class="user-photo">
+                        <img src="${comment.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${userName}</div>
+                            <div class="user-email">${comment.displayName || comment.userEmail || 'Гость'}</div>
                             <div class="activity-date">${date}</div>
                             <div class="comment-text">${comment.text}</div>
                             <button class="delete-btn" onclick="deleteComment('${doc.id}', '${comment.postId}')">Удалить</button>
@@ -1298,23 +1284,17 @@ async function loadActivityData(tab) {
                 `;
             });
         } else if (tab === 'visits') {
-            const visitsSnapshot = await getDocs(query(
-                collection(db, 'visitors'), 
-                orderBy('timestamp', 'desc')
-            ));
-
+            const visitsSnapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+            
             visitsSnapshot.docs.forEach(doc => {
                 const visit = doc.data();
-                const timestamp = visit.timestamp?.toDate?.() || new Date(visit.timestamp);
-                const date = timestamp.toLocaleString('ru-RU');
-                const userName = visit.displayName || visit.userEmail || 'Гость';
-                const userPhoto = visit.userPhoto || 'default-avatar.png';
-
+                const date = new Date(visit.timestamp).toLocaleString('ru-RU');
+                
                 html += `
                     <div class="user-activity-item">
-                        <img src="${userPhoto}" alt="User" class="user-photo">
+                        <img src="${visit.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${userName}</div>
+                            <div class="user-email">${visit.displayName || visit.userEmail || 'Гость'}</div>
                             <div class="activity-date">${date}</div>
                         </div>
                     </div>
