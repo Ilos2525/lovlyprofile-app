@@ -670,20 +670,19 @@ async function initTelegram() {
 }
 
 function isAuthorized() {
-    // Проверяем наличие WebApp и данных пользователя
-    if (!window.Telegram?.WebApp || !window.Telegram.WebApp.initDataUnsafe?.user) {
-        console.error('WebApp не доступен или пользователь не авторизован');
+    // Проверяем только наличие WebApp
+    if (!window.Telegram?.WebApp) {
+        console.error('WebApp не доступен');
         
         // Показываем предупреждение
         const authWarning = document.getElementById('authWarning');
         if (authWarning) {
             authWarning.style.display = 'flex';
         }
-        
         return false;
     }
     
-    // Если предупреждение показано, скрываем его
+    // Если WebApp есть, считаем что пользователь авторизован
     const authWarning = document.getElementById('authWarning');
     if (authWarning) {
         authWarning.style.display = 'none';
