@@ -579,6 +579,33 @@ import {
 let tg = null;
 let currentUser = null;
 
+async function verifyTelegramWebAppData(initData) {
+    try {
+        // Пока просто логируем данные для отладки
+        console.log('Verifying WebApp data:', {
+            initData: initData,
+            hash: window.Telegram?.WebApp?.initDataUnsafe?.hash,
+            authDate: window.Telegram?.WebApp?.initDataUnsafe?.auth_date,
+            user: window.Telegram?.WebApp?.initDataUnsafe?.user
+        });
+
+        // В будущем здесь будет проверка на сервере
+        // Пока просто проверяем наличие данных
+        const isValid = !!(
+            window.Telegram?.WebApp?.initDataUnsafe?.user?.id &&
+            window.Telegram?.WebApp?.initDataUnsafe?.hash &&
+            window.Telegram?.WebApp?.initDataUnsafe?.auth_date
+        );
+
+        console.log('Verification result:', isValid);
+        return isValid;
+
+    } catch (error) {
+        console.error('Verification error:', error);
+        return false;
+    }
+}
+
 // Функция проверки параметров WebApp
 function checkWebAppParams() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -676,31 +703,36 @@ const firebaseConfig = {
 
 async function initTelegram() {
     try {
-        // Проверяем параметры WebApp
-        if (!checkWebAppParams()) {
-            throw new Error('Invalid WebApp parameters');
+        console.log('Starting initialization...');
+        
+        // Проверяем наличие WebApp
+        if (!window.Telegram?.WebApp) {
+            throw new Error('Telegram WebApp not found');
         }
 
-        // Получаем объект WebApp
         tg = window.Telegram.WebApp;
         
-        // Расширяем окно на весь экран
+        // Расширяем окно и сообщаем о готовности
         tg.expand();
-        
-        // Сообщаем о готовности
         tg.ready();
+
+        // Проверяем данные
+        const isVerified = await verifyTelegramWebAppData(tg.initData);
         
-        // Проверяем авторизацию
-        if (!isAuthorized()) {
-            throw new Error('User not authorized');
+        if (!isVerified) {
+            throw new Error('WebApp data verification failed');
         }
 
         // Получаем данные пользователя
         currentUser = tg.initDataUnsafe.user;
         
-        console.log('Initialization successful:', {
-            webAppData: tg.initData,
-            user: currentUser
+        if (!currentUser?.id) {
+            throw new Error('No user data available');
+        }
+
+        console.log('Successfully initialized:', {
+            user: currentUser,
+            initData: tg.initData
         });
 
         // Скрываем предупреждение
@@ -711,8 +743,8 @@ async function initTelegram() {
         await loadProfile();
         await loadPosts();
 
-    } catch (err) {
-        console.error('Initialization failed:', err);
+    } catch (error) {
+        console.error('Initialization failed:', error);
         const authWarning = document.getElementById('authWarning');
         if (authWarning) authWarning.style.display = 'flex';
     }
