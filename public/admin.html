@@ -1159,61 +1159,35 @@ window.deletePost = async function(postId) {
     }
 };
 // Функция загрузки комментариев
-async function loadActivityData(tab) {
-    const activityDiv = document.getElementById('userActivity');
+async function loadComments() {
     try {
-        let snapshot;
-        switch(tab) {
-            case 'likes':
-                snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
-                break;
-            case 'comments':
-                snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
-                break;
-            case 'visits':
-                snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
-                break;
+        const commentsDiv = document.getElementById('commentsList');
+        const q = query(collection(db, 'comments'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            commentsDiv.innerHTML = '<p>Нет комментариев</p>';
+            return;
         }
 
-        let html = '';
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
-            const date = timestamp.toLocaleString('ru-RU');
-            
-            let userName;
-            switch(tab) {
-                case 'likes':
-                    userName = data.userName || data.author || data.userEmail;
-                    break;
-                case 'comments':
-                    userName = data.author || data.username || data.userEmail;
-                    break;
-                case 'visits':
-                    userName = data.displayName;
-                    break;
-            }
-            
-            html += `
-                <div class="user-activity-item">
-                    <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
-                    <div class="activity-info">
-                        <div class="user-email">${userName || 'Гость'}</div>
-                        <div class="activity-date">${date}</div>
-                        ${tab === 'comments' ? `
-                            <div class="comment-text">${data.text}</div>
-                            <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
-                        ` : ''}
+        const commentsHTML = querySnapshot.docs.map(doc => {
+            const comment = doc.data();
+            const date = new Date(comment.timestamp).toLocaleString('ru-RU');
+            return `
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">${comment.author || 'Аноним'}</span>
+                        <span class="comment-date">${date}</span>
                     </div>
+                    <p class="comment-text">${comment.text}</p>
+                    <button class="delete-btn" onclick="deleteComment('${doc.id}')">Удалить</button>
                 </div>
             `;
-        });
+        }).join('');
 
-        activityDiv.innerHTML = html || '<p>Нет данных</p>';
-
+        commentsDiv.innerHTML = commentsHTML;
     } catch (error) {
-        console.error('Ошибка загрузки активности:', error);
-        activityDiv.innerHTML = '<p>Ошибка загрузки данных</p>';
+        console.error('Ошибка загрузки комментариев:', error);
     }
 }
 
@@ -1288,32 +1262,4 @@ async function loadActivityData(tab) {
                     <div class="activity-info">
                         <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
                         <div class="activity-date">${date}</div>
-                        ${tab === 'comments' ? `
-                            <div class="comment-text">${data.text}</div>
-                            <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        });
-
-        activityDiv.innerHTML = html || '<p>Нет данных</p>';
-
-    } catch (error) {
-        console.error('Ошибка загрузки активности:', error);
-        activityDiv.innerHTML = '<p>Ошибка загрузки данных</p>';
-    }
-}
-        // Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    if (auth.currentUser) {
-        loadPosts();
-        loadProfile();
-        loadSettings();
-        loadStats(); // Добавлена эта строка
-    }
-});
-
-    </script>
-</body>
-</html>
+                        
