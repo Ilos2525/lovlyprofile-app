@@ -1240,14 +1240,12 @@ async function loadActivityData(tab) {
         let html = '';
 
         if (tab === 'likes') {
-            // Сначала получаем все посты
             const postsSnapshot = await getDocs(collection(db, 'posts'));
             const postsMap = new Map();
             postsSnapshot.docs.forEach(doc => {
                 postsMap.set(doc.id, doc.data());
             });
 
-            // Затем получаем лайки
             const likesSnapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
             
             likesSnapshot.docs.forEach(doc => {
@@ -1275,12 +1273,14 @@ async function loadActivityData(tab) {
                 const comment = doc.data();
                 const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
                 const date = timestamp.toLocaleString('ru-RU');
+                const userName = comment.displayName || comment.author || comment.userEmail || 'Гость';
+                const userPhoto = comment.userPhoto || comment.photoURL || 'https://via.placeholder.com/40';
                 
                 html += `
                     <div class="user-activity-item">
-                        <img src="${comment.userPhoto || 'https://via.placeholder.com/40'}" alt="User" class="user-photo">
+                        <img src="${userPhoto}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${comment.displayName || comment.userEmail || 'Гость'}</div>
+                            <div class="user-email">${userName}</div>
                             <div class="activity-date">${date}</div>
                             <div class="comment-text">${comment.text}</div>
                             <button class="delete-btn" onclick="deleteComment('${doc.id}', '${comment.postId}')">Удалить</button>
@@ -1296,12 +1296,14 @@ async function loadActivityData(tab) {
                 const visit = doc.data();
                 const timestamp = visit.timestamp?.toDate?.() || new Date(visit.timestamp);
                 const date = timestamp.toLocaleString('ru-RU');
+                const userName = visit.displayName || visit.userEmail || visit.email || 'Гость';
+                const userPhoto = visit.userPhoto || visit.photoURL || 'https://via.placeholder.com/40';
                 
                 html += `
                     <div class="user-activity-item">
-                        <img src="${visit.userPhoto || 'https://via.placeholder.com/40'}" alt="User" class="user-photo">
+                        <img src="${userPhoto}" alt="User" class="user-photo">
                         <div class="activity-info">
-                            <div class="user-email">${visit.displayName || visit.userEmail || 'Гость'}</div>
+                            <div class="user-email">${userName}</div>
                             <div class="activity-date">${date}</div>
                         </div>
                     </div>
