@@ -796,25 +796,87 @@
         });
 async function loadStats() {
     try {
-        // Получаем статистику постов
-        const postsSnapshot = await getDocs(collection(db, 'posts'));
-        const totalPosts = postsSnapshot.size;
-        document.getElementById('totalPosts').textContent = totalPosts;
+        // Загрузка основной статистики
+        const [postsSnapshot, likesSnapshot, commentsSnapshot, visitorsSnapshot] = await Promise.all([
+            getDocs(collection(db, 'posts')),
+            getDocs(collection(db, 'likes')),
+            getDocs(collection(db, 'comments')),
+            getDocs(collection(db, 'visitors'))
+        ]);
 
-        // Получаем статистику лайков и создаем мапу лайков по постам
-        const likesSnapshot = await getDocs(collection(db, 'likes'));
-        const totalLikes = likesSnapshot.size;
-        document.getElementById('totalLikes').textContent = totalLikes;
+        // Обновляем счетчики
+        document.getElementById('totalPosts').textContent = postsSnapshot.size;
+        document.getElementById('totalLikes').textContent = likesSnapshot.size;
+        document.getElementById('totalComments').textContent = commentsSnapshot.size;
+        document.getElementById('totalVisitors').textContent = visitorsSnapshot.size;
 
-        // Создаем мапу лайков по постам
-        const likesMap = new Map();
+        // Создаем детальную статистику по постам
+        const postsMap = new Map();
+        postsSnapshot.docs.forEach(doc => {
+            postsMap.set(doc.id, { ...doc.data(), id: doc.id, likes: [], comments: [] });
+        });
+
+        // Добавляем информацию о лайках
         likesSnapshot.docs.forEach(doc => {
             const like = doc.data();
-            if (!likesMap.has(like.postId)) {
-                likesMap.set(like.postId, []);
+            if (postsMap.has(like.postId)) {
+                postsMap.get(like.postId).likes.push({
+                    userId: like.userId,
+                    timestamp: like.timestamp,
+                    userEmail: like.userEmail
+                });
             }
-            likesMap.get(like.postId).push(like);
         });
+
+        // Добавляем информацию о комментариях
+        commentsSnapshot.docs.forEach(doc => {
+            const comment = doc.data();
+            if (postsMap.has(comment.postId)) {
+                postsMap.get(comment.postId).comments.push({
+                    author: comment.author,
+                    text: comment.text,
+                    timestamp: comment.timestamp
+                });
+            }
+        });
+
+        // Отображаем детальную статистику
+        const detailedStats = document.getElementById('detailedPostStats');
+        let statsHTML = '';
+
+        postsMap.forEach(post => {
+            const date = new Date(post.timestamp).toLocaleString('ru-RU');
+            statsHTML += `
+                <div class="post-stat-item">
+                    <div class="post-stat-header">
+                        <div class="post-title">${post.description ? post.description.substring(0, 50) + '...' : 'Без описания'}</div>
+                        <div class="post-date">${date}</div>
+                    </div>
+                    <div class="post-stat-details">
+                        <div>Лайков: ${post.likes.length}</div>
+                        <div>Комментариев: ${post.comments.length}</div>
+                        ${post.likes.length > 0 ? `
+                            <div class="likes-details">
+                                <small>Последние лайки:</small>
+                                ${post.likes.slice(0, 3).map(like => `
+                                    <div>${like.userEmail} - ${new Date(like.timestamp).toLocaleString('ru-RU')}</div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        detailedStats.innerHTML = statsHTML;
+        
+        // Загружаем первую вкладку активности по умолчанию
+        loadActivityData('likes');
+
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+    }
+}
 
         // Получаем статистику комментариев
         const commentsSnapshot = await getDocs(collection(db, 'comments'));
@@ -1169,89 +1231,7 @@ window.deleteComment = async function(commentId) {
         alert('Ошибка удаления комментария');
     }
 };
-async function loadStats() {
-    try {
-        // Загрузка основной статистики
-        const [postsSnapshot, likesSnapshot, commentsSnapshot, visitorsSnapshot] = await Promise.all([
-            getDocs(collection(db, 'posts')),
-            getDocs(collection(db, 'likes')),
-            getDocs(collection(db, 'comments')),
-            getDocs(collection(db, 'visitors'))
-        ]);
 
-        // Обновляем счетчики
-        document.getElementById('totalPosts').textContent = postsSnapshot.size;
-        document.getElementById('totalLikes').textContent = likesSnapshot.size;
-        document.getElementById('totalComments').textContent = commentsSnapshot.size;
-        document.getElementById('totalVisitors').textContent = visitorsSnapshot.size;
-
-        // Создаем детальную статистику по постам
-        const postsMap = new Map();
-        postsSnapshot.docs.forEach(doc => {
-            postsMap.set(doc.id, { ...doc.data(), id: doc.id, likes: [], comments: [] });
-        });
-
-        // Добавляем информацию о лайках
-        likesSnapshot.docs.forEach(doc => {
-            const like = doc.data();
-            if (postsMap.has(like.postId)) {
-                postsMap.get(like.postId).likes.push({
-                    userId: like.userId,
-                    timestamp: like.timestamp,
-                    userEmail: like.userEmail
-                });
-            }
-        });
-
-        // Добавляем информацию о комментариях
-        commentsSnapshot.docs.forEach(doc => {
-            const comment = doc.data();
-            if (postsMap.has(comment.postId)) {
-                postsMap.get(comment.postId).comments.push({
-                    author: comment.author,
-                    text: comment.text,
-                    timestamp: comment.timestamp
-                });
-            }
-        });
-
-        // Отображаем детальную статистику
-        const detailedStats = document.getElementById('detailedPostStats');
-        let statsHTML = '';
-
-        postsMap.forEach(post => {
-            const date = new Date(post.timestamp).toLocaleString('ru-RU');
-            statsHTML += `
-                <div class="post-stat-item">
-                    <div class="post-stat-header">
-                        <div class="post-title">${post.description ? post.description.substring(0, 50) + '...' : 'Без описания'}</div>
-                        <div class="post-date">${date}</div>
-                    </div>
-                    <div class="post-stat-details">
-                        <div>Лайков: ${post.likes.length}</div>
-                        <div>Комментариев: ${post.comments.length}</div>
-                        ${post.likes.length > 0 ? `
-                            <div class="likes-details">
-                                <small>Последние лайки:</small>
-                                ${post.likes.slice(0, 3).map(like => `
-                                    <div>${like.userEmail} - ${new Date(like.timestamp).toLocaleString('ru-RU')}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        });
-
-        detailedStats.innerHTML = statsHTML;
-        
-        // Загружаем первую вкладку активности по умолчанию
-        loadActivityData('likes');
-
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-    }
-}
 
 // Функция для переключения вкладок активности
 window.showActivityTab = function(tab) {
