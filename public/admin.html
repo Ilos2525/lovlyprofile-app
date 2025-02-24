@@ -640,47 +640,95 @@
     </form>
 </div>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // Импорты Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+// Конфигурация Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
     projectId: "whylovly-website-8adcb",
-    storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+    storageBucket: "whylovly-website-8adcb.appspot.com",
     messagingSenderId: "749833792533",
     appId: "1:749833792533:web:2494649a11b628cd84321c"
 };
 
 // Инициализация Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
-const storage = getStorage();
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Установка локального хранения для сессии
+setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+        console.log("Persistence set to LOCAL");
+    })
+    .catch((error) => {
+        console.error("Error setting persistence:", error);
+    });
 
 // Обработчик кнопки входа
-document.getElementById('googleSignIn').addEventListener('click', function() {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider)
-        .then((result) => {
-            console.log("Вход выполнен:", result.user.email);
-        })
-        .catch((error) => {
-            console.error("Ошибка входа:", error);
-            alert(error.message);
+document.getElementById('googleSignIn').addEventListener('click', async function() {
+    try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
         });
+        
+        const result = await signInWithPopup(auth, provider);
+        console.log("Успешный вход:", result.user.email);
+        
+        // Проверка на админа
+        if (result.user.email === 'whylovly@gmail.com') {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+        } else {
+            await auth.signOut();
+            alert('Доступ запрещен. Только администратор может войти в панель управления.');
+        }
+    } catch (error) {
+        console.error("Ошибка входа:", error);
+        let errorMessage = 'Произошла ошибка при входе';
+        
+        switch (error.code) {
+            case 'auth/popup-blocked':
+                errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
+                break;
+            case 'auth/popup-closed-by-user':
+                errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
+                break;
+            case 'auth/cancelled-popup-request':
+                errorMessage = 'Предыдущий запрос на вход еще выполняется';
+                break;
+            case 'auth/network-request-failed':
+                errorMessage = 'Проверьте подключение к интернету';
+                break;
+        }
+        
+        alert(errorMessage);
+    }
 });
 
 // Слушатель состояния авторизации
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        console.log("Пользователь авторизован:", user.email);
+    if (user && user.email === 'whylovly@gmail.com') {
+        console.log("Администратор авторизован:", user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
+        loadProfile(); // Загружаем профиль после успешной авторизации
     } else {
-        console.log("Пользователь не авторизован");
+        console.log("Пользователь не авторизован или не является администратором");
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
