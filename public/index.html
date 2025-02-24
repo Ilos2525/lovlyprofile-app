@@ -603,73 +603,70 @@ async function initTelegram() {
             if (window.Telegram?.WebApp) break;
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        if (!window.Telegram?.WebApp) {
+            console.error('Telegram WebApp не доступен');
+            window.location.href = 'https://t.me/lovlyprofilebot';
+            return;
+        }
         
-        tg = window.Telegram?.WebApp;
+        tg = window.Telegram.WebApp;
         console.log('2. Telegram WebApp object:', tg);
         
-        if (tg) {
-            console.log('3. Initializing Telegram WebApp');
-            tg.ready();
-            tg.expand();
-            
-            // Проверяем данные пользователя и hash
-            const webAppData = tg.initDataUnsafe;
-            console.log('4. Raw user data:', webAppData?.user);
-            
-            if (webAppData?.user && webAppData?.hash) {
-                currentUser = webAppData.user;
-                console.log('5. User authenticated:', currentUser);
-                // Сохраняем в оба хранилища для надежности
-                localStorage.setItem('telegramUser', JSON.stringify(currentUser));
-                sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
-            } else {
-                // Пытаемся восстановить из localStorage сначала
-                const savedUser = localStorage.getItem('telegramUser') || sessionStorage.getItem('telegramUser');
-                if (savedUser) {
-                    currentUser = JSON.parse(savedUser);
-                    console.log('6. Using saved user data:', currentUser);
-                } else {
-                    console.log('7. No user data available');
-                    currentUser = null;
-                }
-            }
-            
-            // Сохраняем расширенную информацию о состоянии
-            console.log('8. Final auth state:', {
-                currentUser,
-                initData: tg.initData,
-                initDataUnsafe: webAppData,
-                isExpanded: tg.isExpanded,
-                version: tg.version,
-                hash: webAppData?.hash
-            });
-            
+        tg.ready();
+        tg.expand();
+        
+        // Проверяем данные пользователя и hash
+        const webAppData = tg.initDataUnsafe;
+        console.log('4. Raw user data:', webAppData?.user);
+        
+        if (webAppData?.user && webAppData?.hash) {
+            currentUser = webAppData.user;
+            localStorage.setItem('telegramUser', JSON.stringify(currentUser));
+            sessionStorage.setItem('telegramUser', JSON.stringify(currentUser));
+            console.log('5. User authenticated:', currentUser);
         } else {
-            console.warn('9. Telegram WebApp not available');
-            currentUser = null;
+            const savedUser = localStorage.getItem('telegramUser') || sessionStorage.getItem('telegramUser');
+            if (!savedUser) {
+                console.error('6. No user data available');
+                window.location.href = 'https://t.me/lovlyprofilebot';
+                return;
+            }
+            currentUser = JSON.parse(savedUser);
         }
+
+        console.log('7. Final auth state:', {
+            currentUser,
+            initData: tg.initData,
+            initDataUnsafe: webAppData,
+            isExpanded: tg.isExpanded,
+            version: tg.version,
+            hash: webAppData?.hash
+        });
         
         await loadProfile();
         await loadPosts();
         
     } catch (error) {
-        console.error('10. Telegram initialization error:', error);
-        console.error('Full error details:', error);
-        currentUser = null;
-        await loadProfile();
-        await loadPosts();
+        console.error('8. Telegram initialization error:', error);
+        window.location.href = 'https://t.me/lovlyprofilebot';
     }
 }
 
 function isAuthorized() {
-    const isAuth = currentUser !== null && currentUser?.id !== undefined;
-    console.log('Auth check:', { 
-        currentUser, 
-        isAuth,
-        webAppAvailable: !!window.Telegram?.WebApp,
-        initDataAvailable: !!window.Telegram?.WebApp?.initDataUnsafe
-    });
-    return isAuth;
+    // Проверяем наличие WebApp
+    if (!window.Telegram?.WebApp) {
+        console.error('WebApp не доступен');
+        return false;
+    }
+
+    // Проверяем данные пользователя
+    if (!window.Telegram.WebApp.initDataUnsafe?.user) {
+        console.error('Данные пользователя не доступны');
+        return false;
+    }
+
+    return true;
 }
 
 // Также обновим проверку в handleLike
@@ -697,19 +694,66 @@ window.handleLike = async function(postId) {
     }
 };
 window.handleLike = async function(postId) {
-    if (!isAuthorized()) {
-        alert('Для лайков необходимо открыть сайт через @lovlyprofilebot');
-        window.location.href = 'https://t.me/lovlyprofilebot';
-        return;
-    }
-    
     try {
+        if (!isAuthorized()) {
+            window.location.href = 'https://t.me/lovlyprofilebot';
+            return;
+        }
+
+        // Находим и блокируем кнопку
+        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
+        if (likeButton) likeButton.disabled = true;
+
         const userId = currentUser.id;
         const username = currentUser.username || currentUser.first_name || 'Unknown';
-        // ... остальной код функции handleLike ...
+        
+        const likeRef = doc(db, 'likes', `${postId}_${userId}`);
+        const postRef = doc(db, 'posts', postId);
+
+        const batch = writeBatch(db);
+
+        const [likeDoc, postDoc] = await Promise.all([
+            getDoc(likeRef),
+            getDoc(postRef)
+        ]);
+
+        if (!postDoc.exists()) {
+            console.error('Пост не найден');
+            return;
+        }
+
+        const post = postDoc.data();
+        const likedBy = post.likedBy || [];
+        const currentLikes = post.likes || 0;
+
+        if (likeDoc.exists() || likedBy.includes(userId)) {
+            batch.delete(likeRef);
+            batch.update(postRef, {
+                likes: Math.max(0, currentLikes - 1),
+                likedBy: likedBy.filter(id => id !== userId)
+            });
+            showNotification('unlike', username);
+        } else {
+            batch.set(likeRef, {
+                userId: userId,
+                postId,
+                timestamp: serverTimestamp()
+            });
+            batch.update(postRef, {
+                likes: currentLikes + 1,
+                likedBy: [...likedBy, userId]
+            });
+            showNotification('like', username);
+        }
+
+        await batch.commit();
+        if (likeButton) likeButton.disabled = false;
+        loadPosts();
+
     } catch (error) {
         console.error('Ошибка лайка:', error);
-        alert('Произошла ошибка при обработке лайка');
+        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
+        if (likeButton) likeButton.disabled = false;
     }
 };
 
@@ -993,8 +1037,13 @@ window.handleLike = async function(postId) {
             }
         };
 
-  async function loadComments(postId, container, limit = 10) {
+async function loadComments(postId, container, limit = 10) {
     try {
+        if (!isAuthorized()) {
+            console.error('Требуется авторизация для просмотра комментариев');
+            return;
+        }
+
         console.log('Загрузка комментариев для поста:', postId);
         const commentsQuery = query(
             collection(db, 'comments'),
@@ -1144,6 +1193,20 @@ window.addEventListener('online', () => loadPosts());
 window.addEventListener('offline', () => {
     document.body.classList.add('offline-mode');
 });
+        // Проверяем состояние авторизации каждые 5 секунд
+setInterval(() => {
+    if (!isAuthorized()) {
+        console.error('Потеряна авторизация');
+        window.location.href = 'https://t.me/lovlyprofilebot';
+    }
+}, 5000);
+
+// Проверяем авторизацию перед любым действием с Firebase
+db.interceptors = async () => {
+    if (!isAuthorized()) {
+        throw new Error('Требуется авторизация');
+    }
+};
         window.addEventListener('load', initTelegram);
 
         document.addEventListener('error', function(e) {
