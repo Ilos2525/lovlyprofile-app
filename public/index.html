@@ -644,28 +644,35 @@ async function initTelegram() {
         }
         
         tg = window.Telegram.WebApp;
-        console.log('2. Telegram WebApp found');
+        console.log('2. Telegram WebApp found:', tg);
         
+        // Ждем готовности WebApp
         tg.ready();
         tg.expand();
         
-        // Проверяем данные пользователя
-        if (tg.initDataUnsafe?.user) {
-            currentUser = tg.initDataUnsafe.user;
-            localStorage.setItem('telegramUser', JSON.stringify(currentUser));
-            console.log('3. User data saved:', currentUser);
-            
-            // Загружаем данные только если пользователь авторизован
-            await loadProfile();
-            await loadPosts();
-        } else {
-            console.error('4. No user data available');
-            isAuthorized(); // Показываем предупреждение
-        }
+        // Пытаемся получить данные пользователя
+        currentUser = tg.initDataUnsafe?.user || {
+            id: tg.initDataUnsafe?.user?.id || 'guest',
+            username: tg.initDataUnsafe?.user?.username || 'Guest User',
+            first_name: tg.initDataUnsafe?.user?.first_name || 'Guest'
+        };
+        
+        console.log('3. Current user:', currentUser);
+        
+        // Сохраняем данные пользователя
+        localStorage.setItem('telegramUser', JSON.stringify(currentUser));
+        
+        // Загружаем данные
+        await loadProfile();
+        await loadPosts();
         
     } catch (error) {
-        console.error('5. Initialization error:', error);
-        isAuthorized(); // Показываем предупреждение
+        console.error('4. Initialization error:', error);
+        console.log('WebApp state:', {
+            tg: window.Telegram?.WebApp,
+            user: window.Telegram?.WebApp?.initDataUnsafe?.user,
+            currentUser
+        });
     }
 }
 
