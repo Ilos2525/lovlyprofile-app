@@ -572,8 +572,7 @@ import {
     serverTimestamp,
     writeBatch,
     increment,
-    where
-    limit 
+    where 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Глобальные переменные
@@ -1054,7 +1053,7 @@ function displayPosts(containerId, posts) {
             }
         };
 
-async function loadComments(postId, container, limitCount = 10) {
+async function loadComments(postId, container) {
     try {
         if (!isAuthorized()) {
             console.error('Требуется авторизация для просмотра комментариев');
@@ -1065,8 +1064,7 @@ async function loadComments(postId, container, limitCount = 10) {
         const commentsQuery = query(
             collection(db, 'comments'),
             where('postId', '==', postId),
-            orderBy('timestamp', 'desc'),
-            limit(limitCount)  // Используем limitCount вместо limit
+            orderBy('timestamp', 'desc')
         );
         
         // Используем кэширование
@@ -1103,7 +1101,6 @@ async function loadComments(postId, container, limitCount = 10) {
         container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
     }
 }
-
         // Функция добавления комментария
 window.addComment = async function(postId) {
     try {
