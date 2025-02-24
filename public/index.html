@@ -586,34 +586,8 @@ window.addEventListener('error', function(e) {
     console.error('Global error:', e.error);
 });
 
-// Функция записи посещений
-async function recordVisit() {
-    try {
-        const visitData = {
-            timestamp: serverTimestamp(),
-            userAgent: navigator.userAgent,
-            page: window.location.pathname
-        };
 
-        // Добавляем данные Telegram если они есть
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-            const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-            visitData.telegramId = tgUser.id;
-            visitData.username = tgUser.username;
-            visitData.firstName = tgUser.first_name;
-        }
 
-        await addDoc(collection(db, 'visitors'), visitData);
-        console.log('Посещение записано:', visitData);
-    } catch (error) {
-        console.error('Ошибка записи посещения:', error);
-    }
-}
-
-// Обработчик ошибок
-window.addEventListener('error', function(e) {
-    console.error('Global error:', e.error);
-});
 
 // После инициализации Firebase
 async function recordVisit(user) {
