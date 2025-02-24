@@ -1064,6 +1064,7 @@ async function loadComments(postId) {
 
         console.log('Loading comments for post:', postId);
         
+        // Упрощенный запрос
         const commentsQuery = query(
             collection(db, 'comments'),
             where('postId', '==', postId),
@@ -1098,9 +1099,12 @@ async function loadComments(postId) {
 
     } catch (error) {
         console.error('Error loading comments:', error);
+        if (error.message.includes('requires an index')) {
+            console.log('Waiting for index to be created...');
+        }
         const container = document.getElementById(`comments-container-${postId}`);
         if (container) {
-            container.innerHTML = '<div class="comment">Ошибка загрузки комментариев</div>';
+            container.innerHTML = '<div class="comment">Ошибка загрузки комментариев. Пожалуйста, подождите...</div>';
         }
     }
 }
