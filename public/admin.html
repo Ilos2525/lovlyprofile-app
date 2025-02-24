@@ -1237,39 +1237,70 @@ window.showActivityTab = function(tab) {
 async function loadActivityData(tab) {
     const activityDiv = document.getElementById('userActivity');
     try {
-        let snapshot;
-        switch(tab) {
-            case 'likes':
-                snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
-                break;
-            case 'comments':
-                snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
-                break;
-            case 'visits':
-                snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
-                break;
-        }
-
         let html = '';
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
-            const date = timestamp.toLocaleString('ru-RU');
+
+        if (tab === 'likes') {
+            const likesSnapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+            const postsSnapshot = await getDocs(collection(db, 'posts'));
+            const posts = {};
             
-            html += `
-                <div class="user-activity-item">
-                    <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
-                    <div class="activity-info">
-                        <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
-                        <div class="activity-date">${date}</div>
-                        ${tab === 'comments' ? `
-                            <div class="comment-text">${data.text}</div>
-                            <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId}')">Удалить</button>
-                        ` : ''}
+            postsSnapshot.docs.forEach(doc => {
+                posts[doc.id] = doc.data();
+            });
+
+            likesSnapshot.docs.forEach(doc => {
+                const like = doc.data();
+                const post = posts[like.postId];
+                const date = new Date(like.timestamp).toLocaleString('ru-RU');
+                
+                html += `
+                    <div class="user-activity-item">
+                        <img src="${like.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                        <div class="activity-info">
+                            <div class="user-email">${like.displayName || like.userEmail || 'Гость'}</div>
+                            <div class="activity-date">${date}</div>
+                            <div>Лайк на пост: ${post ? post.description.substring(0, 50) + '...' : 'Пост удален'}</div>
+                        </div>
                     </div>
-                </div>
-            `;
-        });
+                `;
+            });
+        } else if (tab === 'comments') {
+            const commentsSnapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+            
+            commentsSnapshot.docs.forEach(doc => {
+                const comment = doc.data();
+                const date = new Date(comment.timestamp).toLocaleString('ru-RU');
+                
+                html += `
+                    <div class="user-activity-item">
+                        <img src="${comment.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                        <div class="activity-info">
+                            <div class="user-email">${comment.displayName || comment.userEmail || 'Гость'}</div>
+                            <div class="activity-date">${date}</div>
+                            <div class="comment-text">${comment.text}</div>
+                            <button class="delete-btn" onclick="deleteComment('${doc.id}', '${comment.postId}')">Удалить</button>
+                        </div>
+                    </div>
+                `;
+            });
+        } else if (tab === 'visits') {
+            const visitsSnapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+            
+            visitsSnapshot.docs.forEach(doc => {
+                const visit = doc.data();
+                const date = new Date(visit.timestamp).toLocaleString('ru-RU');
+                
+                html += `
+                    <div class="user-activity-item">
+                        <img src="${visit.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                        <div class="activity-info">
+                            <div class="user-email">${visit.displayName || visit.userEmail || 'Гость'}</div>
+                            <div class="activity-date">${date}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
         activityDiv.innerHTML = html || '<p>Нет данных</p>';
 
