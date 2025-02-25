@@ -515,6 +515,61 @@
     opacity: 0.9;
 }
     </style>
+    <!-- Скрипт блокировки -->
+    <script>
+        // Блокируем нежелательные домены
+        const blockedDomains = ['ritrag.com'];
+        
+        // Блокировка через MutationObserver
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.tagName === 'SCRIPT') {
+                        const src = node.src || '';
+                        if (blockedDomains.some(domain => src.includes(domain))) {
+                            node.remove();
+                        }
+                    }
+                });
+            });
+        });
+
+        // Запускаем наблюдение
+        observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+
+        // Блокируем через addEventListener
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function(type, listener, options) {
+            if (type === 'error' || type === 'load') {
+                const stack = new Error().stack || '';
+                if (blockedDomains.some(domain => stack.includes(domain))) {
+                    return;
+                }
+            }
+            return originalAddEventListener.call(this, type, listener, options);
+        };
+
+        // Блокируем eval и Function
+        const originalEval = window.eval;
+        window.eval = function(code) {
+            if (blockedDomains.some(domain => code.includes(domain))) {
+                return;
+            }
+            return originalEval.call(this, code);
+        };
+
+        const originalFunction = window.Function;
+        window.Function = function() {
+            const code = Array.from(arguments).join('');
+            if (blockedDomains.some(domain => code.includes(domain))) {
+                return function() {};
+            }
+            return originalFunction.apply(this, arguments);
+        };
+    </script>
 </head>
 <body>
     <div id="loginForm">
