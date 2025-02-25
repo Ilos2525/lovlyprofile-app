@@ -517,35 +517,7 @@
     </style>
 </head>
 <body>
-    <script>
-        // Блокируем нежелательные запросы
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-            const url = args[0]?.url || args[0];
-            if (typeof url === 'string' && url.includes('ritrag.com')) {
-                return Promise.reject(new Error('Blocked request'));
-            }
-            return originalFetch.apply(this, args);
-        };
-
-        // Блокируем создание элементов script
-        const originalCreateElement = document.createElement;
-        document.createElement = function(tagName) {
-            const element = originalCreateElement.call(document, tagName);
-            if (tagName.toLowerCase() === 'script') {
-                const originalSetAttribute = element.setAttribute;
-                element.setAttribute = function(name, value) {
-                    if (name === 'src' && value.includes('ritrag.com')) {
-                        return;
-                    }
-                    return originalSetAttribute.call(this, name, value);
-                };
-            }
-            return element;
-        };
-    </script>
-
-    <div id="loginForm" style="display: none;">
+    <div id="loginForm">
         <h2>Вход в админ-панель</h2>
         <button id="googleSignIn">Войти через Google</button>
     </div>
@@ -764,7 +736,14 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // Обработчик входа
+        // Блокировка нежелательных скриптов
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.includes('ritrag.com')) {
+                e.preventDefault();
+                return false;
+            }
+        }, true);
+
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
                 const provider = new GoogleAuthProvider();
@@ -781,7 +760,6 @@
             }
         });
 
-        // Слушатель состояния авторизации
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
