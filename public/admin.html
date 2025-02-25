@@ -709,18 +709,19 @@
     </form>
 </div>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { 
             getAuth, 
             GoogleAuthProvider, 
             signInWithPopup,
             onAuthStateChanged,
             setPersistence,
-            browserLocalPersistence
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+            browserLocalPersistence 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
             authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -731,36 +732,40 @@
             measurementId: "G-0MKF0C3WQJ"
         };
 
+        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // Блокировка нежелательных скриптов
-        window.addEventListener('error', function(e) {
-            if (e.filename && e.filename.includes('ritrag.com')) {
-                e.preventDefault();
-                return false;
-            }
-        }, true);
+        // Настройка персистентности
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => console.log('Persistence set'))
+            .catch(error => console.error('Persistence error:', error));
 
+        // Обработчик клика по кнопке входа
         document.getElementById('googleSignIn').addEventListener('click', async () => {
             try {
+                console.log('Login attempt...');
                 const provider = new GoogleAuthProvider();
                 const result = await signInWithPopup(auth, provider);
+                console.log('Sign-in result:', result.user.email);
                 
                 if (result.user.email !== 'iosinniy1@gmail.com') {
+                    console.log('Unauthorized access');
                     await auth.signOut();
                     alert('Доступ запрещен. Используйте аккаунт администратора.');
                     return;
                 }
             } catch (error) {
-                console.error('Ошибка входа:', error);
+                console.error('Login error:', error);
                 alert('Ошибка входа: ' + error.message);
             }
         });
 
+        // Слушатель состояния авторизации
         onAuthStateChanged(auth, (user) => {
+            console.log('Auth state:', user?.email);
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('adminContent').style.display = 'block';
@@ -1403,18 +1408,6 @@
             'script-src',
             'script-src \'unsafe-eval\''
         );
-
-        // Добавляем обработку ошибок Firebase
-        const initFirebase = async () => {
-            try {
-                await setPersistence(auth, browserLocalPersistence);
-                console.log("Firebase initialized successfully");
-            } catch (error) {
-                console.error("Firebase initialization error:", error);
-            }
-        };
-
-        initFirebase();
     </script>
 </body>
 </html>
