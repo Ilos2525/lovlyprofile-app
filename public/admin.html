@@ -675,7 +675,7 @@ import { getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/fir
 // Проверяем, вернулся ли пользователь после редиректа
 getRedirectResult(auth)
     .then((result) => {
-        if (result) {
+        if (result && result.user) { // Добавлена проверка на наличие пользователя
             console.log("Успешный вход через редирект:", result.user.email);
             if (result.user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
@@ -707,22 +707,14 @@ document.getElementById('googleSignIn').addEventListener('click', async function
         provider.setCustomParameters({
             prompt: 'select_account'
         });
-        
+
+        // Запуск редиректа на страницу входа
         await signInWithRedirect(auth, provider);
-        console.log("Успешный вход:", result.user.email);
-        
-        // Проверка на админа
-        if (result.user.email === 'iosinniy1@gmail.com') {
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
-        } else {
-            await auth.signOut();
-            alert('Доступ запрещен. Только администратор может войти в панель управления.');
-        }
+
     } catch (error) {
-      console.error("Ошибка входа:", error.code, error.message, error);
+        console.error("Ошибка входа:", error.code, error.message, error);
         let errorMessage = 'Произошла ошибка при входе';
-        
+
         switch (error.code) {
             case 'auth/popup-blocked':
                 errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
@@ -737,10 +729,11 @@ document.getElementById('googleSignIn').addEventListener('click', async function
                 errorMessage = 'Проверьте подключение к интернету';
                 break;
         }
-        
+
         alert(errorMessage);
     }
 });
+
 
 // Слушатель состояния авторизации
 onAuthStateChanged(auth, (user) => {
