@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://* blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://ritrag.com wss://*.firebaseio.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; script-src 'self' 'unsafe-inline' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://* blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://ritrag.com wss://*.firebaseio.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
@@ -670,6 +670,27 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+import { getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Проверяем, вернулся ли пользователь после редиректа
+getRedirectResult(auth)
+    .then((result) => {
+        if (result) {
+            console.log("Успешный вход через редирект:", result.user.email);
+            if (result.user.email === 'iosinniy1@gmail.com') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+            } else {
+                auth.signOut();
+                alert('Доступ запрещен.');
+            }
+        }
+    })
+    .catch((error) => {
+        console.error('Ошибка после редиректа:', error);
+    });
+
+
 // Установка локального хранения для сессии
 setPersistence(auth, browserLocalPersistence)
     .then(() => {
@@ -687,7 +708,7 @@ document.getElementById('googleSignIn').addEventListener('click', async function
             prompt: 'select_account'
         });
         
-        const result = await signInWithPopup(auth, provider);
+        await signInWithRedirect(auth, provider);
         console.log("Успешный вход:", result.user.email);
         
         // Проверка на админа
