@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com https://ritrag.com;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com https://ritrag.com;
+    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: https://* blob:;
-    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com https://ritrag.com https://*.cloudfunctions.net;
+    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com https://*.cloudfunctions.net;
     frame-src 'self' https://*.firebaseapp.com https://*.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -744,22 +744,39 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Обработчик входа через Google
+// Обработчик входа через Google с дополнительной проверкой
 document.getElementById('googleSignIn').addEventListener('click', async () => {
     try {
         const provider = new GoogleAuthProvider();
+        provider.addScope('email');
+        
         const result = await signInWithPopup(auth, provider);
+        console.log("Auth result:", result.user.email);
         
         if (result.user.email !== 'iosinniy1@gmail.com') {
             await auth.signOut();
             alert('Доступ запрещен. Используйте аккаунт администратора.');
             return;
         }
-        
-        console.log("Успешный вход:", result.user.email);
     } catch (error) {
-        console.error("Ошибка входа:", error);
-        alert(`Ошибка входа: ${error.message}`);
+        console.error("Auth error:", error);
+        let message = 'Ошибка входа';
+        
+        switch (error.code) {
+            case 'auth/popup-blocked':
+                message = 'Разрешите всплывающие окна для этого сайта';
+                break;
+            case 'auth/popup-closed-by-user':
+                message = 'Вход был отменен';
+                break;
+            case 'auth/unauthorized-domain':
+                message = 'Этот домен не авторизован для аутентификации';
+                break;
+            default:
+                message = error.message;
+        }
+        
+        alert(message);
     }
 });
 
@@ -782,12 +799,12 @@ function getYoutubeVideoId(url) {
 }
 
 function generateYoutubePreview(videoId) {
-    return 
+    return `
         <div class="video-preview">
             <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
             <div class="play-icon">▶️</div>
         </div>
-    ;
+    `;
 }
 
 // Загрузка профиля
@@ -1429,6 +1446,48 @@ window.showActivityTab = function(tab) {
     
     loadActivityData(tab);
 };
+
+// Исправляем возврат HTML в функциях
+function generateYoutubePreview(videoId) {
+    return `
+        <div class="video-preview">
+            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
+            <div class="play-icon">▶️</div>
+        </div>
+    `;
+}
+
+// Исправляем label for
+const socialLinksHTML = `
+    <label for="instagram">Instagram:</label>
+    <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
+    
+    <label for="youtube">YouTube:</label>
+    <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
+    
+    <label for="vk">VK:</label>
+    <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
+`;
+
+document.getElementById('socialLinks').innerHTML = socialLinksHTML;
+
+// Обновляем CSP для разрешения eval
+document.head.innerHTML = document.head.innerHTML.replace(
+    'script-src',
+    'script-src \'unsafe-eval\''
+);
+
+// Добавляем обработку ошибок Firebase
+const initFirebase = async () => {
+    try {
+        await setPersistence(auth, browserLocalPersistence);
+        console.log("Firebase initialized successfully");
+    } catch (error) {
+        console.error("Firebase initialization error:", error);
+    }
+};
+
+initFirebase();
     </script>
 </body>
 </html>
