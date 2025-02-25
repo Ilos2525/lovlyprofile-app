@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
+    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
@@ -515,65 +515,38 @@
     opacity: 0.9;
 }
     </style>
-    <!-- Скрипт блокировки -->
-    <script>
-        // Блокируем нежелательные домены
-        const blockedDomains = ['ritrag.com'];
-        
-        // Блокировка через MutationObserver
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.tagName === 'SCRIPT') {
-                        const src = node.src || '';
-                        if (blockedDomains.some(domain => src.includes(domain))) {
-                            node.remove();
-                        }
-                    }
-                });
-            });
-        });
-
-        // Запускаем наблюдение
-        observer.observe(document.documentElement, {
-            childList: true,
-            subtree: true
-        });
-
-        // Блокируем через addEventListener
-        const originalAddEventListener = EventTarget.prototype.addEventListener;
-        EventTarget.prototype.addEventListener = function(type, listener, options) {
-            if (type === 'error' || type === 'load') {
-                const stack = new Error().stack || '';
-                if (blockedDomains.some(domain => stack.includes(domain))) {
-                    return;
-                }
-            }
-            return originalAddEventListener.call(this, type, listener, options);
-        };
-
-        // Блокируем eval и Function
-        const originalEval = window.eval;
-        window.eval = function(code) {
-            if (blockedDomains.some(domain => code.includes(domain))) {
-                return;
-            }
-            return originalEval.call(this, code);
-        };
-
-        const originalFunction = window.Function;
-        window.Function = function() {
-            const code = Array.from(arguments).join('');
-            if (blockedDomains.some(domain => code.includes(domain))) {
-                return function() {};
-            }
-            return originalFunction.apply(this, arguments);
-        };
-    </script>
 </head>
 <body>
-    <div id="loginForm">
-        <h3>Вход в админ-панель</h3>
+    <script>
+        // Блокируем нежелательные запросы
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            const url = args[0]?.url || args[0];
+            if (typeof url === 'string' && url.includes('ritrag.com')) {
+                return Promise.reject(new Error('Blocked request'));
+            }
+            return originalFetch.apply(this, args);
+        };
+
+        // Блокируем создание элементов script
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(document, tagName);
+            if (tagName.toLowerCase() === 'script') {
+                const originalSetAttribute = element.setAttribute;
+                element.setAttribute = function(name, value) {
+                    if (name === 'src' && value.includes('ritrag.com')) {
+                        return;
+                    }
+                    return originalSetAttribute.call(this, name, value);
+                };
+            }
+            return element;
+        };
+    </script>
+
+    <div id="loginForm" style="display: none;">
+        <h2>Вход в админ-панель</h2>
         <button id="googleSignIn">Войти через Google</button>
     </div>
 
@@ -764,19 +737,6 @@
     </form>
 </div>
     <script type="module">
-        // Блокируем нежелательные скрипты
-        window.addEventListener('error', function(e) {
-            if (e.filename && e.filename.includes('ritrag.com')) {
-                e.preventDefault();
-                return false;
-            }
-        }, true);
-
-        // Очищаем существующие обработчики
-        window.onload = null;
-        document.onload = null;
-
-        // Импорты Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { 
             getAuth, 
@@ -789,7 +749,6 @@
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // Конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
             authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -800,15 +759,30 @@
             measurementId: "G-0MKF0C3WQJ"
         };
 
-        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // Обработчик авторизации
+        // Обработчик входа
+        document.getElementById('googleSignIn').addEventListener('click', async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                
+                if (result.user.email !== 'iosinniy1@gmail.com') {
+                    await auth.signOut();
+                    alert('Доступ запрещен. Используйте аккаунт администратора.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Ошибка входа:', error);
+                alert('Ошибка входа: ' + error.message);
+            }
+        });
+
+        // Слушатель состояния авторизации
         onAuthStateChanged(auth, (user) => {
-            console.log("Проверка авторизации:", user?.email);
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('adminContent').style.display = 'block';
