@@ -549,7 +549,7 @@
 </head>
 <body>
     <div id="loginForm">
-        <h2>Вход в админ-панель</h2>
+        <h3>Вход в админ-панель</h3>
         <button id="googleSignIn">Войти через Google</button>
     </div>
 
@@ -560,185 +560,52 @@
                 <h2 id="currentProfileName">whylovly</h2>
                 <p id="currentProfileBio">Музыкант | Создатель контента | Артист</p>
             </div>
-            <button onclick="signOut()" class="logout-btn">Выйти</button>
         </div>
 
         <div class="admin-tabs">
-    <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
-    <button class="tab-button" onclick="showTab('manage')">Управление постами</button>
-    <button class="tab-button" onclick="showTab('stats')">Статистика</button>  <!-- Новая кнопка -->
-    <button class="tab-button" onclick="showTab('profile')">Профиль</button>
-    <button class="tab-button" onclick="showTab('settings')">Настройки</button>
-</div>
-
-        <div id="posts" class="tab-content active">
-            <div class="form-group">
-                <h3>Добавить новый пост</h3>
-                <form id="uploadForm">
-                    <label for="category">Категория:</label>
-                    <select id="category" required>
-                        <option value="photo">Фото</option>
-                        <option value="music">Музыка</option>
-                        <option value="video">Видео</option>
-                    </select>
-
-                    <div id="fileInputGroup">
-                        <label for="fileInput">Файл:</label>
-                        <input type="file" id="fileInput">
-                        <div class="preview-container" id="filePreview"></div>
-                    </div>
-
-                    <div id="youtubeLinkGroup" style="display: none;">
-                        <label for="youtubeLink">Ссылка на YouTube:</label>
-                        <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
-                        <div class="preview-container" id="youtubePreview"></div>
-                    </div>
-
-                    <label for="description">Описание:</label>
-                    <textarea id="description" rows="4" required></textarea>
-
-                    <div class="progress-bar">
-                        <div class="progress"></div>
-                    </div>
-
-                    <button type="submit">Опубликовать</button>
-                </form>
-            </div>
+            <button class="tab-button active" data-tab="stats">Статистика</button>
+            <button class="tab-button" data-tab="posts">Посты</button>
+            <button class="tab-button" data-tab="profile">Профиль</button>
+            <button class="tab-button" data-tab="settings">Настройки</button>
         </div>
 
-        <div id="manage" class="tab-content">
-            <div class="form-group">
-                <h3>Управление постами</h3>
-                <div class="post-grid" id="postsList">
-                    <div class="loading">Загрузка постов...</div>
+        <div id="stats" class="tab-content active">
+            <div class="stats-block">
+                <div class="stat-item">
+                    <h4>Всего постов</h4>
+                    <div id="totalPosts" class="stat-number">0</div>
+                </div>
+                <div class="stat-item">
+                    <h4>Всего лайков</h4>
+                    <div id="totalLikes" class="stat-number">0</div>
+                </div>
+                <div class="stat-item">
+                    <h4>Комментариев</h4>
+                    <div id="totalComments" class="stat-number">0</div>
+                </div>
+                <div class="stat-item">
+                    <h4>Посетителей</h4>
+                    <div id="totalVisitors" class="stat-number">0</div>
                 </div>
             </div>
         </div>
-        <div id="profile" class="tab-content">
-            <div class="form-group">
-                <h3>Настройки профиля</h3>
-                <form id="profileForm">
-                    <div class="profile-upload">
-                        <label for="profilePhoto">Фото профиля:</label>
-                        <input type="file" id="profilePhoto" accept="image/*">
-                        <div class="preview-container" id="profilePreview">
-                            <img id="currentProfilePhotoPreview" src="" alt="Preview">
-                        </div>
-                    </div>
 
-                    <label for="profileName">Имя профиля:</label>
-                    <input type="text" id="profileName" required>
-
-                    <label for="profileBio">Описание профиля:</label>
-                    <textarea id="profileBio" rows="3" required></textarea>
-
-                   <div class="social-links-group">
-    <h4>Социальные сети</h4>
-    <div id="socialLinksContainer">
-        <div class="social-link-item">
-            <label for="instagram">Instagram:</label>
-            <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
-        </div>
-        
-        <div class="social-link-item">
-            <label for="youtube">YouTube:</label>
-            <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
-        </div>
-        
-        <div class="social-link-item">
-            <label for="vk">VK:</label>
-            <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
-        </div>
-    </div>
-</div>
-
-                    <button type="submit">Сохранить изменения</button>
-                </form>
+        <div id="posts" class="tab-content">
+            <div id="postsList">
+                <!-- Посты будут добавляться здесь динамически -->
             </div>
+        </div>
+
+        <div id="profile" class="tab-content">
+            <!-- Содержимое вкладки профиля -->
         </div>
 
         <div id="settings" class="tab-content">
-            <div class="form-group">
-                <h3>Общие настройки</h3>
-                <form id="settingsForm">
-                    <label for="siteTitle">Заголовок сайта:</label>
-                    <input type="text" id="siteTitle" required>
-
-                    <label for="accentColor">Цвет акцента:</label>
-                    <input type="color" id="accentColor" value="#00ffcc">
-
-                    <label for="headerImage">Фоновое изображение шапки:</label>
-                    <input type="file" id="headerImage" accept="image/*">
-                    <div class="preview-container" id="headerPreview"></div>
-
-                    <div class="form-group">
-                        <h4>Настройки главной страницы</h4>
-                        <label for="welcomeText">Приветственный текст:</label>
-                        <textarea id="welcomeText" rows="3"></textarea>
-
-                        <label for="featuredContent">Закрепленный контент:</label>
-                        <select id="featuredContent">
-                            <option value="">Не выбрано</option>
-                        </select>
-                    </div>
-
-                    <button type="submit">Применить настройки</button>
-                </form>
-            </div>
+            <!-- Содержимое вкладки настроек -->
         </div>
     </div>
-<div id="stats" class="tab-content">
-    <div class="form-group">
-        <h3>Общая статистика</h3>
-        <div class="stats-block">
-            <div class="stat-item">
-                <h4>Всего постов</h4>
-                <div id="totalPosts" class="stat-number">0</div>
-            </div>
-            <div class="stat-item">
-                <h4>Всего лайков</h4>
-                <div id="totalLikes" class="stat-number">0</div>
-            </div>
-            <div class="stat-item">
-                <h4>Комментариев</h4>
-                <div id="totalComments" class="stat-number">0</div>
-            </div>
-            <div class="stat-item">
-                <h4>Посетителей</h4>
-                <div id="totalVisitors" class="stat-number">0</div>
-            </div>
-        </div>
 
-        <!-- Детальная статистика по постам -->
-        <label for="post-category">Категория:</label>
-        <select id="post-category" required>
-            <option value="photo">Фото</option>
-            <option value="music">Музыка</option>
-            <option value="video">Видео</option>
-        </select>
-
-        <div id="fileInputGroup">
-            <label for="post-file">Файл:</label>
-            <input type="file" id="post-file">
-            <div class="preview-container" id="filePreview"></div>
-        </div>
-
-        <div id="youtubeLinkGroup" style="display: none;">
-            <label for="post-youtube">Ссылка на YouTube:</label>
-            <input type="url" id="post-youtube" placeholder="https://youtube.com/...">
-            <div class="preview-container" id="youtubePreview"></div>
-        </div>
-
-        <label for="post-description">Описание:</label>
-        <textarea id="post-description" rows="4" required></textarea>
-
-        <div class="progress-bar">
-            <div class="progress"></div>
-        </div>
-
-        <button type="submit">Опубликовать</button>
-    </form>
-</div>
+    <!-- Firebase скрипты -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -759,11 +626,19 @@
 
         // Функция для переключения табов
         window.showTab = function(tabId) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            const buttons = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
             
-            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            const selectedButton = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedContent = document.getElementById(tabId);
+            
+            if (selectedButton && selectedContent) {
+                selectedButton.classList.add('active');
+                selectedContent.classList.add('active');
+            }
         };
 
         // Добавляем обработчики для табов
@@ -772,60 +647,6 @@
                 showTab(button.dataset.tab);
             });
         });
-
-        // Функция загрузки статистики
-        async function loadStats() {
-            try {
-                const postsSnapshot = await getDocs(collection(db, 'posts'));
-                const likesSnapshot = await getDocs(collection(db, 'likes'));
-                const commentsSnapshot = await getDocs(collection(db, 'comments'));
-                const visitsSnapshot = await getDocs(collection(db, 'visits'));
-
-                document.getElementById('totalPosts').textContent = postsSnapshot.size;
-                document.getElementById('totalLikes').textContent = likesSnapshot.size;
-                document.getElementById('totalComments').textContent = commentsSnapshot.size;
-                document.getElementById('totalVisitors').textContent = visitsSnapshot.size;
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
-        }
-
-        // Функция загрузки постов
-        async function loadPosts() {
-            try {
-                const postsSnapshot = await getDocs(collection(db, 'posts'));
-                const postList = document.getElementById('postsList');
-                postList.innerHTML = '';
-
-                postsSnapshot.forEach(doc => {
-                    const post = doc.data();
-                    const postElement = document.createElement('div');
-                    postElement.className = 'post-card';
-                    postElement.innerHTML = `
-                        <h3>${post.title || 'Без названия'}</h3>
-                        <p>${post.description || ''}</p>
-                        <button class="delete-btn" onclick="deletePost('${doc.id}')">Удалить</button>
-                    `;
-                    postList.appendChild(postElement);
-                });
-            } catch (error) {
-                console.error('Error loading posts:', error);
-            }
-        }
-
-        // Функция удаления поста
-        window.deletePost = async (postId) => {
-            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
-                try {
-                    await deleteDoc(doc(db, 'posts', postId));
-                    loadPosts();
-                    loadStats();
-                } catch (error) {
-                    console.error('Error deleting post:', error);
-                    alert('Ошибка при удалении поста');
-                }
-            }
-        };
 
         // Обработчик входа
         document.getElementById('googleSignIn').onclick = async () => {
@@ -837,8 +658,6 @@
                 if (result.user.email === 'iosinniy1@gmail.com') {
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
-                    loadStats();
-                    loadPosts();
                 } else {
                     await signOut(auth);
                     alert('Доступ запрещен. Используйте аккаунт администратора.');
@@ -856,8 +675,6 @@
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('adminContent').style.display = 'block';
-                loadStats();
-                loadPosts();
             } else {
                 document.getElementById('loginForm').style.display = 'block';
                 document.getElementById('adminContent').style.display = 'none';
