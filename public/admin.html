@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://* blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://ritrag.com wss://*.firebaseio.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com https://ritrag.com; 
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://ritrag.com; 
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+    font-src 'self' https://fonts.gstatic.com; 
+    img-src 'self' data: https://* blob:; 
+    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com wss://*.firebaseio.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
@@ -822,48 +827,49 @@ onAuthStateChanged(auth, (user) => {
             });
         }
 
-        // Обработка превью файлов
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('filePreview');
-            
-            if (file) {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                    };
-                    reader.readAsDataURL(file);
-                } else if (file.type.startsWith('audio/')) {
-                    preview.innerHTML = `
-                        <audio controls>
-                            <source src="${URL.createObjectURL(file)}" type="${file.type}">
-                        </audio>`;
-                }
-            }
-        });
+    // Обработка превью файлов
+document.getElementById('post-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('filePreview');
+    
+    if (file) {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type.startsWith('audio/')) {
+            preview.innerHTML = `
+                <audio controls>
+                    <source src="${URL.createObjectURL(file)}" type="${file.type}">
+                </audio>`;
+        }
+    }
+});
 
-        // Обработка превью профиля
-        document.getElementById('profilePhoto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('currentProfilePhotoPreview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        // Обработка YouTube ссылок
-        document.getElementById('youtubeLink').addEventListener('input', function(e) {
-            const videoId = getYoutubeVideoId(e.target.value);
-            const preview = document.getElementById('youtubePreview');
-            if (videoId) {
-                preview.innerHTML = generateYoutubePreview(videoId);
-            } else {
-                preview.innerHTML = '';
-            }
-        });
+
+// Обработка превью профиля (этот id оставляем как есть)
+document.getElementById('profilePhoto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('currentProfilePhotoPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+       // Обработка YouTube ссылок
+document.getElementById('post-youtube').addEventListener('input', function(e) {
+    const videoId = getYoutubeVideoId(e.target.value);
+    const preview = document.getElementById('youtubePreview');
+    if (videoId) {
+        preview.innerHTML = generateYoutubePreview(videoId);
+    } else {
+        preview.innerHTML = '';
+    }
+});
 async function loadStats() {
     try {
         // Загрузка основной статистики
