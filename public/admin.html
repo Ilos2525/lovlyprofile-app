@@ -1319,8 +1319,14 @@
 
         // Функция для переключения вкладок активности
         window.showActivityTab = function(tab) {
-            document.querySelectorAll('.activity-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector([onclick="showActivityTab('${tab}')"]).classList.add('active');
+            const tabs = document.querySelectorAll('.activity-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            const activeTab = document.querySelector(`[data-tab="${tab}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
             loadActivityData(tab);
         };
 
@@ -1384,78 +1390,6 @@
                 activityDiv.innerHTML = '<div class="error">Ошибка загрузки данных</div>';
             }
         }
-
-        // Обновленная функция удаления комментария
-        window.deleteComment = async function(commentId, postId) {
-            if (!confirm('Удалить этот комментарий?')) return;
-            
-            try {
-                const batch = writeBatch(db);
-                
-                // Удаляем комментарий
-                batch.delete(doc(db, 'comments', commentId));
-                
-                // Если есть postId, обновляем счетчик комментариев
-                if (postId) {
-                    const postRef = doc(db, 'posts', postId);
-                    const postDoc = await getDoc(postRef);
-                    if (postDoc.exists()) {
-                        const currentCount = postDoc.data().commentsCount || 0;
-                        batch.update(postRef, {
-                            commentsCount: Math.max(0, currentCount - 1)
-                        });
-                    }
-                }
-
-                await batch.commit();
-                
-                // Обновляем отображение
-                loadActivityData('comments');
-                loadStats();
-                
-                alert('Комментарий успешно удален');
-            } catch (error) {
-                console.error('Ошибка удаления комментария:', error);
-                alert(`Ошибка удаления комментария: ${error.message}`);
-            }
-        };
-
-        // Функция переключения вкладок активности
-        window.showActivityTab = function(tab) {
-            const tabs = document.querySelectorAll('.activity-tab');
-            tabs.forEach(t => t.classList.remove('active'));
-            
-            const activeTab = document.querySelector(`[data-tab="${tab}"]`);
-            if (activeTab) {
-                activeTab.classList.add('active');
-            }
-            
-            loadActivityData(tab);
-        };
-
-        // Исправляем возврат HTML в функциях
-        function generateYoutubePreview(videoId) {
-            return `
-                <div class="video-preview">
-                    <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
-                    <div class="play-icon">▶️</div>
-                </div>
-            `;
-        }
-
-        // Исправляем label for
-        const socialLinksHTML = `
-            <label for="instagram">Instagram:</label>
-            <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
-            
-            <label for="youtube">YouTube:</label>
-            <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
-            
-            <label for="vk">VK:</label>
-            <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
-        `;
-
-        document.getElementById('socialLinksContainer').innerHTML = socialLinksHTML;
 
         // Обновляем CSP для разрешения eval
         document.head.innerHTML = document.head.innerHTML.replace(
