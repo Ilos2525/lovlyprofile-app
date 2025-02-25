@@ -709,47 +709,10 @@
     </form>
 </div>
     <script type="module">
-        // Обработчик ошибок
-        window.onerror = function(msg, url, line, col, error) {
-            if (url && url.includes('ritrag.com')) {
-                return true; // Блокируем ошибки от ritrag.com
-            }
-            console.error('Error: ' + msg + '\nurl: ' + url + '\nline: ' + line);
-            return false;
-        };
-
-        // Исправленный обработчик алертов
-        function showAlert(message) {
-            alert(message); // Убрали шаблонные строки для избежания eval
-        }
-
-        // Исправленная функция для ошибок
-        function handleError(error) {
-            console.error('Error:', error);
-            showAlert('Ошибка: ' + error.message);
-        }
-
-        // Обработчик входа
-        document.getElementById('googleSignIn').addEventListener('click', async () => {
-            try {
-                const provider = new GoogleAuthProvider();
-                const result = await signInWithPopup(auth, provider);
-                
-                if (result.user.email !== 'iosinniy1@gmail.com') {
-                    await auth.signOut();
-                    showAlert('Доступ запрещен. Используйте аккаунт администратора.');
-                    return;
-                }
-            } catch (error) {
-                handleError(error);
-            }
-        });
-
         // Блокируем нежелательные скрипты
         window.addEventListener('error', function(e) {
             if (e.filename && e.filename.includes('ritrag.com')) {
                 e.preventDefault();
-                console.log('Blocked unwanted script');
                 return false;
             }
         }, true);
@@ -759,362 +722,362 @@
         document.onload = null;
 
         // Импорты Firebase
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getAuth, 
-    GoogleAuthProvider, 
-    signInWithPopup,
-    onAuthStateChanged,
-    setPersistence,
-    browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// Конфигурация Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-    authDomain: "whylovly-website-8adcb.firebaseapp.com",
-    projectId: "whylovly-website-8adcb",
-    storageBucket: "whylovly-website-8adcb.appspot.com",
-    messagingSenderId: "749833792533",
-    appId: "1:749833792533:web:2494649a11b628cd84321c",
-    measurementId: "G-0MKF0C3WQJ"
-};
-
-// Инициализация Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Обработчик авторизации
-onAuthStateChanged(auth, (user) => {
-    console.log("Проверка авторизации:", user?.email);
-    if (user && user.email === 'iosinniy1@gmail.com') {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        loadProfile();
-        loadStats();
-        loadPosts();
-    } else {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('adminContent').style.display = 'none';
-    }
-});
-
-// Функция выхода
-window.signOut = async function() {
-    try {
-        await auth.signOut();
-        window.location.reload();
-    } catch (error) {
-        console.error("Ошибка выхода:", error);
-        alert(`Ошибка выхода: ${error.message}`);
-    }
-};
-
-// Функции для работы с YouTube
-function getYoutubeVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-}
-
-function generateYoutubePreview(videoId) {
-    return `
-        <div class="video-preview">
-            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
-            <div class="play-icon">▶️</div>
-        </div>
-    `;
-}
-
-// Загрузка профиля
-async function loadProfile() {
-    try {
-        const profileDoc = await getDoc(doc(db, 'profiles', '5794174511'));
-        if (profileDoc.exists()) {
-            const data = profileDoc.data();
-            document.getElementById('currentProfileName').textContent = data.first_name || 'whylovly';
-            document.getElementById('currentProfileBio').textContent = data.bio || '';
-            document.getElementById('profileName').value = data.first_name || 'whylovly';
-            document.getElementById('profileBio').value = data.bio || '';
-            
-            if (data.photo_url) {
-                document.getElementById('currentProfilePhoto').src = data.photo_url;
-                document.getElementById('currentProfilePhotoPreview').src = data.photo_url;
-            }
-
-            // Загрузка социальных сетей
-            if (data.social) {
-                Object.entries(data.social).forEach(([network, url]) => {
-                    const input = document.querySelector(input[name="${network}"]);
-                    if (input) input.value = url || '';
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки профиля:', error);
-    }
-}
-        
-
-// Загрузка файлов
-async function uploadFile(file, category) {
-    return new Promise((resolve, reject) => {
-        const timestamp = Date.now();
-        const storageRef = ref(storage, ${category}/${timestamp}_${file.name});
-        
-        const metadata = {
-            contentType: file.type
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+            authDomain: "whylovly-website-8adcb.firebaseapp.com",
+            projectId: "whylovly-website-8adcb",
+            storageBucket: "whylovly-website-8adcb.appspot.com",
+            messagingSenderId: "749833792533",
+            appId: "1:749833792533:web:2494649a11b628cd84321c",
+            measurementId: "G-0MKF0C3WQJ"
         };
 
-        const uploadTask = uploadBytesResumable(storageRef, file, metadata);
-        const progressBar = document.querySelector('.progress');
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
 
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                progressBar.style.width = ${progress}%;
-            },
-            (error) => {
-                console.error('Ошибка загрузки:', error);
-                reject(error);
-            },
-            async () => {
-                try {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    resolve(downloadURL);
-                } catch (error) {
-                    reject(error);
+        // Обработчик авторизации
+        onAuthStateChanged(auth, (user) => {
+            console.log("Проверка авторизации:", user?.email);
+            if (user && user.email === 'iosinniy1@gmail.com') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+                loadProfile();
+                loadStats();
+                loadPosts();
+            } else {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('adminContent').style.display = 'none';
+            }
+        });
+
+        // Функция выхода
+        window.signOut = async function() {
+            try {
+                await auth.signOut();
+                window.location.reload();
+            } catch (error) {
+                console.error("Ошибка выхода:", error);
+                alert(`Ошибка выхода: ${error.message}`);
+            }
+        };
+
+        // Функции для работы с YouTube
+        function getYoutubeVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function generateYoutubePreview(videoId) {
+            return `
+                <div class="video-preview">
+                    <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
+                    <div class="play-icon">▶️</div>
+                </div>
+            `;
+        }
+
+        // Загрузка профиля
+        async function loadProfile() {
+            try {
+                const profileDoc = await getDoc(doc(db, 'profiles', '5794174511'));
+                if (profileDoc.exists()) {
+                    const data = profileDoc.data();
+                    document.getElementById('currentProfileName').textContent = data.first_name || 'whylovly';
+                    document.getElementById('currentProfileBio').textContent = data.bio || '';
+                    document.getElementById('profileName').value = data.first_name || 'whylovly';
+                    document.getElementById('profileBio').value = data.bio || '';
+                    
+                    if (data.photo_url) {
+                        document.getElementById('currentProfilePhoto').src = data.photo_url;
+                        document.getElementById('currentProfilePhotoPreview').src = data.photo_url;
+                    }
+
+                    // Загрузка социальных сетей
+                    if (data.social) {
+                        Object.entries(data.social).forEach(([network, url]) => {
+                            const input = document.querySelector(input[name="${network}"]);
+                            if (input) input.value = url || '';
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
+        
+
+        // Загрузка файлов
+        async function uploadFile(file, category) {
+            return new Promise((resolve, reject) => {
+                const timestamp = Date.now();
+                const storageRef = ref(storage, ${category}/${timestamp}_${file.name});
+                
+                const metadata = {
+                    contentType: file.type
+                };
+
+                const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+                const progressBar = document.querySelector('.progress');
+
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        progressBar.style.width = ${progress}%;
+                    },
+                    (error) => {
+                        console.error('Ошибка загрузки:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(downloadURL);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
+        }
+
+        // Обработка превью файлов
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            
+            if (file) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML = <img src="${e.target.result}" alt="Preview">;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type.startsWith('audio/')) {
+                    preview.innerHTML = 
+                        <audio controls>
+                            <source src="${URL.createObjectURL(file)}" type="${file.type}">
+                        </audio>;
                 }
             }
-        );
-    });
-}
-
-// Обработка превью файлов
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('filePreview');
-    
-    if (file) {
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.innerHTML = <img src="${e.target.result}" alt="Preview">;
-            };
-            reader.readAsDataURL(file);
-        } else if (file.type.startsWith('audio/')) {
-            preview.innerHTML = 
-                <audio controls>
-                    <source src="${URL.createObjectURL(file)}" type="${file.type}">
-                </audio>;
-        }
-    }
-});
-
-// Обработка превью профиля
-document.getElementById('profilePhoto').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('currentProfilePhotoPreview').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-});
-// Обработка YouTube ссылок
-document.getElementById('youtubeLink').addEventListener('input', function(e) {
-    const videoId = getYoutubeVideoId(e.target.value);
-    const preview = document.getElementById('youtubePreview');
-    if (videoId) {
-        preview.innerHTML = generateYoutubePreview(videoId);
-    } else {
-        preview.innerHTML = '';
-    }
-});
-async function loadStats() {
-    try {
-        // Загрузка основной статистики
-        const [postsSnapshot, likesSnapshot, commentsSnapshot, visitorsSnapshot] = await Promise.all([
-            getDocs(collection(db, 'posts')),
-            getDocs(collection(db, 'likes')),
-            getDocs(collection(db, 'comments')),
-            getDocs(collection(db, 'visitors'))
-        ]);
-
-        // Обновляем счетчики
-        document.getElementById('totalPosts').textContent = postsSnapshot.size;
-        document.getElementById('totalLikes').textContent = likesSnapshot.size;
-        document.getElementById('totalComments').textContent = commentsSnapshot.size;
-        document.getElementById('totalVisitors').textContent = visitorsSnapshot.size;
-
-        // Создаем детальную статистику по постам
-        const postsMap = new Map();
-        postsSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
-            postsMap.set(doc.id, { 
-                ...data, 
-                id: doc.id, 
-                timestamp: timestamp,
-                likes: [], 
-                comments: [] 
-            });
         });
 
-        // Добавляем информацию о лайках
-        likesSnapshot.docs.forEach(doc => {
-            const like = doc.data();
-            if (postsMap.has(like.postId)) {
-                const timestamp = like.timestamp?.toDate?.() || new Date(like.timestamp);
-                postsMap.get(like.postId).likes.push({
-                    userId: like.userId,
-                    timestamp: timestamp,
-                    userEmail: like.userEmail || 'Гость'
-                });
+        // Обработка превью профиля
+        document.getElementById('profilePhoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('currentProfilePhotoPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
             }
         });
-
-        // Добавляем информацию о комментариях
-        commentsSnapshot.docs.forEach(doc => {
-            const comment = doc.data();
-            if (postsMap.has(comment.postId)) {
-                const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
-                postsMap.get(comment.postId).comments.push({
-                    author: comment.author || 'Гость',
-                    text: comment.text,
-                    timestamp: timestamp
-                });
+        // Обработка YouTube ссылок
+        document.getElementById('youtubeLink').addEventListener('input', function(e) {
+            const videoId = getYoutubeVideoId(e.target.value);
+            const preview = document.getElementById('youtubePreview');
+            if (videoId) {
+                preview.innerHTML = generateYoutubePreview(videoId);
+            } else {
+                preview.innerHTML = '';
             }
         });
+        async function loadStats() {
+            try {
+                // Загрузка основной статистики
+                const [postsSnapshot, likesSnapshot, commentsSnapshot, visitorsSnapshot] = await Promise.all([
+                    getDocs(collection(db, 'posts')),
+                    getDocs(collection(db, 'likes')),
+                    getDocs(collection(db, 'comments')),
+                    getDocs(collection(db, 'visitors'))
+                ]);
 
-        // Отображаем детальную статистику
-        const detailedStats = document.getElementById('detailedPostStats');
-        let statsHTML = '';
+                // Обновляем счетчики
+                document.getElementById('totalPosts').textContent = postsSnapshot.size;
+                document.getElementById('totalLikes').textContent = likesSnapshot.size;
+                document.getElementById('totalComments').textContent = commentsSnapshot.size;
+                document.getElementById('totalVisitors').textContent = visitorsSnapshot.size;
 
-        postsMap.forEach(post => {
-            const date = post.timestamp.toLocaleString('ru-RU');
-            statsHTML += 
-                <div class="post-stat-item">
-                    <div class="post-stat-header">
-                        <div class="post-title">${post.description ? post.description.substring(0, 50) + '...' : 'Без описания'}</div>
-                        <div class="post-date">${date}</div>
-                    </div>
-                    <div class="post-stat-details">
-                        <div>Лайков: ${post.likes.length}</div>
-                        <div>Комментариев: ${post.comments.length}</div>
-                        ${post.likes.length > 0 ? 
-                            <div class="likes-details">
-                                <small>Последние лайки:</small>
-                                ${post.likes.slice(0, 3).map(like => 
-                                    <div>${like.userEmail} - ${like.timestamp.toLocaleString('ru-RU')}</div>
-                                ).join('')}
+                // Создаем детальную статистику по постам
+                const postsMap = new Map();
+                postsSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+                    postsMap.set(doc.id, { 
+                        ...data, 
+                        id: doc.id, 
+                        timestamp: timestamp,
+                        likes: [], 
+                        comments: [] 
+                    });
+                });
+
+                // Добавляем информацию о лайках
+                likesSnapshot.docs.forEach(doc => {
+                    const like = doc.data();
+                    if (postsMap.has(like.postId)) {
+                        const timestamp = like.timestamp?.toDate?.() || new Date(like.timestamp);
+                        postsMap.get(like.postId).likes.push({
+                            userId: like.userId,
+                            timestamp: timestamp,
+                            userEmail: like.userEmail || 'Гость'
+                        });
+                    }
+                });
+
+                // Добавляем информацию о комментариях
+                commentsSnapshot.docs.forEach(doc => {
+                    const comment = doc.data();
+                    if (postsMap.has(comment.postId)) {
+                        const timestamp = comment.timestamp?.toDate?.() || new Date(comment.timestamp);
+                        postsMap.get(comment.postId).comments.push({
+                            author: comment.author || 'Гость',
+                            text: comment.text,
+                            timestamp: timestamp
+                        });
+                    }
+                });
+
+                // Отображаем детальную статистику
+                const detailedStats = document.getElementById('detailedPostStats');
+                let statsHTML = '';
+
+                postsMap.forEach(post => {
+                    const date = post.timestamp.toLocaleString('ru-RU');
+                    statsHTML += 
+                        <div class="post-stat-item">
+                            <div class="post-stat-header">
+                                <div class="post-title">${post.description ? post.description.substring(0, 50) + '...' : 'Без описания'}</div>
+                                <div class="post-date">${date}</div>
                             </div>
-                         : ''}
-                    </div>
-                </div>
-            ;
-        });
+                            <div class="post-stat-details">
+                                <div>Лайков: ${post.likes.length}</div>
+                                <div>Комментариев: ${post.comments.length}</div>
+                                ${post.likes.length > 0 ? 
+                                    <div class="likes-details">
+                                        <small>Последние лайки:</small>
+                                        ${post.likes.slice(0, 3).map(like => 
+                                            <div>${like.userEmail} - ${like.timestamp.toLocaleString('ru-RU')}</div>
+                                        ).join('')}
+                                    </div>
+                                 : ''}
+                            </div>
+                        </div>
+                    ;
+                });
 
-        detailedStats.innerHTML = statsHTML;
-        
-        // Загружаем первую вкладку активности по умолчанию
-        loadActivityData('likes');
+                detailedStats.innerHTML = statsHTML;
+                
+                // Загружаем первую вкладку активности по умолчанию
+                loadActivityData('likes');
 
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-    }
-}
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
 
-// Управление табами
-window.showTab = function(tabId) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    document.getElementById(tabId).classList.add('active');
-    document.querySelector([onclick="showTab('${tabId}')"]).classList.add('active');
-    
-    // Загрузка данных в зависимости от выбранной вкладки
-    if (tabId === 'manage') {
-        loadPosts();
-    }
-    if (tabId === 'stats') {
-        loadStats();
-    }
-};
+        // Управление табами
+        window.showTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector([onclick="showTab('${tabId}')"]).classList.add('active');
+            
+            // Загрузка данных в зависимости от выбранной вкладки
+            if (tabId === 'manage') {
+                loadPosts();
+            }
+            if (tabId === 'stats') {
+                loadStats();
+            }
+        };
 
        // Переключение типа поста
-document.getElementById('category').addEventListener('change', function(e) {
-    const isVideo = e.target.value === 'video';
-    document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
-    document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('filePreview').innerHTML = '';
-    document.getElementById('youtubePreview').innerHTML = '';
-});
+        document.getElementById('category').addEventListener('change', function(e) {
+            const isVideo = e.target.value === 'video';
+            document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
+            document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
+            document.getElementById('filePreview').innerHTML = '';
+            document.getElementById('youtubePreview').innerHTML = '';
+        });
 
-// Загрузка поста
-document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const submitButton = this.querySelector('button[type="submit"]');
-    const progressBar = document.querySelector('.progress');
+        // Загрузка поста
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const progressBar = document.querySelector('.progress');
 
-    try {
-        submitButton.disabled = true;
-        progressBar.style.width = '10%';
+            try {
+                submitButton.disabled = true;
+                progressBar.style.width = '10%';
 
-        const category = document.getElementById('category').value;
-        const description = document.getElementById('description').value;
-        let fileURL = '';
+                const category = document.getElementById('category').value;
+                const description = document.getElementById('description').value;
+                let fileURL = '';
 
-        if (category === 'video') {
-            fileURL = document.getElementById('youtubeLink').value;
-            if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-            if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-        } else {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) throw new Error('Выберите файл');
-            
-            const file = fileInput.files[0];
-            fileURL = await uploadFile(file, category);
-        }
+                if (category === 'video') {
+                    fileURL = document.getElementById('youtubeLink').value;
+                    if (!fileURL) throw new Error('Укажите ссылку на YouTube');
+                    if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
+                } else {
+                    const fileInput = document.getElementById('fileInput');
+                    if (!fileInput.files.length) throw new Error('Выберите файл');
+                    
+                    const file = fileInput.files[0];
+                    fileURL = await uploadFile(file, category);
+                }
 
-        progressBar.style.width = '80%';
+                progressBar.style.width = '80%';
 
-        const postData = {
-            category,
-            fileURL,
-            description,
-            timestamp: new Date().toISOString(),
-            author: auth.currentUser.email
-        };
+                const postData = {
+                    category,
+                    fileURL,
+                    description,
+                    timestamp: new Date().toISOString(),
+                    author: auth.currentUser.email
+                };
 
-        const docRef = await addDoc(collection(db, 'posts'), postData);
-        
-        progressBar.style.width = '100%';
-        alert('Пост успешно опубликован!');
-        loadStats(); // Добавлена эта строка
-        
-        this.reset();
-        document.getElementById('filePreview').innerHTML = '';
-        document.getElementById('youtubePreview').innerHTML = '';
+                const docRef = await addDoc(collection(db, 'posts'), postData);
+                
+                progressBar.style.width = '100%';
+                alert('Пост успешно опубликован!');
+                loadStats(); // Добавлена эта строка
+                
+                this.reset();
+                document.getElementById('filePreview').innerHTML = '';
+                document.getElementById('youtubePreview').innerHTML = '';
 
-    } catch (error) {
-        console.error('Ошибка:', error);
-        alert(Ошибка: ${error.message});
-    } finally {
-        submitButton.disabled = false;
-        setTimeout(() => {
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert(Ошибка: ${error.message});
+            } finally {
+                submitButton.disabled = false;
+                setTimeout(() => {
+                    progressBar.style.width = '0%';
+                }, 1000);
+            }
+        });
         // Обновление профиля
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1270,247 +1233,247 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         }
 
         /// Удаление поста
-window.deletePost = async function(postId) {
-    if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
-        return;
-    }
-
-    try {
-        await deleteDoc(doc(db, 'posts', postId));
-        alert('Пост удален!');
-        loadPosts();
-        loadStats(); // Добавлена эта строка
-    } catch (error) {
-        console.error('Ошибка удаления поста:', error);
-        alert('Ошибка удаления поста: ' + error.message);
-    }
-};
-// Функция загрузки комментариев
-async function loadComments() {
-    try {
-        const commentsDiv = document.getElementById('commentsList');
-        const q = query(collection(db, 'comments'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            commentsDiv.innerHTML = '<p>Нет комментариев</p>';
-            return;
-        }
-
-        const commentsHTML = querySnapshot.docs.map(doc => {
-            const comment = doc.data();
-            const date = new Date(comment.timestamp).toLocaleString('ru-RU');
-            return 
-                <div class="comment-item">
-                    <div class="comment-header">
-                        <span class="comment-author">${comment.author || 'Аноним'}</span>
-                        <span class="comment-date">${date}</span>
-                    </div>
-                    <p class="comment-text">${comment.text}</p>
-                    <button class="delete-btn" onclick="deleteComment('${doc.id}')">Удалить</button>
-                </div>
-            ;
-        }).join('');
-
-        commentsDiv.innerHTML = commentsHTML;
-    } catch (error) {
-        console.error('Ошибка загрузки комментариев:', error);
-    }
-}
-
-// Функция удаления комментария
-window.deleteComment = async function(commentId, postId) {
-    if (!confirm('Удалить этот комментарий?')) return;
-    
-    try {
-        const batch = writeBatch(db);
-        
-        // Удаляем комментарий
-        batch.delete(doc(db, 'comments', commentId));
-        
-        // Если есть postId, уменьшаем счетчик комментариев в посте
-        if (postId) {
-            const postRef = doc(db, 'posts', postId);
-            const postDoc = await getDoc(postRef);
-            if (postDoc.exists()) {
-                const currentCount = postDoc.data().commentsCount || 0;
-                batch.update(postRef, {
-                    commentsCount: Math.max(0, currentCount - 1)
-                });
+        window.deletePost = async function(postId) {
+            if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
+                return;
             }
-        }
 
-        await batch.commit();
-        
-        
-        // Обновляем отображение
-        loadActivityData('comments');
-        loadStats();
-        
-        alert('Комментарий успешно удален');
-    } catch (error) {
-        console.error('Ошибка удаления комментария:', error);
-        alert('Ошибка удаления комментария');
-    }
-};
-
-// Функция для переключения вкладок активности
-window.showActivityTab = function(tab) {
-    document.querySelectorAll('.activity-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector([onclick="showActivityTab('${tab}')"]).classList.add('active');
-    loadActivityData(tab);
-};
-
-// Функция загрузки данных об активности
-async function loadActivityData(tab) {
-    const activityDiv = document.getElementById('userActivity');
-    activityDiv.innerHTML = '<div class="loading">Загрузка...</div>';
-
-    try {
-        let snapshot;
-        let title = '';
-        
-        switch(tab) {
-            case 'likes':
-                snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
-                title = 'Лайки';
-                break;
-            case 'comments':
-                snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
-                title = 'Комментарии';
-                break;
-            case 'visits':
-                snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
-                title = 'Посещения';
-                break;
-        }
-
-        let html = `<h3>${title}</h3>`;
-
-        if (snapshot.empty) {
-            html += '<div class="no-data">Нет данных</div>';
-        } else {
-            snapshot.docs.forEach(doc => {
-                const data = doc.data();
-                const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
-                const date = timestamp.toLocaleString('ru-RU');
+            try {
+                await deleteDoc(doc(db, 'posts', postId));
+                alert('Пост удален!');
+                loadPosts();
+                loadStats(); // Добавлена эта строка
+            } catch (error) {
+                console.error('Ошибка удаления поста:', error);
+                alert('Ошибка удаления поста: ' + error.message);
+            }
+        };
+        // Функция загрузки комментариев
+        async function loadComments() {
+            try {
+                const commentsDiv = document.getElementById('commentsList');
+                const q = query(collection(db, 'comments'), orderBy('timestamp', 'desc'));
+                const querySnapshot = await getDocs(q);
                 
-                html += `
-                    <div class="user-activity-item">
-                        <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
-                        <div class="activity-info">
-                            <div class="user-name">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
-                            <div class="activity-details">
-                                ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
-                                <div class="activity-date">${date}</div>
+                if (querySnapshot.empty) {
+                    commentsDiv.innerHTML = '<p>Нет комментариев</p>';
+                    return;
+                }
+
+                const commentsHTML = querySnapshot.docs.map(doc => {
+                    const comment = doc.data();
+                    const date = new Date(comment.timestamp).toLocaleString('ru-RU');
+                    return 
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-author">${comment.author || 'Аноним'}</span>
+                                <span class="comment-date">${date}</span>
                             </div>
-                            ${tab === 'comments' ? `
-                                <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId || ''}')">
-                                    Удалить
-                                </button>
-                            ` : ''}
+                            <p class="comment-text">${comment.text}</p>
+                            <button class="delete-btn" onclick="deleteComment('${doc.id}')">Удалить</button>
                         </div>
-                    </div>
-                `;
-            });
-        }
+                    ;
+                }).join('');
 
-        activityDiv.innerHTML = html;
-    } catch (error) {
-        console.error(`Ошибка загрузки ${tab}:`, error);
-        activityDiv.innerHTML = '<div class="error">Ошибка загрузки данных</div>';
-    }
-}
-
-// Обновленная функция удаления комментария
-window.deleteComment = async function(commentId, postId) {
-    if (!confirm('Удалить этот комментарий?')) return;
-    
-    try {
-        const batch = writeBatch(db);
-        
-        // Удаляем комментарий
-        batch.delete(doc(db, 'comments', commentId));
-        
-        // Если есть postId, обновляем счетчик комментариев
-        if (postId) {
-            const postRef = doc(db, 'posts', postId);
-            const postDoc = await getDoc(postRef);
-            if (postDoc.exists()) {
-                const currentCount = postDoc.data().commentsCount || 0;
-                batch.update(postRef, {
-                    commentsCount: Math.max(0, currentCount - 1)
-                });
+                commentsDiv.innerHTML = commentsHTML;
+            } catch (error) {
+                console.error('Ошибка загрузки комментариев:', error);
             }
         }
 
-        await batch.commit();
-        
-        // Обновляем отображение
-        loadActivityData('comments');
-        loadStats();
-        
-        alert('Комментарий успешно удален');
-    } catch (error) {
-        console.error('Ошибка удаления комментария:', error);
-        alert(`Ошибка удаления комментария: ${error.message}`);
-    }
-};
+        // Функция удаления комментария
+        window.deleteComment = async function(commentId, postId) {
+            if (!confirm('Удалить этот комментарий?')) return;
+            
+            try {
+                const batch = writeBatch(db);
+                
+                // Удаляем комментарий
+                batch.delete(doc(db, 'comments', commentId));
+                
+                // Если есть postId, уменьшаем счетчик комментариев в посте
+                if (postId) {
+                    const postRef = doc(db, 'posts', postId);
+                    const postDoc = await getDoc(postRef);
+                    if (postDoc.exists()) {
+                        const currentCount = postDoc.data().commentsCount || 0;
+                        batch.update(postRef, {
+                            commentsCount: Math.max(0, currentCount - 1)
+                        });
+                    }
+                }
 
-// Функция переключения вкладок активности
-window.showActivityTab = function(tab) {
-    const tabs = document.querySelectorAll('.activity-tab');
-    tabs.forEach(t => t.classList.remove('active'));
-    
-    const activeTab = document.querySelector(`[data-tab="${tab}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    loadActivityData(tab);
-};
+                await batch.commit();
+                
+                
+                // Обновляем отображение
+                loadActivityData('comments');
+                loadStats();
+                
+                alert('Комментарий успешно удален');
+            } catch (error) {
+                console.error('Ошибка удаления комментария:', error);
+                alert('Ошибка удаления комментария');
+            }
+        };
 
-// Исправляем возврат HTML в функциях
-function generateYoutubePreview(videoId) {
-    return `
-        <div class="video-preview">
-            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
-            <div class="play-icon">▶️</div>
-        </div>
-    `;
-}
+        // Функция для переключения вкладок активности
+        window.showActivityTab = function(tab) {
+            document.querySelectorAll('.activity-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector([onclick="showActivityTab('${tab}')"]).classList.add('active');
+            loadActivityData(tab);
+        };
 
-// Исправляем label for
-const socialLinksHTML = `
-    <label for="instagram">Instagram:</label>
-    <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
-    
-    <label for="youtube">YouTube:</label>
-    <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
-    
-    <label for="vk">VK:</label>
-    <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
-`;
+        // Функция загрузки данных об активности
+        async function loadActivityData(tab) {
+            const activityDiv = document.getElementById('userActivity');
+            activityDiv.innerHTML = '<div class="loading">Загрузка...</div>';
 
-document.getElementById('socialLinksContainer').innerHTML = socialLinksHTML;
+            try {
+                let snapshot;
+                let title = '';
+                
+                switch(tab) {
+                    case 'likes':
+                        snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+                        title = 'Лайки';
+                        break;
+                    case 'comments':
+                        snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+                        title = 'Комментарии';
+                        break;
+                    case 'visits':
+                        snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+                        title = 'Посещения';
+                        break;
+                }
 
-// Обновляем CSP для разрешения eval
-document.head.innerHTML = document.head.innerHTML.replace(
-    'script-src',
-    'script-src \'unsafe-eval\''
-);
+                let html = `<h3>${title}</h3>`;
 
-// Добавляем обработку ошибок Firebase
-const initFirebase = async () => {
-    try {
-        await setPersistence(auth, browserLocalPersistence);
-        console.log("Firebase initialized successfully");
-    } catch (error) {
-        console.error("Firebase initialization error:", error);
-    }
-};
+                if (snapshot.empty) {
+                    html += '<div class="no-data">Нет данных</div>';
+                } else {
+                    snapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+                        const date = timestamp.toLocaleString('ru-RU');
+                        
+                        html += `
+                            <div class="user-activity-item">
+                                <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                                <div class="activity-info">
+                                    <div class="user-name">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
+                                    <div class="activity-details">
+                                        ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
+                                        <div class="activity-date">${date}</div>
+                                    </div>
+                                    ${tab === 'comments' ? `
+                                        <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId || ''}')">
+                                            Удалить
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
 
-initFirebase();
+                activityDiv.innerHTML = html;
+            } catch (error) {
+                console.error(`Ошибка загрузки ${tab}:`, error);
+                activityDiv.innerHTML = '<div class="error">Ошибка загрузки данных</div>';
+            }
+        }
+
+        // Обновленная функция удаления комментария
+        window.deleteComment = async function(commentId, postId) {
+            if (!confirm('Удалить этот комментарий?')) return;
+            
+            try {
+                const batch = writeBatch(db);
+                
+                // Удаляем комментарий
+                batch.delete(doc(db, 'comments', commentId));
+                
+                // Если есть postId, обновляем счетчик комментариев
+                if (postId) {
+                    const postRef = doc(db, 'posts', postId);
+                    const postDoc = await getDoc(postRef);
+                    if (postDoc.exists()) {
+                        const currentCount = postDoc.data().commentsCount || 0;
+                        batch.update(postRef, {
+                            commentsCount: Math.max(0, currentCount - 1)
+                        });
+                    }
+                }
+
+                await batch.commit();
+                
+                // Обновляем отображение
+                loadActivityData('comments');
+                loadStats();
+                
+                alert('Комментарий успешно удален');
+            } catch (error) {
+                console.error('Ошибка удаления комментария:', error);
+                alert(`Ошибка удаления комментария: ${error.message}`);
+            }
+        };
+
+        // Функция переключения вкладок активности
+        window.showActivityTab = function(tab) {
+            const tabs = document.querySelectorAll('.activity-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            const activeTab = document.querySelector(`[data-tab="${tab}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            loadActivityData(tab);
+        };
+
+        // Исправляем возврат HTML в функциях
+        function generateYoutubePreview(videoId) {
+            return `
+                <div class="video-preview">
+                    <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
+                    <div class="play-icon">▶️</div>
+                </div>
+            `;
+        }
+
+        // Исправляем label for
+        const socialLinksHTML = `
+            <label for="instagram">Instagram:</label>
+            <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
+            
+            <label for="youtube">YouTube:</label>
+            <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
+            
+            <label for="vk">VK:</label>
+            <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
+        `;
+
+        document.getElementById('socialLinksContainer').innerHTML = socialLinksHTML;
+
+        // Обновляем CSP для разрешения eval
+        document.head.innerHTML = document.head.innerHTML.replace(
+            'script-src',
+            'script-src \'unsafe-eval\''
+        );
+
+        // Добавляем обработку ошибок Firebase
+        const initFirebase = async () => {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                console.log("Firebase initialized successfully");
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+            }
+        };
+
+        initFirebase();
     </script>
 </body>
 </html>
