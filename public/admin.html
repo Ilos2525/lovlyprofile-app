@@ -736,7 +736,7 @@
 </div>
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
@@ -751,22 +751,30 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth();
 
+        // Сначала выходим из текущего аккаунта
+        await signOut(auth);
+        console.log('Signed out from previous session');
+
         document.getElementById('googleSignIn').onclick = async () => {
             try {
                 console.log('Login button clicked');
                 const provider = new GoogleAuthProvider();
-                console.log('Provider created');
+                // Принудительно показываем окно выбора аккаунта
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                console.log('Provider created with forced account selection');
                 
                 const result = await signInWithPopup(auth, provider);
-                console.log('Sign in result:', result);
+                console.log('Sign in result:', result.user.email);
                 
                 if (result.user.email === 'iosinniy1@gmail.com') {
                     console.log('Admin access granted');
                     document.getElementById('adminContent').style.display = 'block';
                 } else {
-                    console.log('Access denied');
-                    await auth.signOut();
-                    alert('Доступ запрещен');
+                    console.log('Access denied for:', result.user.email);
+                    await signOut(auth);
+                    alert('Доступ запрещен. Используйте аккаунт администратора.');
                 }
             } catch (error) {
                 console.error('Login error:', error);
@@ -779,6 +787,8 @@
             console.log('Auth state changed:', user?.email);
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('adminContent').style.display = 'block';
+            } else {
+                document.getElementById('adminContent').style.display = 'none';
             }
         });
     </script>
