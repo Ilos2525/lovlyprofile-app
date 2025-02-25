@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Админ-панель | whylovly</title>
   
-  <!-- Максимально простой CSP -->
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:">
+  <!-- Обновленный CSP для устранения предупреждений -->
+  <meta http-equiv="Content-Security-Policy" content="
+      default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+      connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com;
+      frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com;
+      img-src 'self' data: https://* blob:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com">
   
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
@@ -747,50 +752,53 @@
             appId: "1:749833792533:web:2494649a11b628cd84321c"
         };
 
-        console.log('Initializing Firebase...');
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth();
+        try {
+            console.log('Initializing Firebase...');
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth();
 
-        // Сначала выходим из текущего аккаунта
-        await signOut(auth);
-        console.log('Signed out from previous session');
+            // Выход из текущего аккаунта при загрузке
+            await signOut(auth);
+            console.log('Signed out from previous session');
 
-        document.getElementById('googleSignIn').onclick = async () => {
-            try {
-                console.log('Login button clicked');
-                const provider = new GoogleAuthProvider();
-                // Принудительно показываем окно выбора аккаунта
-                provider.setCustomParameters({
-                    prompt: 'select_account'
-                });
-                console.log('Provider created with forced account selection');
-                
-                const result = await signInWithPopup(auth, provider);
-                console.log('Sign in result:', result.user.email);
-                
-                if (result.user.email === 'iosinniy1@gmail.com') {
-                    console.log('Admin access granted');
-                    document.getElementById('adminContent').style.display = 'block';
-                } else {
-                    console.log('Access denied for:', result.user.email);
-                    await signOut(auth);
-                    alert('Доступ запрещен. Используйте аккаунт администратора.');
+            // Обработчик клика по кнопке входа
+            document.getElementById('googleSignIn').onclick = async () => {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    provider.setCustomParameters({
+                        prompt: 'select_account'
+                    });
+                    
+                    const result = await signInWithPopup(auth, provider);
+                    
+                    if (result.user.email === 'iosinniy1@gmail.com') {
+                        document.getElementById('adminContent').style.display = 'block';
+                        document.getElementById('googleSignIn').style.display = 'none';
+                    } else {
+                        await signOut(auth);
+                        alert('Доступ запрещен. Используйте аккаунт администратора.');
+                    }
+                } catch (error) {
+                    if (error.code !== 'auth/popup-closed-by-user') {
+                        console.error('Login error:', error);
+                        alert('Ошибка входа: ' + error.message);
+                    }
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Ошибка входа: ' + error.message);
-            }
-        };
+            };
 
-        // Проверяем текущее состояние авторизации
-        auth.onAuthStateChanged((user) => {
-            console.log('Auth state changed:', user?.email);
-            if (user && user.email === 'iosinniy1@gmail.com') {
-                document.getElementById('adminContent').style.display = 'block';
-            } else {
-                document.getElementById('adminContent').style.display = 'none';
-            }
-        });
+            // Слушатель состояния авторизации
+            auth.onAuthStateChanged((user) => {
+                if (user && user.email === 'iosinniy1@gmail.com') {
+                    document.getElementById('adminContent').style.display = 'block';
+                    document.getElementById('googleSignIn').style.display = 'none';
+                } else {
+                    document.getElementById('adminContent').style.display = 'none';
+                    document.getElementById('googleSignIn').style.display = 'block';
+                }
+            });
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
     </script>
 </body>
 </html>
