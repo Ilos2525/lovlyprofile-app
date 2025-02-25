@@ -2,12 +2,13 @@
 <html lang="ru">
 <head>
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
+    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com https://ritrag.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com https://ritrag.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: https://* blob:;
-    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com;">
+    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com https://ritrag.com https://*.cloudfunctions.net;
+    frame-src 'self' https://*.firebaseapp.com https://*.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
@@ -462,6 +463,57 @@
     color: var(--neon-color);
     font-size: 0.9em;
 }
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--neon-color);
+}
+
+.error {
+    color: var(--error-color);
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--error-color);
+    border-radius: 8px;
+}
+
+.no-data {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+.activity-details {
+    margin-top: 5px;
+}
+
+.comment-text {
+    margin: 5px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-name {
+    color: var(--neon-color);
+    font-weight: 500;
+}
+
+.logout-btn {
+    background: var(--error-color);
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: auto;
+    width: auto;
+}
+
+.logout-btn:hover {
+    opacity: 0.9;
+}
     </style>
 </head>
 <body>
@@ -477,6 +529,7 @@
                 <h2 id="currentProfileName">whylovly</h2>
                 <p id="currentProfileBio">Музыкант | Создатель контента | Артист</p>
             </div>
+            <button onclick="signOut()" class="logout-btn">Выйти</button>
         </div>
 
         <div class="admin-tabs">
@@ -676,207 +729,173 @@ const storage = getStorage(app);
 
 import { getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// Проверяем, вернулся ли пользователь после редиректа
-getRedirectResult(auth)
-    .then((result) => {
-        if (result && result.user) { // Добавлена проверка на наличие пользователя
-            console.log("Успешный вход через редирект:", result.user.email);
-            if (result.user.email === 'iosinniy1@gmail.com') {
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('adminContent').style.display = 'block';
-            } else {
-                auth.signOut();
-                alert('Доступ запрещен.');
-            }
-        }
-    })
-    .catch((error) => {
-        console.error('Ошибка после редиректа:', error);
-    });
-
-
-// Установка локального хранения для сессии
-setPersistence(auth, browserLocalPersistence)
-    .then(() => {
-        console.log("Persistence set to LOCAL");
-    })
-    .catch((error) => {
-        console.error("Error setting persistence:", error);
-    });
-
-// Обработчик кнопки входа
-document.getElementById('googleSignIn').addEventListener('click', async function() {
-    try {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-
-        // Запуск редиректа на страницу входа
-        await signInWithRedirect(auth, provider);
-
-    } catch (error) {
-        console.error("Ошибка входа:", error.code, error.message, error);
-        let errorMessage = 'Произошла ошибка при входе';
-
-        switch (error.code) {
-            case 'auth/popup-blocked':
-                errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
-                break;
-            case 'auth/popup-closed-by-user':
-                errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
-                break;
-            case 'auth/cancelled-popup-request':
-                errorMessage = 'Предыдущий запрос на вход еще выполняется';
-                break;
-            case 'auth/network-request-failed':
-                errorMessage = 'Проверьте подключение к интернету';
-                break;
-        }
-
-        alert(errorMessage);
-    }
-});
-
-
-// Слушатель состояния авторизации
+// Обработчик авторизации
 onAuthStateChanged(auth, (user) => {
-   if (user && user.email === 'iosinniy1@gmail.com') {
-        console.log("Администратор авторизован:", user.email);
+    console.log("Проверка авторизации:", user?.email);
+    if (user && user.email === 'iosinniy1@gmail.com') {
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
-        loadProfile(); // Загружаем профиль после успешной авторизации
+        loadProfile();
+        loadStats();
+        loadPosts();
     } else {
-        console.log("Пользователь не авторизован или не является администратором");
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
     }
 });
 
-// Оставьте остальной код без изменений
-        // Функции для работы с YouTube
-        function getYoutubeVideoId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
-        function generateYoutubePreview(videoId) {
-            return 
-                <div class="video-preview">
-                    <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
-                    <div class="play-icon">▶️</div>
-                </div>
-            ;
-        }
-
-        // Загрузка профиля
-        async function loadProfile() {
-            try {
-                const profileDoc = await getDoc(doc(db, 'profiles', '5794174511'));
-                if (profileDoc.exists()) {
-                    const data = profileDoc.data();
-                    document.getElementById('currentProfileName').textContent = data.first_name || 'whylovly';
-                    document.getElementById('currentProfileBio').textContent = data.bio || '';
-                    document.getElementById('profileName').value = data.first_name || 'whylovly';
-                    document.getElementById('profileBio').value = data.bio || '';
-                    
-                    if (data.photo_url) {
-                        document.getElementById('currentProfilePhoto').src = data.photo_url;
-                        document.getElementById('currentProfilePhotoPreview').src = data.photo_url;
-                    }
-
-                    // Загрузка социальных сетей
-                    if (data.social) {
-                        Object.entries(data.social).forEach(([network, url]) => {
-                            const input = document.querySelector(input[name="${network}"]);
-                            if (input) input.value = url || '';
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-            }
+// Обработчик входа через Google
+document.getElementById('googleSignIn').addEventListener('click', async () => {
+    try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        
+        if (result.user.email !== 'iosinniy1@gmail.com') {
+            await auth.signOut();
+            alert('Доступ запрещен. Используйте аккаунт администратора.');
+            return;
         }
         
-        
+        console.log("Успешный вход:", result.user.email);
+    } catch (error) {
+        console.error("Ошибка входа:", error);
+        alert(`Ошибка входа: ${error.message}`);
+    }
+});
 
-        // Загрузка файлов
-        async function uploadFile(file, category) {
-            return new Promise((resolve, reject) => {
-                const timestamp = Date.now();
-                const storageRef = ref(storage, ${category}/${timestamp}_${file.name});
-                
-                const metadata = {
-                    contentType: file.type
-                };
+// Функция выхода
+window.signOut = async function() {
+    try {
+        await auth.signOut();
+        window.location.reload();
+    } catch (error) {
+        console.error("Ошибка выхода:", error);
+        alert(`Ошибка выхода: ${error.message}`);
+    }
+};
 
-                const uploadTask = uploadBytesResumable(storageRef, file, metadata);
-                const progressBar = document.querySelector('.progress');
+// Функции для работы с YouTube
+function getYoutubeVideoId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
 
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressBar.style.width = ${progress}%;
-                    },
-                    (error) => {
-                        console.error('Ошибка загрузки:', error);
-                        reject(error);
-                    },
-                    async () => {
-                        try {
-                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                            resolve(downloadURL);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    }
-                );
-            });
-        }
+function generateYoutubePreview(videoId) {
+    return 
+        <div class="video-preview">
+            <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" alt="YouTube Preview">
+            <div class="play-icon">▶️</div>
+        </div>
+    ;
+}
 
-        // Обработка превью файлов
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('filePreview');
+// Загрузка профиля
+async function loadProfile() {
+    try {
+        const profileDoc = await getDoc(doc(db, 'profiles', '5794174511'));
+        if (profileDoc.exists()) {
+            const data = profileDoc.data();
+            document.getElementById('currentProfileName').textContent = data.first_name || 'whylovly';
+            document.getElementById('currentProfileBio').textContent = data.bio || '';
+            document.getElementById('profileName').value = data.first_name || 'whylovly';
+            document.getElementById('profileBio').value = data.bio || '';
             
-            if (file) {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        preview.innerHTML = <img src="${e.target.result}" alt="Preview">;
-                    };
-                    reader.readAsDataURL(file);
-                } else if (file.type.startsWith('audio/')) {
-                    preview.innerHTML = 
-                        <audio controls>
-                            <source src="${URL.createObjectURL(file)}" type="${file.type}">
-                        </audio>;
+            if (data.photo_url) {
+                document.getElementById('currentProfilePhoto').src = data.photo_url;
+                document.getElementById('currentProfilePhotoPreview').src = data.photo_url;
+            }
+
+            // Загрузка социальных сетей
+            if (data.social) {
+                Object.entries(data.social).forEach(([network, url]) => {
+                    const input = document.querySelector(input[name="${network}"]);
+                    if (input) input.value = url || '';
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+    }
+}
+        
+
+// Загрузка файлов
+async function uploadFile(file, category) {
+    return new Promise((resolve, reject) => {
+        const timestamp = Date.now();
+        const storageRef = ref(storage, ${category}/${timestamp}_${file.name});
+        
+        const metadata = {
+            contentType: file.type
+        };
+
+        const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+        const progressBar = document.querySelector('.progress');
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressBar.style.width = ${progress}%;
+            },
+            (error) => {
+                console.error('Ошибка загрузки:', error);
+                reject(error);
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(downloadURL);
+                } catch (error) {
+                    reject(error);
                 }
             }
-        });
+        );
+    });
+}
 
-        // Обработка превью профиля
-        document.getElementById('profilePhoto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('currentProfilePhotoPreview').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        // Обработка YouTube ссылок
-        document.getElementById('youtubeLink').addEventListener('input', function(e) {
-            const videoId = getYoutubeVideoId(e.target.value);
-            const preview = document.getElementById('youtubePreview');
-            if (videoId) {
-                preview.innerHTML = generateYoutubePreview(videoId);
-            } else {
-                preview.innerHTML = '';
-            }
-        });
+// Обработка превью файлов
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('filePreview');
+    
+    if (file) {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = <img src="${e.target.result}" alt="Preview">;
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type.startsWith('audio/')) {
+            preview.innerHTML = 
+                <audio controls>
+                    <source src="${URL.createObjectURL(file)}" type="${file.type}">
+                </audio>;
+        }
+    }
+});
+
+// Обработка превью профиля
+document.getElementById('profilePhoto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('currentProfilePhotoPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+// Обработка YouTube ссылок
+document.getElementById('youtubeLink').addEventListener('input', function(e) {
+    const videoId = getYoutubeVideoId(e.target.value);
+    const preview = document.getElementById('youtubePreview');
+    if (videoId) {
+        preview.innerHTML = generateYoutubePreview(videoId);
+    } else {
+        preview.innerHTML = '';
+    }
+});
 async function loadStats() {
     try {
         // Загрузка основной статистики
@@ -1283,6 +1302,7 @@ window.deleteComment = async function(commentId, postId) {
 
         await batch.commit();
         
+        
         // Обновляем отображение
         loadActivityData('comments');
         loadStats();
@@ -1304,29 +1324,111 @@ window.showActivityTab = function(tab) {
 // Функция загрузки данных об активности
 async function loadActivityData(tab) {
     const activityDiv = document.getElementById('userActivity');
+    activityDiv.innerHTML = '<div class="loading">Загрузка...</div>';
+
     try {
         let snapshot;
+        let title = '';
+        
         switch(tab) {
             case 'likes':
                 snapshot = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+                title = 'Лайки';
                 break;
             case 'comments':
                 snapshot = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+                title = 'Комментарии';
                 break;
             case 'visits':
                 snapshot = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+                title = 'Посещения';
                 break;
         }
 
-        let html = '';
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
-            const date = timestamp.toLocaleString('ru-RU');
-            
-            html += 
-                <div class="user-activity-item">
-                    <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
-                    <div class="activity-info">
-                        <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
-                        <div class="activity-date">${date}</div>
+        let html = `<h3>${title}</h3>`;
+
+        if (snapshot.empty) {
+            html += '<div class="no-data">Нет данных</div>';
+        } else {
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const timestamp = data.timestamp?.toDate?.() || new Date(data.timestamp);
+                const date = timestamp.toLocaleString('ru-RU');
+                
+                html += `
+                    <div class="user-activity-item">
+                        <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+                        <div class="activity-info">
+                            <div class="user-name">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
+                            <div class="activity-details">
+                                ${tab === 'comments' ? `<div class="comment-text">${data.text}</div>` : ''}
+                                <div class="activity-date">${date}</div>
+                            </div>
+                            ${tab === 'comments' ? `
+                                <button class="delete-btn" onclick="deleteComment('${doc.id}', '${data.postId || ''}')">
+                                    Удалить
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        activityDiv.innerHTML = html;
+    } catch (error) {
+        console.error(`Ошибка загрузки ${tab}:`, error);
+        activityDiv.innerHTML = '<div class="error">Ошибка загрузки данных</div>';
+    }
+}
+
+// Обновленная функция удаления комментария
+window.deleteComment = async function(commentId, postId) {
+    if (!confirm('Удалить этот комментарий?')) return;
+    
+    try {
+        const batch = writeBatch(db);
+        
+        // Удаляем комментарий
+        batch.delete(doc(db, 'comments', commentId));
+        
+        // Если есть postId, обновляем счетчик комментариев
+        if (postId) {
+            const postRef = doc(db, 'posts', postId);
+            const postDoc = await getDoc(postRef);
+            if (postDoc.exists()) {
+                const currentCount = postDoc.data().commentsCount || 0;
+                batch.update(postRef, {
+                    commentsCount: Math.max(0, currentCount - 1)
+                });
+            }
+        }
+
+        await batch.commit();
+        
+        // Обновляем отображение
+        loadActivityData('comments');
+        loadStats();
+        
+        alert('Комментарий успешно удален');
+    } catch (error) {
+        console.error('Ошибка удаления комментария:', error);
+        alert(`Ошибка удаления комментария: ${error.message}`);
+    }
+};
+
+// Функция переключения вкладок активности
+window.showActivityTab = function(tab) {
+    const tabs = document.querySelectorAll('.activity-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    
+    const activeTab = document.querySelector(`[data-tab="${tab}"]`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+    
+    loadActivityData(tab);
+};
+    </script>
+</body>
+</html>
