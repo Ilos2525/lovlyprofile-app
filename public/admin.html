@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
+    default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://*.google.com https://*.gstatic.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: https://* blob:;
     connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.google.com https://identitytoolkit.googleapis.com wss://*.firebaseio.com https://*.cloudfunctions.net;
-    frame-src 'self' https://*.firebaseapp.com https://*.google.com;">
+    frame-src 'self' https://*.firebaseapp.com https://*.google.com">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель | whylovly</title>
@@ -601,12 +601,25 @@
                     <label for="profileBio">Описание профиля:</label>
                     <textarea id="profileBio" rows="3" required></textarea>
 
-                   <label for="socialLinks">Социальные сети:</label>
-                    <div id="socialLinks">
-                        <input type="url" placeholder="Instagram" name="instagram">
-                        <input type="url" placeholder="YouTube" name="youtube">
-                        <input type="url" placeholder="VK" name="vk">
-                    </div>
+                   <div class="social-links-group">
+    <h4>Социальные сети</h4>
+    <div id="socialLinksContainer">
+        <div class="social-link-item">
+            <label for="instagram">Instagram:</label>
+            <input type="url" id="instagram" name="instagram" placeholder="https://instagram.com/...">
+        </div>
+        
+        <div class="social-link-item">
+            <label for="youtube">YouTube:</label>
+            <input type="url" id="youtube" name="youtube" placeholder="https://youtube.com/...">
+        </div>
+        
+        <div class="social-link-item">
+            <label for="vk">VK:</label>
+            <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
+        </div>
+    </div>
+</div>
 
                     <button type="submit">Сохранить изменения</button>
                 </form>
@@ -701,8 +714,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
     getAuth, 
     GoogleAuthProvider, 
-    signInWithPopup, 
-    signInWithRedirect,
+    signInWithPopup,
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence
@@ -715,7 +727,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
     authDomain: "whylovly-website-8adcb.firebaseapp.com",
     projectId: "whylovly-website-8adcb",
-    storageBucket: "whylovly-website-8adcb.appspot.com", // Правильное значение
+    storageBucket: "whylovly-website-8adcb.appspot.com",
     messagingSenderId: "749833792533",
     appId: "1:749833792533:web:2494649a11b628cd84321c",
     measurementId: "G-0MKF0C3WQJ"
@@ -726,8 +738,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-
-import { getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Обработчик авторизации
 onAuthStateChanged(auth, (user) => {
@@ -748,10 +758,7 @@ onAuthStateChanged(auth, (user) => {
 document.getElementById('googleSignIn').addEventListener('click', async () => {
     try {
         const provider = new GoogleAuthProvider();
-        provider.addScope('email');
-        
         const result = await signInWithPopup(auth, provider);
-        console.log("Auth result:", result.user.email);
         
         if (result.user.email !== 'iosinniy1@gmail.com') {
             await auth.signOut();
@@ -759,24 +766,8 @@ document.getElementById('googleSignIn').addEventListener('click', async () => {
             return;
         }
     } catch (error) {
-        console.error("Auth error:", error);
-        let message = 'Ошибка входа';
-        
-        switch (error.code) {
-            case 'auth/popup-blocked':
-                message = 'Разрешите всплывающие окна для этого сайта';
-                break;
-            case 'auth/popup-closed-by-user':
-                message = 'Вход был отменен';
-                break;
-            case 'auth/unauthorized-domain':
-                message = 'Этот домен не авторизован для аутентификации';
-                break;
-            default:
-                message = error.message;
-        }
-        
-        alert(message);
+        console.error("Ошибка входа:", error);
+        alert(`Ошибка входа: ${error.message}`);
     }
 });
 
@@ -1107,7 +1098,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
 
                 // Собираем данные социальных сетей
                 const social = {};
-                document.querySelectorAll('#socialLinks input').forEach(input => {
+                document.querySelectorAll('#socialLinksContainer input').forEach(input => {
                     if (input.value) {
                         social[input.name] = input.value;
                     }
@@ -1469,7 +1460,7 @@ const socialLinksHTML = `
     <input type="url" id="vk" name="vk" placeholder="https://vk.com/...">
 `;
 
-document.getElementById('socialLinks').innerHTML = socialLinksHTML;
+document.getElementById('socialLinksContainer').innerHTML = socialLinksHTML;
 
 // Обновляем CSP для разрешения eval
 document.head.innerHTML = document.head.innerHTML.replace(
