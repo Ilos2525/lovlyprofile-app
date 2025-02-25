@@ -691,7 +691,7 @@ document.getElementById('googleSignIn').addEventListener('click', async function
         console.log("Успешный вход:", result.user.email);
         
         // Проверка на админа
-        if (result.user.email === 'whylovly@gmail.com') {
+        if (result.user.email === 'iosinniy1@gmail.com') {
             document.getElementById('loginForm').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
         } else {
@@ -699,7 +699,7 @@ document.getElementById('googleSignIn').addEventListener('click', async function
             alert('Доступ запрещен. Только администратор может войти в панель управления.');
         }
     } catch (error) {
-        console.error("Ошибка входа:", error);
+      console.error("Ошибка входа:", error.code, error.message, error);
         let errorMessage = 'Произошла ошибка при входе';
         
         switch (error.code) {
@@ -723,7 +723,7 @@ document.getElementById('googleSignIn').addEventListener('click', async function
 
 // Слушатель состояния авторизации
 onAuthStateChanged(auth, (user) => {
-    if (user && user.email === 'whylovly@gmail.com') {
+   if (user && user.email === 'iosinniy1@gmail.com') {
         console.log("Администратор авторизован:", user.email);
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
