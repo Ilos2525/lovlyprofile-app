@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Админ-панель | whylovly</title>
   
-  <!-- Обновленный CSP мета-тег -->
+  <!-- Актуальный CSP, решающий проблему входа -->
   <meta http-equiv="Content-Security-Policy" content="
       default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
       connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com;
@@ -31,9 +31,6 @@
           margin: 0;
           padding: 20px;
           min-height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: center;
       }
 
       #loginForm {
@@ -563,54 +560,181 @@
         </div>
 
         <div class="admin-tabs">
-            <button class="tab-button active" data-tab="stats">Статистика</button>
-            <button class="tab-button" data-tab="posts">Посты</button>
-            <button class="tab-button" data-tab="profile">Профиль</button>
-            <button class="tab-button" data-tab="settings">Настройки</button>
+            <button class="tab-button active" onclick="showTab('posts')">Добавить пост</button>
+            <button class="tab-button" onclick="showTab('manage')">Управление постами</button>
+            <button class="tab-button" onclick="showTab('stats')">Статистика</button>
+            <button class="tab-button" onclick="showTab('profile')">Профиль</button>
+            <button class="tab-button" onclick="showTab('settings')">Настройки</button>
         </div>
 
-        <div id="stats" class="tab-content active">
-            <div class="stats-block">
-                <div class="stat-item">
-                    <h4>Всего постов</h4>
-                    <div id="totalPosts" class="stat-number">0</div>
-                </div>
-                <div class="stat-item">
-                    <h4>Всего лайков</h4>
-                    <div id="totalLikes" class="stat-number">0</div>
-                </div>
-                <div class="stat-item">
-                    <h4>Комментариев</h4>
-                    <div id="totalComments" class="stat-number">0</div>
-                </div>
-                <div class="stat-item">
-                    <h4>Посетителей</h4>
-                    <div id="totalVisitors" class="stat-number">0</div>
+        <div id="posts" class="tab-content active">
+            <div class="form-group">
+                <h3>Добавить новый пост</h3>
+                <form id="uploadForm">
+                    <label for="category">Категория:</label>
+                    <select id="category" required>
+                        <option value="photo">Фото</option>
+                        <option value="music">Музыка</option>
+                        <option value="video">Видео</option>
+                    </select>
+
+                    <div id="fileInputGroup">
+                        <label for="fileInput">Файл:</label>
+                        <input type="file" id="fileInput">
+                        <div class="preview-container" id="filePreview"></div>
+                    </div>
+
+                    <div id="youtubeLinkGroup" style="display: none;">
+                        <label for="youtubeLink">Ссылка на YouTube:</label>
+                        <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+                        <div class="preview-container" id="youtubePreview"></div>
+                    </div>
+
+                    <label for="description">Описание:</label>
+                    <textarea id="description" rows="4" required></textarea>
+
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+
+                    <button type="submit">Опубликовать</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="manage" class="tab-content">
+            <div class="form-group">
+                <h3>Управление постами</h3>
+                <div class="post-grid" id="postsList">
+                    <div class="loading">Загрузка постов...</div>
                 </div>
             </div>
         </div>
 
-        <div id="posts" class="tab-content">
-            <div id="postsList">
-                <!-- Посты будут добавляться здесь динамически -->
+        <div id="stats" class="tab-content">
+            <div class="form-group">
+                <h3>Общая статистика</h3>
+                <div class="stats-block">
+                    <div class="stat-item">
+                        <h4>Всего постов</h4>
+                        <div id="totalPosts" class="stat-number">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Всего лайков</h4>
+                        <div id="totalLikes" class="stat-number">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Комментариев</h4>
+                        <div id="totalComments" class="stat-number">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Посетителей</h4>
+                        <div id="totalVisitors" class="stat-number">0</div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="profile" class="tab-content">
-            <!-- Содержимое вкладки профиля -->
+            <div class="form-group">
+                <h3>Настройки профиля</h3>
+                <form id="profileForm">
+                    <div class="profile-upload">
+                        <label for="profilePhoto">Фото профиля:</label>
+                        <input type="file" id="profilePhoto" accept="image/*">
+                        <div class="preview-container" id="profilePreview">
+                            <img id="currentProfilePhotoPreview" src="" alt="Preview">
+                        </div>
+                    </div>
+
+                    <label for="profileName">Имя профиля:</label>
+                    <input type="text" id="profileName" required>
+
+                    <label for="profileBio">Описание профиля:</label>
+                    <textarea id="profileBio" rows="3" required></textarea>
+
+                    <label for="socialLinks">Социальные сети:</label>
+                    <div id="socialLinks">
+                        <input type="url" placeholder="Instagram" name="instagram">
+                        <input type="url" placeholder="YouTube" name="youtube">
+                        <input type="url" placeholder="VK" name="vk">
+                    </div>
+
+                    <button type="submit">Сохранить изменения</button>
+                </form>
+            </div>
         </div>
 
         <div id="settings" class="tab-content">
-            <!-- Содержимое вкладки настроек -->
+            <div class="form-group">
+                <h3>Общие настройки</h3>
+                <form id="settingsForm">
+                    <label for="siteTitle">Заголовок сайта:</label>
+                    <input type="text" id="siteTitle" required>
+
+                    <label for="accentColor">Цвет акцента:</label>
+                    <input type="color" id="accentColor" value="#00ffcc">
+
+                    <label for="headerImage">Фоновое изображение шапки:</label>
+                    <input type="file" id="headerImage" accept="image/*">
+                    <div class="preview-container" id="headerPreview"></div>
+
+                    <div class="form-group">
+                        <h4>Настройки главной страницы</h4>
+                        <label for="welcomeText">Приветственный текст:</label>
+                        <textarea id="welcomeText" rows="3"></textarea>
+
+                        <label for="featuredContent">Закрепленный контент:</label>
+                        <select id="featuredContent">
+                            <option value="">Не выбрано</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">Применить настройки</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Firebase скрипты -->
+    <!-- Скрипты Firebase и основной функционал -->
     <script type="module">
+        /***********************
+         *  Импорты из Firebase
+         ***********************/
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, getDocs, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { 
+            getAuth, 
+            GoogleAuthProvider,
+            signInWithPopup, 
+            signOut,
+            onAuthStateChanged
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            collection, 
+            getDocs, 
+            deleteDoc, 
+            updateDoc, 
+            addDoc, 
+            serverTimestamp,
+            writeBatch,
+            query,
+            orderBy
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytesResumable, 
+            getDownloadURL, 
+            deleteObject
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
+        /***********************
+         *  Конфигурация Firebase
+         ***********************/
         const firebaseConfig = {
             apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
             authDomain: "whylovly-website-8adcb.firebaseapp.com",
@@ -620,11 +744,15 @@
             appId: "1:749833792533:web:2494649a11b628cd84321c"
         };
 
+        // Инициализация
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth();
+        const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
-        // Функция для переключения табов
+        /******************************
+         *  Функция переключения вкладок
+         ******************************/
         window.showTab = function(tabId) {
             const buttons = document.querySelectorAll('.tab-button');
             const contents = document.querySelectorAll('.tab-content');
@@ -632,7 +760,7 @@
             buttons.forEach(btn => btn.classList.remove('active'));
             contents.forEach(content => content.classList.remove('active'));
             
-            const selectedButton = document.querySelector(`[data-tab="${tabId}"]`);
+            const selectedButton = document.querySelector(`[onclick="showTab('${tabId}')"]`);
             const selectedContent = document.getElementById(tabId);
             
             if (selectedButton && selectedContent) {
@@ -641,45 +769,108 @@
             }
         };
 
-        // Добавляем обработчики для табов
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                showTab(button.dataset.tab);
-            });
-        });
-
-        // Обработчик входа
-        document.getElementById('googleSignIn').onclick = async () => {
+        /******************************
+         *  Логика входа / выхода
+         ******************************/
+        document.getElementById('googleSignIn').onclick = async function() {
             try {
                 const provider = new GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
                 const result = await signInWithPopup(auth, provider);
-                
+
                 if (result.user.email === 'iosinniy1@gmail.com') {
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
+                    loadProfile();
                 } else {
                     await signOut(auth);
                     alert('Доступ запрещен. Используйте аккаунт администратора.');
                 }
             } catch (error) {
                 if (error.code !== 'auth/popup-closed-by-user') {
-                    console.error('Login error:', error);
+                    console.error('Ошибка входа:', error);
                     alert('Ошибка входа: ' + error.message);
                 }
             }
         };
 
-        // Слушатель состояния авторизации
-        auth.onAuthStateChanged((user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user && user.email === 'iosinniy1@gmail.com') {
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('adminContent').style.display = 'block';
+                loadProfile();
             } else {
                 document.getElementById('loginForm').style.display = 'block';
                 document.getElementById('adminContent').style.display = 'none';
             }
         });
+
+        /****************************************************
+         *  Загрузка / редактирование профиля (из первого кода)
+         ****************************************************/
+        async function loadProfile() {
+            try {
+                const profileDoc = await getDoc(doc(db, 'profiles', '5794174511'));
+                if (profileDoc.exists()) {
+                    const data = profileDoc.data();
+                    document.getElementById('currentProfileName').textContent = data.first_name || 'whylovly';
+                    document.getElementById('currentProfileBio').textContent = data.bio || '';
+                    document.getElementById('profileName').value = data.first_name || 'whylovly';
+                    document.getElementById('profileBio').value = data.bio || '';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
+
+        // Сохранение изменений профиля
+        const profileForm = document.getElementById('profileForm');
+        if (profileForm) {
+            profileForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const firstName = document.getElementById('profileName').value.trim();
+                    const bio = document.getElementById('profileBio').value.trim();
+                    
+                    // Сохранение фото
+                    const photoInput = document.getElementById('profilePhoto');
+                    let photoURL = '';
+                    if (photoInput.files.length > 0) {
+                        const file = photoInput.files[0];
+                        const storageRef = ref(storage, `profile_photos/${file.name}`);
+                        const uploadTask = uploadBytesResumable(storageRef, file);
+                        await new Promise((resolve, reject) => {
+                            uploadTask.on('state_changed',
+                                () => {},
+                                (error) => reject(error),
+                                () => resolve()
+                            );
+                        });
+                        photoURL = await getDownloadURL(storageRef);
+                    }
+
+                    // Обновление документа профиля
+                    await setDoc(doc(db, 'profiles', '5794174511'), {
+                        first_name: firstName,
+                        bio,
+                        photoURL
+                    }, { merge: true });
+
+                    if (photoURL) {
+                        document.getElementById('currentProfilePhoto').src = photoURL;
+                        document.getElementById('currentProfilePhotoPreview').src = photoURL;
+                    }
+
+                    document.getElementById('currentProfileName').textContent = firstName;
+                    document.getElementById('currentProfileBio').textContent = bio;
+                    alert('Профиль успешно обновлен!');
+                } catch (error) {
+                    console.error('Ошибка сохранения профиля:', error);
+                    alert('Ошибка сохранения профиля: ' + error.message);
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
