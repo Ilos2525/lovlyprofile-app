@@ -2,15 +2,14 @@
 <html lang="ru">
 <head>
   <!-- Обновлённый CSP -->
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
-  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://ritrag.com wss://*.firebaseio.com;
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://ritrag.com https://www.gstatic.com;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
-  img-src 'self' data: https://* blob:;
-  frame-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://accounts.google.com;
-">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com data: blob:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://ritrag.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https://* blob:;
+    connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://ritrag.com wss://*.firebaseio.com;
+  ">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Админ-панель | whylovly</title>
@@ -409,10 +408,7 @@
   <!-- Форма входа -->
   <div id="loginForm">
     <h3>Вход в админ-панель</h3>
-    <input type="text" id="adminUsername" placeholder="Имя пользователя" required>
-    <input type="password" id="adminPassword" placeholder="Пароль" required>
-    <button id="loginButton">Войти</button>
-    <div id="loginError" style="color: var(--error-color); margin-top: 10px; display: none;"></div>
+    <button id="googleSignIn">Войти через Google</button>
   </div>
 
   <!-- Основное содержимое админ-панели -->
@@ -591,26 +587,125 @@
   </div>
 <!-- Блок скриптов Firebase и основной логики -->
 <script type="module">
-  /* ====== Замена аутентификации через Google на простую форму входа ====== */
-  document.getElementById('loginButton').addEventListener('click', function() {
-    const username = document.getElementById('adminUsername').value.trim();
-    const password = document.getElementById('adminPassword').value.trim();
-    
-    // Простая проверка учетных данных (в реальном приложении используйте более безопасный метод)
-    if (username === 'admin' && password === 'whylovly2024') {
+  /* ====== Импорты Firebase ====== */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithRedirect, 
+    getRedirectResult, 
+    onAuthStateChanged, 
+    setPersistence, 
+    browserLocalPersistence 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { 
+    getFirestore, 
+    collection, 
+    doc, 
+    getDoc, 
+    setDoc, 
+    getDocs, 
+    addDoc, 
+    deleteDoc, 
+    query, 
+    orderBy, 
+    writeBatch, 
+    serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { 
+    getStorage, 
+    ref, 
+    uploadBytesResumable, 
+    getDownloadURL 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+  /* ====== Конфигурация Firebase ====== */
+  const firebaseConfig = {
+    apiKey: "ВАША_API_KEY",
+    authDomain: "ВАШ_PROJECT_ID.firebaseapp.com",
+    projectId: "ВАШ_PROJECT_ID",
+    storageBucket: "ВАШ_PROJECT_ID.appspot.com",
+    messagingSenderId: "XXX",
+    appId: "XXX",
+    measurementId: "XXX"
+  };
+
+  /* ====== Инициализация Firebase ====== */
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  /* ====== Настраиваем локальное хранилище для сессии ====== */
+  setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+      console.log("Persistence set to LOCAL");
+    })
+    .catch((err) => {
+      console.error("Error setting persistence:", err);
+    });
+
+  /* ====== Проверка редиректа (signInWithRedirect) ====== */
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result && result.user) {
+        console.log("Успешный вход через редирект:", result.user.email);
+        if (result.user.email === 'iosinniy1@gmail.com') {
+          document.getElementById('loginForm').style.display = 'none';
+          document.getElementById('adminContent').style.display = 'block';
+        } else {
+          auth.signOut();
+          alert('Доступ запрещен.');
+        }
+      }
+    })
+    .catch((error) => {
+      console.error('Ошибка после редиректа:', error);
+    });
+
+  /* ====== Обработчик кнопки "Войти через Google" ====== */
+  document.getElementById('googleSignIn').addEventListener('click', async function() {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithRedirect(auth, provider);
+    } catch (error) {
+      console.error("Ошибка входа:", error.code, error.message, error);
+      let errorMessage = 'Произошла ошибка при входе';
+
+      switch (error.code) {
+        case 'auth/popup-blocked':
+          errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
+          break;
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = 'Предыдущий запрос на вход ещё выполняется';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Проверьте подключение к интернету';
+          break;
+      }
+
+      alert(errorMessage);
+    }
+  });
+
+  /* ====== Слушатель состояния авторизации ====== */
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.email === 'iosinniy1@gmail.com') {
+      console.log("Администратор авторизован:", user.email);
       document.getElementById('loginForm').style.display = 'none';
       document.getElementById('adminContent').style.display = 'block';
       loadProfile(); // Загружаем профиль после авторизации
     } else {
-      const errorElement = document.getElementById('loginError');
-      errorElement.textContent = 'Неверное имя пользователя или пароль';
-      errorElement.style.display = 'block';
+      console.log("Пользователь не авторизован или не является администратором");
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('adminContent').style.display = 'none';
     }
   });
-  
-  /* ====== Удаляем неиспользуемый код аутентификации Google ====== */
-  // Удалены импорты и функции, связанные с GoogleAuthProvider, signInWithRedirect и т.д.
-  
+
   /* ====== Система переключения вкладок (showTab) ====== */
   window.showTab = function(tabId) {
     document.querySelectorAll('.tab-content').forEach(section => {
@@ -619,9 +714,8 @@
     document.querySelectorAll('.tab-button').forEach(btn => {
       btn.classList.remove('active');
     });
-    
     const targetTab = document.getElementById(tabId);
-    const clickedBtn = document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`);
+    const clickedBtn = document.querySelector(`[onclick="showTab('${tabId}')"]`);
 
     if (targetTab) targetTab.classList.add('active');
     if (clickedBtn) clickedBtn.classList.add('active');
@@ -948,37 +1042,12 @@
   /* ====== Загрузка статистики (loadStats) ====== */
   async function loadStats() {
     try {
-      // Оборачиваем в try-catch для предотвращения ошибок при загрузке
-      let postsSnap, likesSnap, commentsSnap, visitsSnap;
-      
-      try {
-        postsSnap = await getDocs(collection(db, 'posts'));
-      } catch (e) {
-        console.error('Ошибка при загрузке постов:', e);
-        postsSnap = { size: 0, docs: [] };
-      }
-      
-      try {
-        likesSnap = await getDocs(collection(db, 'likes'));
-      } catch (e) {
-        console.error('Ошибка при загрузке лайков:', e);
-        likesSnap = { size: 0, docs: [] };
-      }
-      
-      try {
-        commentsSnap = await getDocs(collection(db, 'comments'));
-      } catch (e) {
-        console.error('Ошибка при загрузке комментариев:', e);
-        commentsSnap = { size: 0, docs: [] };
-      }
-      
-      try {
-        visitsSnap = await getDocs(collection(db, 'visitors'));
-      } catch (e) {
-        console.error('Ошибка при загрузке посетителей:', e);
-        visitsSnap = { size: 0, docs: [] };
-      }
-      
+      const [postsSnap, likesSnap, commentsSnap, visitsSnap] = await Promise.all([
+        getDocs(collection(db, 'posts')),
+        getDocs(collection(db, 'likes')),
+        getDocs(collection(db, 'comments')),
+        getDocs(collection(db, 'visitors'))
+      ]);
       document.getElementById('totalPosts').textContent = postsSnap.size;
       document.getElementById('totalLikes').textContent = likesSnap.size;
       document.getElementById('totalComments').textContent = commentsSnap.size;
@@ -986,82 +1055,61 @@
 
       // Детальная статистика постов
       const postsMap = new Map();
-      
-      if (postsSnap.docs && postsSnap.docs.length > 0) {
-        postsSnap.docs.forEach(d => {
-          const pData = d.data();
-          postsMap.set(d.id, {
-            ...pData,
-            id: d.id,
-            timestamp: pData.timestamp || new Date().toISOString(),
-            likes: [],
-            comments: []
-          });
+      postsSnap.docs.forEach(d => {
+        const pData = d.data();
+        postsMap.set(d.id, {
+          ...pData,
+          id: d.id,
+          timestamp: pData.timestamp || new Date().toISOString(),
+          likes: [],
+          comments: []
         });
-      }
-      
-      if (likesSnap.docs && likesSnap.docs.length > 0) {
-        likesSnap.docs.forEach(l => {
-          const likeData = l.data();
-          if (likeData.postId && postsMap.has(likeData.postId)) {
-            postsMap.get(likeData.postId).likes.push(likeData);
-          }
-        });
-      }
-      
-      if (commentsSnap.docs && commentsSnap.docs.length > 0) {
-        commentsSnap.docs.forEach(c => {
-          const comData = c.data();
-          if (comData.postId && postsMap.has(comData.postId)) {
-            postsMap.get(comData.postId).comments.push(comData);
-          }
-        });
-      }
+      });
+      likesSnap.docs.forEach(l => {
+        const likeData = l.data();
+        if (postsMap.has(likeData.postId)) {
+          postsMap.get(likeData.postId).likes.push(likeData);
+        }
+      });
+      commentsSnap.docs.forEach(c => {
+        const comData = c.data();
+        if (postsMap.has(comData.postId)) {
+          postsMap.get(comData.postId).comments.push(comData);
+        }
+      });
 
       const detailedBlock = document.getElementById('detailedPostStats');
       let html = '';
-      
-      if (postsMap.size > 0) {
-        postsMap.forEach(post => {
-          const dateObj = new Date(post.timestamp);
-          const dateStr = dateObj.toLocaleString('ru-RU');
-          html += `
-            <div class="post-stat-item">
-              <div class="post-stat-header">
-                <div class="post-title">${post.description ? (post.description.slice(0, 50) + '...') : 'Без описания'}</div>
-                <div class="post-date">${dateStr}</div>
-              </div>
-              <div class="post-stat-details">
-                <div>Лайков: ${post.likes.length}</div>
-                <div>Комментариев: ${post.comments.length}</div>
-                ${
-                  post.likes.length > 0
-                    ? `<div class="likes-details">
-                         <small>Последние лайки:</small>
-                         ${post.likes.slice(0, 3).map(l => {
-                           const ts = (l.timestamp?.toDate?.() || new Date()).toLocaleString('ru-RU');
-                           return `<div>${l.userEmail || 'Гость'} - ${ts}</div>`;
-                         }).join('')}
-                       </div>`
-                    : ''
-                }
-              </div>
-            </div>`;
-        });
-      } else {
-        html = '<div class="no-data">Нет данных для отображения</div>';
-      }
-      
+      postsMap.forEach(post => {
+        const dateObj = new Date(post.timestamp);
+        const dateStr = dateObj.toLocaleString('ru-RU');
+        html += `
+          <div class="post-stat-item">
+            <div class="post-stat-header">
+              <div class="post-title">${post.description ? (post.description.slice(0, 50) + '...') : 'Без описания'}</div>
+              <div class="post-date">${dateStr}</div>
+            </div>
+            <div class="post-stat-details">
+              <div>Лайков: ${post.likes.length}</div>
+              <div>Комментариев: ${post.comments.length}</div>
+              ${
+                post.likes.length > 0
+                  ? `<div class="likes-details">
+                       <small>Последние лайки:</small>
+                       ${post.likes.slice(0, 3).map(l => {
+                         const ts = (l.timestamp?.toDate?.() || new Date()).toLocaleString('ru-RU');
+                         return `<div>${l.userEmail || 'Гость'} - ${ts}</div>`;
+                       }).join('')}
+                     </div>`
+                  : ''
+              }
+            </div>
+          </div>`;
+      });
       detailedBlock.innerHTML = html;
-      
-      // Загружаем активность только если есть соответствующий элемент
-      if (document.getElementById('userActivity')) {
-        loadActivityData('likes');
-      }
+      loadActivityData('likes'); // Активность по умолчанию
     } catch (err) {
       console.error('Ошибка загрузки статистики:', err);
-      document.getElementById('detailedPostStats').innerHTML = 
-        '<div class="error">Ошибка загрузки статистики. Пожалуйста, попробуйте позже.</div>';
     }
   }
 
@@ -1075,44 +1123,27 @@
   /* ====== Загрузка активности (лайки, комменты, посещения) ====== */
   async function loadActivityData(tab) {
     const userActivity = document.getElementById('userActivity');
-    if (!userActivity) return; // Проверка наличия элемента
-    
     try {
       let snap;
-      try {
-        switch (tab) {
-          case 'likes':
-            snap = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
-            break;
-          case 'comments':
-            snap = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
-            break;
-          case 'visits':
-            snap = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
-            break;
-        }
-      } catch (e) {
-        console.error(`Ошибка при загрузке данных для вкладки ${tab}:`, e);
-        userActivity.innerHTML = `<p class="error">Ошибка загрузки данных: ${e.message}</p>`;
-        return;
+      switch (tab) {
+        case 'likes':
+          snap = await getDocs(query(collection(db, 'likes'), orderBy('timestamp', 'desc')));
+          break;
+        case 'comments':
+          snap = await getDocs(query(collection(db, 'comments'), orderBy('timestamp', 'desc')));
+          break;
+        case 'visits':
+          snap = await getDocs(query(collection(db, 'visitors'), orderBy('timestamp', 'desc')));
+          break;
       }
-      
       if (!snap || snap.empty) {
-        userActivity.innerHTML = '<p class="no-data">Нет данных</p>';
+        userActivity.innerHTML = `<p>Нет данных</p>`;
         return;
       }
-      
       let html = '';
       snap.docs.forEach(docItem => {
-        const data = docItem.data() || {};
-        let ts;
-        
-        try {
-          ts = data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now());
-        } catch (e) {
-          ts = new Date();
-        }
-        
+        const data = docItem.data();
+        const ts = data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now());
         const dateStr = ts.toLocaleString('ru-RU');
         html += `
           <div class="user-activity-item">
@@ -1132,7 +1163,7 @@
       userActivity.innerHTML = html;
     } catch (err) {
       console.error('Ошибка загрузки активности:', err);
-      userActivity.innerHTML = '<p class="error">Ошибка загрузки данных</p>';
+      userActivity.innerHTML = '<p>Ошибка загрузки данных</p>';
     }
   }
 
@@ -1163,11 +1194,7 @@
 
   /* ====== При загрузке страницы (DOM готов) ====== */
   document.addEventListener('DOMContentLoaded', () => {
-    // Добавляем обработчик для Enter в полях ввода логина
-    document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        document.getElementById('loginButton').click();
-      }
-    });
+    // Здесь можно вызвать начальные загрузки: loadPosts(), loadSettings(), etc.
+    // Но они будут вызываться только после авторизации (в onAuthStateChanged)
   });
 </script>
