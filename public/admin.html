@@ -663,33 +663,46 @@
     });
 
   /* ====== Обработчик кнопки "Войти через Google" ====== */
-  document.getElementById('googleSignIn').addEventListener('click', async function() {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithRedirect(auth, provider);
-    } catch (error) {
-      console.error("Ошибка входа:", error.code, error.message, error);
-      let errorMessage = 'Произошла ошибка при входе';
+ document.getElementById('googleSignIn').addEventListener('click', async function() {
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    // Используем signInWithPopup вместо signInWithRedirect
+    const result = await signInWithPopup(auth, provider);
+    console.log("Popup sign-in successful:", result.user.email);
 
-      switch (error.code) {
-        case 'auth/popup-blocked':
-          errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
-          break;
-        case 'auth/popup-closed-by-user':
-          errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
-          break;
-        case 'auth/cancelled-popup-request':
-          errorMessage = 'Предыдущий запрос на вход ещё выполняется';
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = 'Проверьте подключение к интернету';
-          break;
-      }
-
-      alert(errorMessage);
+    // Если email соответствует администратору, показываем админ-панель
+    if (result.user.email === 'iosinniy1@gmail.com') {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('adminContent').style.display = 'block';
+      loadProfile();
+    } else {
+      auth.signOut();
+      alert('Доступ запрещен.');
     }
-  });
+  } catch (error) {
+    console.error("Ошибка входа:", error.code, error.message, error);
+    let errorMessage = 'Произошла ошибка при входе';
+
+    switch (error.code) {
+      case 'auth/popup-blocked':
+        errorMessage = 'Пожалуйста, разрешите всплывающие окна для этого сайта';
+        break;
+      case 'auth/popup-closed-by-user':
+        errorMessage = 'Вход был отменен. Пожалуйста, попробуйте снова';
+        break;
+      case 'auth/cancelled-popup-request':
+        errorMessage = 'Предыдущий запрос на вход ещё выполняется';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Проверьте подключение к интернету';
+        break;
+    }
+
+    alert(errorMessage);
+  }
+});
+
 
   /* ====== Слушатель состояния авторизации ====== */
   onAuthStateChanged(auth, (user) => {
