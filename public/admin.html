@@ -431,41 +431,42 @@
       <button class="tab-button" onclick="showTab('settings')">Настройки</button>
     </div>
 
-    <!-- Содержимое вкладки "Добавить пост" -->
-    <div id="posts" class="tab-content active">
-      <div class="form-group">
-        <h3>Добавить новый пост</h3>
-        <form id="uploadForm">
-          <label for="category">Категория:</label>
-          <select id="category" required>
-            <option value="photo">Фото</option>
-            <option value="music">Музыка</option>
-            <option value="video">Видео</option>
-          </select>
+<!-- Содержимое вкладки "Добавить пост" -->
+<div id="posts" class="tab-content active">
+  <div class="form-group">
+    <h3>Добавить новый пост</h3>
+    <form id="uploadForm">
+      <label for="category">Категория:</label>
+      <select id="category" required>
+        <option value="photo">Фото</option>
+        <option value="music">Музыка</option>
+        <option value="video">Видео (YouTube)</option>
+        <option value="uploaded_video">Видео (загруженное)</option>
+      </select>
 
-          <div id="fileInputGroup">
-            <label for="fileInput">Файл:</label>
-            <input type="file" id="fileInput">
-            <div class="preview-container" id="filePreview"></div>
-          </div>
-
-          <div id="youtubeLinkGroup" style="display: none;">
-            <label for="youtubeLink">Ссылка на YouTube:</label>
-            <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
-            <div class="preview-container" id="youtubePreview"></div>
-          </div>
-
-          <label for="description">Описание:</label>
-          <textarea id="description" rows="4" required></textarea>
-
-          <div class="progress-bar">
-            <div class="progress"></div>
-          </div>
-
-          <button type="submit">Опубликовать</button>
-        </form>
+      <div id="fileInputGroup">
+        <label for="fileInput">Файл:</label>
+        <input type="file" id="fileInput">
+        <div class="preview-container" id="filePreview"></div>
       </div>
-    </div>
+
+      <div id="youtubeLinkGroup" style="display: none;">
+        <label for="youtubeLink">Ссылка на YouTube:</label>
+        <input type="url" id="youtubeLink" placeholder="https://youtube.com/...">
+        <div class="preview-container" id="youtubePreview"></div>
+      </div>
+
+      <label for="description">Описание:</label>
+      <textarea id="description" rows="4" required></textarea>
+
+      <div class="progress-bar">
+        <div class="progress"></div>
+      </div>
+
+      <button type="submit">Опубликовать</button>
+    </form>
+  </div>
+</div>
 
     <!-- Содержимое вкладки "Управление постами" -->
     <div id="manage" class="tab-content">
@@ -738,13 +739,25 @@ import {
   };
 
   /* ====== Переключение типа поста (категория) ====== */
-  document.getElementById('category').addEventListener('change', function(e) {
-    const isVideo = (e.target.value === 'video');
-    document.getElementById('fileInputGroup').style.display = isVideo ? 'none' : 'block';
-    document.getElementById('youtubeLinkGroup').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('filePreview').innerHTML = '';
-    document.getElementById('youtubePreview').innerHTML = '';
-  });
+document.getElementById('category').addEventListener('change', function(e) {
+  const cat = e.target.value;
+  if (cat === 'video') {
+    // Если выбрана категория "Видео (YouTube)"
+    document.getElementById('fileInputGroup').style.display = 'none';
+    document.getElementById('youtubeLinkGroup').style.display = 'block';
+  } else if (cat === 'uploaded_video') {
+    // Если выбрана категория "Видео (загруженное)"
+    document.getElementById('fileInputGroup').style.display = 'block';
+    document.getElementById('youtubeLinkGroup').style.display = 'none';
+  } else {
+    // Для фото и музыки
+    document.getElementById('fileInputGroup').style.display = 'block';
+    document.getElementById('youtubeLinkGroup').style.display = 'none';
+  }
+  document.getElementById('filePreview').innerHTML = '';
+  document.getElementById('youtubePreview').innerHTML = '';
+});
+
 
   /* ====== Обработка загрузки файла поста (uploadFile) ====== */
   async function uploadFile(file, category) {
@@ -830,15 +843,17 @@ import {
       const description = document.getElementById('description').value.trim();
       let fileURL = '';
 
-      if (category === 'video') {
-        fileURL = document.getElementById('youtubeLink').value.trim();
-        if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-        if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-      } else {
-        const file = document.getElementById('fileInput').files[0];
-        if (!file) throw new Error('Выберите файл');
-        fileURL = await uploadFile(file, category);
-      }
+    if (category === 'video') {
+  // Обработка YouTube-ссылки для видео
+  fileURL = document.getElementById('youtubeLink').value.trim();
+  if (!fileURL) throw new Error('Укажите ссылку на YouTube');
+  if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
+} else {
+  // Для категорий: photo, music и uploaded_video — выбираем файл
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) throw new Error('Выберите файл');
+  fileURL = await uploadFile(file, category);
+}
 
       progressBar.style.width = '80%';
 
