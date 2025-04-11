@@ -11,7 +11,8 @@
     "responseHeader": [
       "Content-Type",
       "Access-Control-Allow-Origin",
-      "Authorization"
+      "Authorization",
+      "x-goog-resumable"
     ]
   }
 ]
