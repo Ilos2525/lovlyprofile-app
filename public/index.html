@@ -1014,8 +1014,14 @@ function displayPosts(containerId, posts) {
                             allowfullscreen>
                     </iframe>
                 </div>`;
+        } else if (post.category === 'uploaded_video') {
+            mediaContent = `
+                <video controls width="100%" preload="metadata">
+                    <source src="${post.fileURL}" type="video/mp4">
+                    Ваш браузер не поддерживает HTML5-видео.
+                </video>`;
         }
-
+        
         return `
             <div class="post" data-post-id="${post.id}">
                 ${mediaContent}
@@ -1023,45 +1029,32 @@ function displayPosts(containerId, posts) {
                     <div class="post-description">${post.description}</div>
                     <div class="post-date">${date}</div>
                     <div class="post-actions">
-                        <button class="action-btn ${post.isLiked ? 'liked' : ''}" 
-                                onclick="handleLike('${post.id}')">
+                        <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
                             ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
                         </button>
-                        <button class="action-btn comment-btn" 
-                                onclick="toggleComments('${post.id}')">
+                        <button class="action-btn comment-btn" onclick="toggleComments('${post.id}')">
                             💬 ${post.commentsCount || 0}
                         </button>
-                        ${isAdmin ? `
-                            <button class="action-btn delete-btn" 
-                                    onclick="deletePost('${post.id}')">
-                                🗑️ Удалить
-                            </button>
-                        ` : ''}
+                        ${isAdmin ? `<button class="action-btn delete-btn" onclick="deletePost('${post.id}')">
+                            🗑️ Удалить
+                        </button>` : ''}
                     </div>
                     <div class="comments-section" id="comments-${post.id}" style="display: none;">
                         <div class="comments-container" id="comments-container-${post.id}">
                             <!-- Комментарии будут загружены сюда -->
                         </div>
                         <div class="comment-form">
-                            <textarea 
-                                id="comment-input-${post.id}" 
-                                class="comment-input" 
-                                placeholder="Написать комментарий..."
-                            ></textarea>
-                            <button 
-                                class="comment-submit" 
-                                onclick="addComment('${post.id}')"
-                            >
-                                Отправить
-                            </button>
+                            <textarea id="comment-input-${post.id}" class="comment-input" placeholder="Написать комментарий..."></textarea>
+                            <button class="comment-submit" onclick="addComment('${post.id}')">Отправить</button>
                         </div>
                     </div>
                 </div>
             </div>`;
     }).join('');
-   // Добавьте только эту строку в конец функции
+    
     setupMobileKeyboardHandling();
 }
+
 
 
         // Функция переключения отображения комментариев
