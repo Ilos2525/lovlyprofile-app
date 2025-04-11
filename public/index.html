@@ -775,7 +775,7 @@ async function loadPosts() {
         console.log('Loaded posts:', posts);
 
         // Показываем все фото посты в разделе "Главная"
-        displayPosts('allPosts', posts.filter(post => post.category === 'photo' || post.category === 'video'));
+        displayPosts('allPosts', posts.filter(post => post.category === 'photo' || post.category === 'uploaded_video'));
         
         // Фильтруем музыку и видео
         displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
