@@ -694,36 +694,24 @@
         <a href="https://t.me/lovlyprofilebot">@lovlyprofilebot</a>
     </div>
 
-    <script type="module">
- import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getFirestore, 
-    collection, 
-    query, 
-    orderBy, 
-    getDocs,
-    addDoc,
-    doc, 
-    getDoc, 
-    updateDoc, 
-    deleteDoc, 
-    setDoc,
-    serverTimestamp,
-    writeBatch,
-    increment,
-    where 
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, query, orderBy, getDocs,
+  doc, getDoc, setDoc, updateDoc, addDoc,
+  serverTimestamp, writeBatch, increment, where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Конфигурация Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
-    authDomain: "whylovly-website-8adcb.firebaseapp.com",
-    projectId: "whylovly-website-8adcb",
-   storageBucket: "whylovly-website-8adcb.firebasestorage.app",
-    messagingSenderId: "749833792533",
-    appId: "1:749833792533:web:2494649a11b628cd84321c",
-    measurementId: "G-0MKF0C3WQJ"
+  apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
+  authDomain: "whylovly-website-8adcb.firebaseapp.com",
+  projectId: "whylovly-website-8adcb",
+  storageBucket: "whylovly-website-8adcb.firebasestorage.app",
+  messagingSenderId: "749833792533",
+  appId: "1:749833792533:web:2494649a11b628cd84321c",
+  measurementId: "G-0MKF0C3WQJ"
 };
 
 // Инициализация Firebase
@@ -731,1013 +719,419 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Глобальные переменные
 let tg = null;
 let currentUser = null;
 
 async function recordVisit(user) {
-    try {
-        await addDoc(collection(db, 'visitors'), {
-            timestamp: serverTimestamp(),
-            userEmail: user?.email || 'Гость',
-            userPhoto: user?.photoURL || null,
-            displayName: user?.displayName || 'Гость',
-            page: window.location.pathname,
-            userAgent: navigator.userAgent
-        });
-    } catch (error) {
-        console.error('Ошибка записи посещения:', error);
-    }
+  try {
+    await addDoc(collection(db, 'visitors'), {
+      timestamp: serverTimestamp(),
+      userEmail: user?.email || 'Гость',
+      userPhoto: user?.photoURL || null,
+      displayName: user?.displayName || 'Гость',
+      page: window.location.pathname,
+      userAgent: navigator.userAgent
+    });
+  } catch (error) {
+    console.error('Ошибка записи посещения:', error);
+  }
 }
 
 async function verifyTelegramWebAppData(initData) {
-    try {
-        // Пока просто логируем данные для отладки
-        console.log('Verifying WebApp data:', {
-            initData: initData,
-            hash: window.Telegram?.WebApp?.initDataUnsafe?.hash,
-            authDate: window.Telegram?.WebApp?.initDataUnsafe?.auth_date,
-            user: window.Telegram?.WebApp?.initDataUnsafe?.user
-        });
-
-        // В будущем здесь будет проверка на сервере
-        // Пока просто проверяем наличие данных
-        const isValid = !!(
-            window.Telegram?.WebApp?.initDataUnsafe?.user?.id &&
-            window.Telegram?.WebApp?.initDataUnsafe?.hash &&
-            window.Telegram?.WebApp?.initDataUnsafe?.auth_date
-        );
-
-        console.log('Verification result:', isValid);
-        return isValid;
-
-    } catch (error) {
-        console.error('Verification error:', error);
-        return false;
-    }
-}
-
-// Функция проверки параметров WebApp
-function checkWebAppParams() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const webAppData = urlParams.get('tgWebAppData');
-    
-    console.log('URL Parameters:', {
-        hasWebAppData: !!webAppData,
-        fullURL: window.location.href,
-        search: window.location.search
+  try {
+    console.log('Verifying WebApp data:', {
+      initData, hash: window.Telegram?.WebApp?.initDataUnsafe?.hash,
+      authDate: window.Telegram?.WebApp?.initDataUnsafe?.auth_date,
+      user: window.Telegram?.WebApp?.initDataUnsafe?.user
     });
-
-    // Проверяем инициализацию WebApp
-    const webApp = window.Telegram?.WebApp;
-    console.log('WebApp Status:', {
-        exists: !!webApp,
-        initData: webApp?.initData,
-        user: webApp?.initDataUnsafe?.user
-    });
-
-    return !!webApp && !!webApp.initData;
-}
-
-// Функция проверки авторизации
-function isAuthorized() {
-    if (!window.Telegram?.WebApp) {
-        console.warn('WebApp not available');
-        return false;
-    }
-
-    const user = window.Telegram.WebApp.initDataUnsafe?.user;
-    console.log('Authorization check:', {
-        hasUser: !!user,
-        userData: user
-    });
-
-    return !!user;
-}
-
-        /**
- * Показывает или прячет пункт меню «Архив»
- * @param {boolean} unlocked
- */
-function toggleArchiveNav(unlocked) {
-  document.getElementById('navArchive').style.display = unlocked
-    ? 'inline-block'
-    : 'none';
-}
-
-        
-      function showNotification(type, username) {
-    // Удаляем предыдущее уведомление, если есть
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
-    // Создаем новое уведомление
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    
-    let icon, message;
-    if (type === 'like') {
-        icon = '❤️';
-        message = 'поставил(а) лайк';
-    } else if (type === 'unlike') {
-        icon = '🤍';
-        message = 'убрал(а) лайк';
-    } else if (type === 'comment') {
-        icon = '💬';
-        message = 'добавил(а) комментарий';
-    }
-
-            notification.innerHTML = `
-                <div class="notification-icon">${icon}</div>
-                <div class="notification-content">
-                    <div class="notification-user">@${username}</div>
-                    <div class="notification-message">${message}</div>
-                </div>
-            `;
-
-            document.body.appendChild(notification);
-            
-            // Показываем уведомление
-            setTimeout(() => notification.classList.add('show'), 100);
-
-            // Скрываем через 3 секунды
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-async function loadProfile() {
-    try {
-        const profileImage = document.getElementById('profileImage');
-        const profileName = document.getElementById('profileName');
-        const profileBio = document.getElementById('profileBio');
-
-        // Загружаем данные профиля админа
-        const adminProfileDoc = await getDoc(doc(db, 'profiles', '5794174511')); // ID админа
-        if (adminProfileDoc.exists()) {
-            const adminProfile = adminProfileDoc.data();
-            if (adminProfile.photo_url) {
-                profileImage.src = adminProfile.photo_url;
-            }
-        }
-        
-        profileName.textContent = 'whylovly';
-        profileBio.textContent = 'Личный блог';
-
-    } catch (error) {
-        console.error('Error loading profile:', error);
-    }
-}
-async function loadPosts() {
-    try {
-        console.log('Starting to load posts...');
-        const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const postsSnapshot = await getDocs(postsQuery);
-        
-        if (postsSnapshot.empty) {
-            console.log('No posts found');
-            ['allPosts', 'musicPosts', 'videoPosts'].forEach(containerId => {
-                const container = document.getElementById(containerId);
-                if (container) {
-                    container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-                }
-            });
-            return;
-        }
-
-        const posts = await Promise.all(postsSnapshot.docs.map(async doc => {
-            const post = { id: doc.id, ...doc.data() };
-            try {
-                if (currentUser?.id) {
-                    post.isLiked = await checkLikeStatus(doc.id);
-                }
-            } catch (error) {
-                console.error('Error checking like status:', error);
-                post.isLiked = false;
-            }
-            return post;
-        }));
-
-        console.log('Loaded posts:', posts);
-
-        // Показываем все фото посты в разделе "Главная"
-        displayPosts('allPosts', posts.filter(post => post.category === 'photo' || post.category === 'uploaded_video'));
-        
-            // Фильтруем музыку
-    displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
-    // — сразу инициализируем плейлист и вешаем клики на кнопки
-    initMusicPlaylist();
-
-    // Фильтруем видео
-    displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
-
-
-    } catch (error) {
-        console.error('Error loading posts:', error);
-        ['allPosts', 'musicPosts', 'videoPosts'].forEach(containerId => {
-            const container = document.getElementById(containerId);
-            if (container) {
-                container.innerHTML = '<div class="post"><div class="post-content">Ошибка загрузки постов</div></div>';
-            }
-        });
-    }
-}
-async function initTelegram() {
-    try {
-        console.log('Starting initialization...');
-        
-        if (!window.Telegram?.WebApp) {
-            throw new Error('Telegram WebApp not found');
-        }
-
-        tg = window.Telegram.WebApp;
-        console.log('WebApp object:', tg);
-        
-        // Расширяем окно и сообщаем о готовности
-        tg.expand();
-        tg.ready();
-
-        // Проверяем данные
-        const isVerified = await verifyTelegramWebAppData(tg.initData);
-        console.log('Verification status:', isVerified);
-        
-        if (!isVerified) {
-            throw new Error('WebApp data verification failed');
-        }
-
-        // Получаем данные пользователя
-        currentUser = tg.initDataUnsafe.user;
-        console.log('Current user:', currentUser);
-        
-        // Проверяем, что есть пользователь
-   if (!currentUser?.id) {
-      throw new Error('No user data available');
-    }
-
-    // Инициализация прогресса
-    const progRef = doc(db, 'userProgress', String(currentUser.id));
-    let progSnap = await getDoc(progRef);
-    if (!progSnap.exists()) {
-      await setDoc(progRef, {
-        playCount: 0,
-        firstTaskCompleted: false,
-        archiveUnlocked: []
-      });
-      progSnap = await getDoc(progRef);
-    }
-    toggleArchiveNav(progSnap.data().firstTaskCompleted);
-
-    // Записываем посещение
-    await recordVisit({
-      email: currentUser.username || 'Гость',
-      photoURL: currentUser.photo_url || null,
-      displayName: currentUser.first_name || 'Гость'
-    });
-
-    // Скрываем предупреждение
-    document.getElementById('authWarning').style.display = 'none';
-
-    // Загружаем профиль и посты
-    await loadProfile();
-    await loadPosts();
-
+    return !!(
+      window.Telegram?.WebApp?.initDataUnsafe?.user?.id &&
+      window.Telegram?.WebApp?.initDataUnsafe?.hash &&
+      window.Telegram?.WebApp?.initDataUnsafe?.auth_date
+    );
   } catch (error) {
-    console.error('Initialization failed:', error);
-    document.getElementById('authWarning').style.display = 'flex';
+    console.error('Verification error:', error);
+    return false;
   }
 }
 
-        // Записываем посещение
-       await recordVisit({
-    email: currentUser.username || 'Гость',
-    photoURL: null,
-    displayName: currentUser.first_name || 'Гость'
-});
-
-        // Скрываем предупреждение
-        const authWarning = document.getElementById('authWarning');
-        if (authWarning) {
-            authWarning.style.display = 'none';
-            console.log('Auth warning hidden');
-        }
-
-        // Загружаем данные
-        await loadProfile();
-        await loadPosts();
-
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        console.error('Error details:', error.message);
-        const authWarning = document.getElementById('authWarning');
-        if (authWarning) authWarning.style.display = 'flex';
-    }
+function isAuthorized() {
+  const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  return !!user;
 }
-window.handleLike = async function(postId) {
-    try {
-        if (!isAuthorized()) {
-            alert('Этот сайт работает только через Telegram');
-            return;
-        }
 
-        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
-        if (likeButton) likeButton.disabled = true;
-
-        const userId = currentUser.id;
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        
-        const likeRef = doc(db, 'likes', `${postId}_${userId}`);
-        const postRef = doc(db, 'posts', postId);
-
-        const batch = writeBatch(db);
-
-        const [likeDoc, postDoc] = await Promise.all([
-            getDoc(likeRef),
-            getDoc(postRef)
-        ]);
-
-        if (!postDoc.exists()) {
-            console.error('Пост не найден');
-            return;
-        }
-
-        const post = postDoc.data();
-        const likedBy = post.likedBy || [];
-        const currentLikes = post.likes || 0;
-
-        if (likeDoc.exists() || likedBy.includes(userId)) {
-            batch.delete(likeRef);
-            batch.update(postRef, {
-                likes: Math.max(0, currentLikes - 1),
-                likedBy: likedBy.filter(id => id !== userId)
-            });
-            showNotification('unlike', username);
-        } else {
-            batch.set(likeRef, {
-                userId: userId,
-                postId,
-                userName: username,
-                userPhoto: currentUser.photo_url || '',
-                timestamp: serverTimestamp()
-            });
-            batch.update(postRef, {
-                likes: currentLikes + 1,
-                likedBy: [...likedBy, userId]
-            });
-            showNotification('like', username);
-        }
-
-        await batch.commit();
-        if (likeButton) likeButton.disabled = false;
-        await loadPosts();
-
-    } catch (error) {
-        console.error('Ошибка лайка:', error);
-        const likeButton = document.querySelector(`[data-post-id="${postId}"] .action-btn`);
-        if (likeButton) likeButton.disabled = false;
-    }
-};
-window.addComment = async function(postId) {
-    if (!isAuthorized()) {
-        alert('Этот сайт работает только через Telegram');
-        return;
-    }
-    
-    try {
-        const input = document.getElementById(`comment-input-${postId}`);
-        const text = input.value.trim();
-        
-        if (!text) {
-            alert('Введите текст комментария');
-            return;
-        }
-
-        const submitButton = input.nextElementSibling;
-        submitButton.disabled = true;
-
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        
-        const batch = writeBatch(db);
-        
-        const commentRef = doc(collection(db, 'comments'));
-        batch.set(commentRef, {
-            postId,
-            userId: currentUser.id,
-            username,
-            text,
-            timestamp: serverTimestamp()
-        });
-
-        const postRef = doc(db, 'posts', postId);
-        batch.update(postRef, {
-            commentsCount: increment(1)
-        });
-
-        await batch.commit();
-        
-        input.value = '';
-        const container = document.getElementById(`comments-container-${postId}`);
-        await loadComments(postId, container);
-        loadPosts();
-        
-        showNotification('comment', username);
-        submitButton.disabled = false;
-
-    } catch (error) {
-        console.error('Ошибка добавления комментария:', error);
-        alert('Ошибка при добавлении комментария');
-        const submitButton = document.querySelector(`#comment-input-${postId}`).nextElementSibling;
-        if (submitButton) submitButton.disabled = false;
-    }
-};
-
-        async function checkLikeStatus(postId) {
-            try {
-                const likeRef = doc(db, 'likes', `${postId}_${currentUser.id}`);
-                const likeDoc = await getDoc(likeRef);
-                return likeDoc.exists();
-            } catch (error) {
-                console.error('Ошибка проверки лайка:', error);
-                return false;
-            }
-        }
-        function getYoutubeVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+function toggleArchiveNav(unlocked) {
+  document.getElementById('navArchive').style.display =
+    unlocked ? 'inline-block' : 'none';
 }
+
+function showNotification(type, username) {
+  const existing = document.querySelector('.notification');
+  if (existing) existing.remove();
+
+  const icons = { like: '❤️', unlike: '🤍', comment: '💬' };
+  const msgs = { like: 'поставил(а) лайк', unlike: 'убрал(а) лайк', comment: 'добавил(а) комментарий' };
+
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  notif.innerHTML = `
+    <div class="notification-icon">${icons[type]}</div>
+    <div class="notification-content">
+      <div class="notification-user">@${username}</div>
+      <div class="notification-message">${msgs[type]}</div>
+    </div>`;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.classList.add('show'), 100);
+  setTimeout(() => notif.classList.remove('show'), 3100);
+  setTimeout(() => notif.remove(), 3400);
+}
+
+async function loadProfile() {
+  try {
+    const img = document.getElementById('profileImage');
+    const adminDoc = await getDoc(doc(db, 'profiles', '5794174511'));
+    if (adminDoc.exists() && adminDoc.data().photo_url) {
+      img.src = adminDoc.data().photo_url;
+    }
+    document.getElementById('profileName').textContent = 'whylovly';
+    document.getElementById('profileBio').textContent = 'Личный блог';
+  } catch (e) {
+    console.error('Error loading profile:', e);
+  }
+}
+
+async function loadPosts() {
+  try {
+    const snap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc')));
+    const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    displayPosts('allPosts', posts.filter(p => ['photo','uploaded_video'].includes(p.category)));
+    displayPosts('musicPosts', posts.filter(p => p.category === 'music'));
+    initMusicPlaylist();
+    displayPosts('videoPosts', posts.filter(p => p.category === 'video'));
+  } catch (e) {
+    console.error('Error loading posts:', e);
+  }
+}
+
 function displayPosts(containerId, posts) {
-    const container = document.getElementById(containerId);
-    if (!posts.length) {
-        container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
-        return;
+  const c = document.getElementById(containerId);
+  if (!posts.length) {
+    c.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+    return;
+  }
+  c.innerHTML = posts.map(post => {
+    // Формат даты
+    let ts = post.trackDate ? new Date(post.trackDate) :
+      post.timestamp?.seconds ? new Date(post.timestamp.seconds * 1000) : null;
+    const date = ts ? ts.toLocaleDateString('ru-RU') : '—';
+
+    // Контент
+    let media = '';
+    if (post.category === 'photo') {
+      media = `<img src="${post.fileURL}" loading="lazy">`;
+    } else if (post.category === 'music') {
+      const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
+      media = `
+        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
+          <div class="audio-cover"><img src="${cover}"></div>
+          <div class="audio-info">
+            <h3 class="audio-title">${post.description}</h3>
+            <div class="audio-controls">
+              <button class="btn-prev">⏮️</button>
+              <button class="btn-play">▶️</button>
+              <button class="btn-next">⏭️</button>
+            </div>
+            <div class="audio-progress">
+              <div class="bar"><div class="fill"></div></div>
+              <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
+            </div>
+          </div>
+        </div>`;
+    } else if (post.category === 'video') {
+      const id = (post.fileURL.match(/v=([^&]+)/)||[])[1];
+      media = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
+    } else if (post.category === 'uploaded_video') {
+      media = `<video class="uploaded-video" controls poster="https://placehold.co/600x400?text=Preview"><source src="${post.fileURL}" type="video/mp4"></video>`;
     }
 
-    container.innerHTML = posts.map(post => {
-        // если поле trackDate есть – используем его, иначе fallback на timestamp
-// сначала пробуем trackDate (только для music-постов),
-// потом — Firestore‑Timestamp, потом — ISO‑строку старых постов
-let rawDate = 0;
-
-if (post.trackDate) {
-  rawDate = new Date(post.trackDate).getTime();
-} else if (post.timestamp?.seconds) {
-  rawDate = post.timestamp.seconds * 1000;
-} else if (typeof post.timestamp === 'string') {
-  rawDate = new Date(post.timestamp).getTime();
-}
-
-const date = rawDate
-  // обращай внимание: здесь именно 'ru-RU' с обычным ASCII‑дефисом (код U+002D)
-  ? new Date(rawDate).toLocaleDateString('ru-RU')
-  : '—';
-
-        const isAdmin = currentUser?.id === '5794174511';
-        
-        let mediaContent = '';
-        if (post.category === 'photo') {
-            mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
-       } if (post.category === 'music') {
-    // подготовка обложки
-    const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
-    mediaContent = `
-        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
-            <div class="audio-cover">
-                <img src="${cover}" alt="Cover for ${post.description}">
+    const likedClass = post.isLiked ? 'liked' : '';
+    return `
+      <div class="post" data-post-id="${post.id}">
+        ${media}
+        <div class="post-content">
+          <div class="post-description">${post.description}</div>
+          <div class="post-date">${date}</div>
+          <div class="post-actions">
+            <button class="action-btn ${likedClass}" onclick="handleLike('${post.id}')">
+              ${post.isLiked?'❤️':'🤍'} ${post.likes||0}
+            </button>
+            <button class="action-btn" onclick="toggleComments('${post.id}')">
+              💬 ${post.commentsCount||0}
+            </button>
+          </div>
+          <div class="comments-section" id="comments-${post.id}" style="display:none;">
+            <div id="comments-container-${post.id}"></div>
+            <div class="comment-form">
+              <textarea id="comment-input-${post.id}" class="comment-input"></textarea>
+              <button onclick="addComment('${post.id}')">Отправить</button>
             </div>
-            <div class="audio-info">
-                <h3 class="audio-title">${post.description}</h3>
-                <div class="audio-controls">
-                    <button class="btn-prev">⏮️</button>
-                    <button class="btn-play">▶️</button>
-                    <button class="btn-next">⏭️</button>
-                </div>
-                <div class="audio-progress">
-                    <div class="bar"><div class="fill"></div></div>
-                    <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
-                </div>
-            </div>
-        </div>`;
-} else if (post.category === 'video') {
-            const videoId = getYoutubeVideoId(post.fileURL);
-            mediaContent = `
-                <div class="video-container">
-                    <iframe src="https://www.youtube.com/embed/${videoId}" 
-                            loading="lazy"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen>
-                    </iframe>
-                </div>`;
-        } else if (post.category === 'uploaded_video') {
-  const defaultPoster = 'https://placehold.co/600x400?text=Preview';
-  mediaContent = `
-    <video
-      id="video-${post.id}"
-      class="uploaded-video"
-      controls
-      playsinline
-      webkit-playsinline
-      preload="metadata"
-      crossorigin="anonymous"
-      poster="${defaultPoster}"
-      style="max-width:100%;"
-    >
-      <source src="${post.fileURL}" type="video/mp4">
-      Ваш браузер не поддерживает HTML5‑видео.
-    </video>`;
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  setupMobileKeyboardHandling();
+  document.querySelectorAll('video.uploaded-video').forEach(v => {
+    v.addEventListener('loadedmetadata', () => captureFrame(v));
+  });
 }
 
-        return `
-            <div class="post" data-post-id="${post.id}">
-                ${mediaContent}
-                <div class="post-content">
-                    <div class="post-description">${post.description}</div>
-                    <div class="post-date">${date}</div>
-                    <div class="post-actions">
-                        <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
-                            ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
-                        </button>
-                        <button class="action-btn comment-btn" onclick="toggleComments('${post.id}')">
-                            💬 ${post.commentsCount || 0}
-                        </button>
-                        ${isAdmin ? `<button class="action-btn delete-btn" onclick="deletePost('${post.id}')">
-                            🗑️ Удалить
-                        </button>` : ''}
-                    </div>
-                    <div class="comments-section" id="comments-${post.id}" style="display: none;">
-                        <div class="comments-container" id="comments-container-${post.id}">
-                            <!-- Комментарии будут загружены сюда -->
-                        </div>
-                        <div class="comment-form">
-                            <textarea id="comment-input-${post.id}" class="comment-input" placeholder="Написать комментарий..."></textarea>
-                            <button class="comment-submit" onclick="addComment('${post.id}')">Отправить</button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    }).join('');
-    
-    setupMobileKeyboardHandling();
-
-    // ——— добавляем «авто‑превью» для загруженных видео
-    container.querySelectorAll('video.uploaded-video').forEach(video => {
-      // убедиться, что у видео включён CORS
-      video.crossOrigin = 'anonymous';
-      // как только придут размеры и duration — снять кадр
-      video.addEventListener('loadedmetadata', () => {
-        captureFrame(video);
-      });
-    });
-}
-
-// —— Audio Playlist & Mini‑Player —— //
 window.musicPlaylist = [];
 let currentMusicIndex = -1;
-
-// инициализируем плейлист после рендера музыки
 function initMusicPlaylist() {
   const posts = document.querySelectorAll('.audio-post');
-  window.musicPlaylist = Array.from(posts).map((el, i) => {
-    const src = el.dataset.src;
-    const audio = new Audio(src);
-    audio.preload = 'metadata';
-    // при окончании трека — следующий
+  window.musicPlaylist = Array.from(posts).map((el,i)=> {
+    const audio = new Audio(el.dataset.src);
+    audio.preload='metadata';
     audio.onended = playNext;
-    // обновление прогресса
-    audio.ontimeupdate = () => updateProgress(i);
+    audio.ontimeupdate = ()=> updateProgress(i);
     return { el, audio, title: el.querySelector('.audio-title').textContent };
   });
-
-  // сразу вешаем клики на кнопки
-  window.musicPlaylist.forEach((item, i) => {
-const playBtn = item.el.querySelector('.btn-play');
-playBtn.onclick = () => {
-  const { audio } = musicPlaylist[i];
-  if (i === currentMusicIndex && !audio.paused) {
-    audio.pause();
-  } else {
-    playTrack(i);
-  }
-  updateUI();    // сразу обновляем иконку
-};
-
+  musicPlaylist.forEach((item,i)=>{
+    item.el.querySelector('.btn-play').onclick = ()=>{
+      if (i===currentMusicIndex && !item.audio.paused) item.audio.pause();
+      else playTrack(i);
+    };
     item.el.querySelector('.btn-prev').onclick = playPrev;
     item.el.querySelector('.btn-next').onclick = playNext;
-    // клик по бару — seek
-    const bar = item.el.querySelector('.audio-progress .bar');
-    bar.onclick = e => {
-      const rect = bar.getBoundingClientRect();
-      const pct = (e.clientX - rect.left) / rect.width;
-      item.audio.currentTime = pct * item.audio.duration;
-      updateProgress(i);
+    item.el.querySelector('.bar').onclick = e=>{
+      const pct = (e.clientX - e.currentTarget.getBoundingClientRect().left)/e.currentTarget.clientWidth;
+      item.audio.currentTime = pct*item.audio.duration;
     };
   });
 }
 
-// воспроизведение по индексу
-function playTrack(index) {
-  if (currentMusicIndex >= 0) musicPlaylist[currentMusicIndex].audio.pause();
-  currentMusicIndex = index;
-  const { audio } = musicPlaylist[index];
-  audio.play();
-
-  // ————— учёт нажатия Play —————
-  onUserPlayed().catch(console.error);
-  // ——————————————————————————
-
+function playTrack(i) {
+  if (currentMusicIndex>=0) musicPlaylist[currentMusicIndex].audio.pause();
+  currentMusicIndex = i;
+  musicPlaylist[i].audio.play();
+  onUserPlayed();
   showMiniPlayer();
   updateUI();
 }
 
-/**
- * После каждого нажатия Play увеличиваем счётчик
- * и при достижении 5 показываем «Архив»
- */
 async function onUserPlayed() {
-  const progRef = doc(db, 'userProgress', String(currentUser.id));
-  // +1
-  await updateDoc(progRef, { playCount: increment(1) });
-  const progSnap = await getDoc(progRef);
-  const { playCount, firstTaskCompleted } = progSnap.data();
-
-  // если впервые дошли до 5
-  if (!firstTaskCompleted && playCount >= 5) {
-    await updateDoc(progRef, { firstTaskCompleted: true });
-    alert(
-      '🎉 Ты стал ближе к артисту!\n' +
-      'Теперь в меню появилась вкладка «Архив».'
-    );
+  const ref = doc(db,'userProgress',currentUser.id.toString());
+  await updateDoc(ref,{ playCount: increment(1) });
+  const snap = await getDoc(ref);
+  const { playCount, firstTaskCompleted } = snap.data();
+  if (!firstTaskCompleted && playCount>=5) {
+    await updateDoc(ref,{ firstTaskCompleted:true });
+    alert('🎉 Ты стал ближе к артисту! Теперь появилась вкладка «Архив».');
     toggleArchiveNav(true);
   }
 }
 
+function playNext() { playTrack((currentMusicIndex+1)%musicPlaylist.length); }
+function playPrev() { playTrack((currentMusicIndex-1+musicPlaylist.length)%musicPlaylist.length); }
 
-// следующий
-function playNext() {
-  const next = (currentMusicIndex + 1) % musicPlaylist.length;
-  playTrack(next);
-}
-// предыдущий
-function playPrev() {
-  const prev = (currentMusicIndex - 1 + musicPlaylist.length) % musicPlaylist.length;
-  playTrack(prev);
-}
-
-// обновить прогресс‑бар и иконку
 function updateUI() {
-  musicPlaylist.forEach((item, i) => {
-    const btn = item.el.querySelector('.btn-play');
-    btn.textContent = (i === currentMusicIndex && !item.audio.paused) ? '⏸️' : '▶️';
-    // duration
-    const dur = item.el.querySelector('.audio-progress .duration');
-    if (item.audio.duration) dur.textContent = formatTime(item.audio.duration);
+  musicPlaylist.forEach((item,i)=>{
+    item.el.querySelector('.btn-play').textContent =
+      (i===currentMusicIndex && !item.audio.paused)?'⏸️':'▶️';
+    if (i===currentMusicIndex) {
+      const dur = item.el.querySelector('.duration');
+      if (item.audio.duration) dur.textContent = formatTime(item.audio.duration);
+    }
   });
-  // мини‑плеер
   const mini = document.querySelector('.mini-player');
-  const img = mini.querySelector('img');
-  const title = mini.querySelector('.title');
-  const prog = mini.querySelector('.mini-progress .fill');
-  const ctl = musicPlaylist[currentMusicIndex];
-  img.src = ctl.el.querySelector('.audio-cover img').src;
-  title.textContent = ctl.title;
-  prog.style.width = `${(ctl.audio.currentTime / ctl.audio.duration) * 100}%`;
+  if (mini) {
+    mini.querySelector('img').src = musicPlaylist[currentMusicIndex].el.querySelector('img')?.src;
+    mini.querySelector('.title').textContent = musicPlaylist[currentMusicIndex].title;
+    mini.querySelector('.fill').style.width =
+      `${(musicPlaylist[currentMusicIndex].audio.currentTime/musicPlaylist[currentMusicIndex].audio.duration)*100}%`;
+  }
 }
 
-// обновление только прогресса
 function updateProgress(idx) {
-  if (idx !== currentMusicIndex) return;
-  const item = musicPlaylist[idx];
-  const fill = item.el.querySelector('.audio-progress .fill');
-  fill.style.width = `${(item.audio.currentTime / item.audio.duration) * 100}%`;
-
-  // — новая строка:
-  item.el.querySelector('.audio-progress .current').textContent =
-    formatTime(item.audio.currentTime);
-
-  // обновляем мини‑плеер тоже
+  if (idx!==currentMusicIndex) return;
+  const fill = musicPlaylist[idx].el.querySelector('.fill');
+  fill.style.width = `${(musicPlaylist[idx].audio.currentTime/musicPlaylist[idx].audio.duration)*100}%`;
+  musicPlaylist[idx].el.querySelector('.current').textContent =
+    formatTime(musicPlaylist[idx].audio.currentTime);
   updateUI();
 }
 
-
-// утилита форматирования
-function formatTime(sec) {
-  const m = Math.floor(sec/60).toString().padStart(2,'0');
-  const s = Math.floor(sec%60).toString().padStart(2,'0');
-  return `${m}:${s}`;
+function formatTime(s) {
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const sec = String(Math.floor(s%60)).padStart(2,'0');
+  return `${m}:${sec}`;
 }
 
-// показываем мини‑плеер
 function showMiniPlayer() {
   let mini = document.querySelector('.mini-player');
   if (!mini) {
     mini = document.createElement('div');
     mini.className = 'mini-player';
     mini.innerHTML = `
-      <img src="" alt="cover"><div class="info"><div class="title"></div>
+      <img><div class="info"><div class="title"></div>
       <div class="mini-controls">
         <button class="btn-prev">⏮️</button>
         <button class="btn-play">▶️</button>
         <button class="btn-next">⏭️</button>
       </div>
-      <div class="mini-progress"><div class="fill"></div></div>
-    `;
+      <div class="mini-progress"><div class="fill"></div></div></div>`;
     document.body.appendChild(mini);
-    // клики
     mini.querySelector('.btn-prev').onclick = playPrev;
-    mini.querySelector('.btn-play').onclick = () => playTrack(currentMusicIndex);
+    mini.querySelector('.btn-play').onclick = ()=> playTrack(currentMusicIndex);
     mini.querySelector('.btn-next').onclick = playNext;
-    mini.onclick = () => {
-      // скролл к разделу Музыка
-      document.querySelector(`[onclick="showSection('music')"]`).click();
-      document.getElementById('music').scrollIntoView({ behavior: 'smooth' });
-    };
+    mini.onclick = ()=> showSection('music');
   }
   mini.classList.add('show');
   updateUI();
 }
 
-
-        // Функция переключения отображения комментариев
-        window.toggleComments = async function(postId) {
-            const commentsSection = document.getElementById(`comments-${postId}`);
-            const commentsContainer = document.getElementById(`comments-container-${postId}`);
-            
-            if (commentsSection.style.display === 'none') {
-                commentsSection.style.display = 'block';
-                await loadComments(postId, commentsContainer);
-            } else {
-                commentsSection.style.display = 'none';
-            }
-        };
+window.toggleComments = async function(postId) {
+  const sec = document.getElementById(`comments-${postId}`);
+  if (sec.style.display==='none') {
+    sec.style.display='block';
+    await loadComments(postId);
+  } else sec.style.display='none';
+};
 
 async function loadComments(postId) {
-    try {
-        const commentsContainer = document.getElementById(`comments-container-${postId}`);
-        
-        if (!commentsContainer) {
-            console.error('Container not found for comments');
-            return;
-        }
-
-        console.log('Loading comments for post:', postId);
-        
-        // Упрощенный запрос
-        const commentsQuery = query(
-            collection(db, 'comments'),
-            where('postId', '==', postId),
-            orderBy('timestamp', 'desc')
-        );
-
-        const commentsSnapshot = await getDocs(commentsQuery);
-        
-        if (commentsSnapshot.empty) {
-            commentsContainer.innerHTML = '<div class="comment">Нет комментариев</div>';
-            return;
-        }
-
-        const commentsHTML = commentsSnapshot.docs.map(doc => {
-            const comment = doc.data();
-            const date = comment.timestamp ? 
-                new Date(comment.timestamp.seconds * 1000).toLocaleString('ru-RU') : 
-                'Недавно';
-            
-            return `
-                <div class="comment">
-                    <div class="comment-header">
-                        <span class="comment-author">@${comment.username || 'Аноним'}</span>
-                        <span class="comment-date">${date}</span>
-                    </div>
-                    <div class="comment-text">${comment.text}</div>
-                </div>
-            `;
-        }).join('');
-
-        commentsContainer.innerHTML = commentsHTML;
-
-    } catch (error) {
-        console.error('Error loading comments:', error);
-        if (error.message.includes('requires an index')) {
-            console.log('Waiting for index to be created...');
-        }
-        const container = document.getElementById(`comments-container-${postId}`);
-        if (container) {
-            container.innerHTML = '<div class="comment">Ошибка загрузки комментариев. Пожалуйста, подождите...</div>';
-        }
-    }
+  const cont = document.getElementById(`comments-container-${postId}`);
+  const snap = await getDocs(query(collection(db,'comments'), where('postId','==',postId), orderBy('timestamp','desc')));
+  cont.innerHTML = snap.empty
+    ? '<div class="comment">Нет комментариев</div>'
+    : snap.docs.map(d=>{
+        const c = d.data();
+        const date = c.timestamp ? new Date(c.timestamp.seconds*1000).toLocaleString('ru-RU') : 'Недавно';
+        return `
+          <div class="comment">
+            <div class="comment-header">
+              <span class="comment-author">@${c.username}</span>
+              <span class="comment-date">${date}</span>
+            </div>
+            <div class="comment-text">${c.text}</div>
+          </div>`;
+      }).join('');
 }
-        // Функция добавления комментария
+
 window.addComment = async function(postId) {
-    try {
-        console.log('Comment attempt:', { 
-            isAuthorized: isAuthorized(),
-            currentUser,
-            tg: window.Telegram?.WebApp
-        });
-
-        if (!isAuthorized()) {
-            console.error('Необходима авторизация через Telegram');
-            alert('Этот сайт работает только через Telegram');
-            window.location.href = 'https://t.me/lovlyprofilebot';
-            return;
-        }
-
-        const input = document.getElementById(`comment-input-${postId}`);
-        const text = input.value.trim();
-        
-        if (!text) {
-            alert('Введите текст комментария');
-            return;
-        }
-
-        // Блокируем кнопку отправки на время операции
-        const submitButton = input.nextElementSibling;
-        submitButton.disabled = true;
-
-        const username = currentUser.username || currentUser.first_name || 'Unknown';
-        
-        // Используем batch для атомарной операции
-        const batch = writeBatch(db);
-        
-        // Добавляем комментарий
-        const commentRef = doc(collection(db, 'comments'));
-        batch.set(commentRef, {
-            postId,
-            userId: currentUser.id,
-            username,
-            text,
-            timestamp: serverTimestamp()
-        });
-
-        // Обновляем счетчик комментариев в посте
-        const postRef = doc(db, 'posts', postId);
-        batch.update(postRef, {
-            commentsCount: increment(1)
-        });
-
-        await batch.commit();
-
-        // Очищаем поле ввода
-        input.value = '';
-        
-        // Перезагружаем комментарии
-        const container = document.getElementById(`comments-container-${postId}`);
-        await loadComments(postId, container);
-        
-        // Перезагружаем посты для обновления счетчика
-        loadPosts();
-        
-        showNotification('comment', username);
-
-        // Разблокируем кнопку
-        submitButton.disabled = false;
-
-    } catch (error) {
-        console.error('Ошибка добавления комментария:', error);
-        alert('Ошибка при добавлении комментария');
-        // Разблокируем кнопку в случае ошибки
-        const submitButton = document.querySelector(`#comment-input-${postId}`).nextElementSibling;
-        if (submitButton) submitButton.disabled = false;
-    }
+  const inp = document.getElementById(`comment-input-${postId}`);
+  const text = inp.value.trim();
+  if (!text) return alert('Введите текст комментария');
+  const batch = writeBatch(db);
+  const cref = doc(collection(db,'comments'));
+  batch.set(cref,{ postId, userId:currentUser.id, username:currentUser.username, text, timestamp:serverTimestamp() });
+  batch.update(doc(db,'posts',postId),{ commentsCount:increment(1) });
+  await batch.commit();
+  inp.value = '';
+  await loadComments(postId);
 };
-function setupMobileKeyboardHandling() {
-    const inputs = document.querySelectorAll('.comment-input');
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => {
-            window.scrollTo(0, 0);
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-            }, 100);
-        });
-    });
-}
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+
+async function checkLikeStatus(postId) {
+  const d = await getDoc(doc(db,'likes',`${postId}_${currentUser.id}`));
+  return d.exists();
 }
 
-// Применяем дебаунсинг
-window.handleLike = debounce(window.handleLike, 300);
-window.addComment = debounce(window.addComment, 300);
-
-// Добавляем обработку офлайн-режима
-window.addEventListener('online', () => loadPosts());
-window.addEventListener('offline', () => {
-    document.body.classList.add('offline-mode');
-});
-
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        const tg = window.Telegram?.WebApp;
-        
-        if (!tg) {
-            console.error('No Telegram WebApp found');
-            document.getElementById('authWarning').style.display = 'flex';
-            return;
-        }
-
-        tg.ready();
-        console.log('Init Data:', tg.initData);
-        console.log('User Data:', tg.initDataUnsafe.user);
-
-        await initTelegram();
-
-    } catch (err) {
-        console.error('Auth error:', err);
-        document.getElementById('authWarning').style.display = 'flex';
-    }
-});
-
-    // Обработка ошибок изображений
-    document.addEventListener('error', function(e) {
-        if (e.target.tagName.toLowerCase() === 'img') {
-            e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
-        }
-    }, true);
-
-// Функция захвата кадра из загруженного видео и установки в качестве poster
-function captureFrame(video) {
-  const defaultPoster = 'https://placehold.co/600x400?text=Preview';
-  // если уже задан пользовательский poster — выходим
-  if (video.poster && video.poster !== defaultPoster) return;
-  // если duration ещё не готов или бесконечный — выходим
-  if (!video.duration || video.duration === Infinity) return;
-
-  // Вычисляем во сколько секунд хотим сделать кадр
-  const targetTime = Math.min(1, video.duration / 2);
-
-  // Обработчик после seek
-  function onSeeked() {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataURL = canvas.toDataURL();
-      video.poster = dataURL;
-      // вернёмся на начало, чтобы сразу показывался poster, а не кадр из видео
-      video.currentTime = 0;
-    } catch (e) {
-      console.error('Error capturing video frame:', e);
-    }
-    video.removeEventListener('seeked', onSeeked);
+window.handleLike = debounce(async function(postId) {
+  if (!isAuthorized()) return alert('Требуется Telegram');
+  const refLike = doc(db,'likes',`${postId}_${currentUser.id}`);
+  const refPost = doc(db,'posts',postId);
+  const [lDoc, pDoc] = await Promise.all([ getDoc(refLike), getDoc(refPost) ]);
+  const post = pDoc.data();
+  const batch = writeBatch(db);
+  if (lDoc.exists()) {
+    batch.delete(refLike);
+    batch.update(refPost,{ likes: Math.max(0,(post.likes||0)-1), likedBy: (post.likedBy||[]).filter(id=>id!==currentUser.id) });
+    showNotification('unlike', currentUser.username);
+  } else {
+    batch.set(refLike,{ userId:currentUser.id, postId, username:currentUser.username, timestamp:serverTimestamp() });
+    batch.update(refPost,{ likes:(post.likes||0)+1, likedBy:[...(post.likedBy||[]),currentUser.id] });
+    showNotification('like', currentUser.username);
   }
+  await batch.commit();
+  loadPosts();
+}, 300);
 
-  // Повесим слушатель и только потом начнём seek
-  video.addEventListener('seeked', onSeeked);
-  video.currentTime = targetTime;
+function getYoutubeVideoId(url) {
+  const m = url.match(/v=([^&]+)/);
+  return m? m[1] : null;
 }
 
+function captureFrame(video) {
+  if (video.poster && video.poster!=='https://placehold.co/600x400?text=Preview') return;
+  if (!video.duration||video.duration===Infinity) return;
+  const onSeeked = ()=>{
+    try {
+      const c=document.createElement('canvas');
+      c.width=video.videoWidth; c.height=video.videoHeight;
+      c.getContext('2d').drawImage(video,0,0);
+      video.poster=c.toDataURL(); video.currentTime=0;
+    } catch(e){ console.error(e); }
+    video.removeEventListener('seeked', onSeeked);
+  };
+  video.addEventListener('seeked', onSeeked);
+  video.currentTime = Math.min(1, video.duration/2);
+}
 
-    window.addEventListener('load', () => {
-        if (!window.Telegram?.WebApp) {
-            console.warn('Not in Telegram WebApp');
-            document.getElementById('authWarning').style.display = 'flex';
-        }
+function setupMobileKeyboardHandling() {
+  document.querySelectorAll('.comment-input').forEach(input=>{
+    input.addEventListener('blur', ()=>{
+      window.scrollTo(0,0);
+      setTimeout(()=>window.scrollTo(0,0),100);
     });
-
-    window.showSection = function(sectionId) {
-  // 1) Сброс ссылок
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.remove('active');
   });
+}
 
-  // 2) Подсветить выбранную
-  const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-  if (clickedLink) clickedLink.classList.add('active');
+function debounce(fn, wait) {
+  let t;
+  return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); };
+}
 
-  // 3) Спрятать все секции
-  document.querySelectorAll('.section').forEach(section => {
-    section.classList.remove('active');
-  });
-
-  // 4) Показать нужную
-  const targetSection = document.getElementById(sectionId);
-  if (targetSection) targetSection.classList.add('active');
-
-  // ==== Новый код для мини‑плеера ====
-  // Если мы на вкладке "music" — скрываем мини‑плеер,
-  // иначе — показываем его, но только если уже есть текущий трек.
+window.showSection = function(sectionId) {
+  document.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
+  document.querySelector(`[onclick="showSection('${sectionId}')"]`)?.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(sectionId)?.classList.add('active');
   const mini = document.querySelector('.mini-player');
   if (mini) {
-    if (sectionId === 'music') {
-      mini.classList.remove('show');
-    } else if (currentMusicIndex >= 0) {
-      mini.classList.add('show');
-    }
+    if (sectionId==='music') mini.classList.remove('show');
+    else if (currentMusicIndex>=0) mini.classList.add('show');
   }
 };
+
+async function initTelegram() {
+  try {
+    if (!window.Telegram?.WebApp) throw new Error();
+    tg = window.Telegram.WebApp; tg.expand(); tg.ready();
+    const ok = await verifyTelegramWebAppData(tg.initData);
+    if (!ok) throw new Error();
+    currentUser = tg.initDataUnsafe.user;
+    if (!currentUser?.id) throw new Error();
+    const progRef = doc(db,'userProgress',currentUser.id.toString());
+    let snap = await getDoc(progRef);
+    if (!snap.exists()) {
+      await setDoc(progRef,{ playCount:0, firstTaskCompleted:false, archiveUnlocked:[] });
+      snap = await getDoc(progRef);
+    }
+    toggleArchiveNav(snap.data().firstTaskCompleted);
+    await recordVisit({ email:currentUser.username, displayName:currentUser.first_name, photoURL:currentUser.photo_url });
+    document.getElementById('authWarning').style.display = 'none';
+    await loadProfile();
+    await loadPosts();
+  } catch {
+    document.getElementById('authWarning').style.display = 'flex';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initTelegram);
+window.addEventListener('load', ()=> {
+  if (!window.Telegram?.WebApp) document.getElementById('authWarning').style.display = 'flex';
+});
 </script>
+
 </body>
 </html>
 
