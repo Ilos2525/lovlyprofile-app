@@ -665,6 +665,38 @@
   .slider .prev, .slider .next{ opacity:1; pointer-events:auto; }
 }
 
+/* ---------- LOCKED POST ---------- */
+.post.locked{
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  min-height:300px;
+  text-align:center;
+  position:relative;
+}
+
+.post.locked .lock-box{
+  max-width:80%;                             /* чтобы не прилипало к краям */
+  animation: fadeIn 0.4s ease;
+}
+.post.locked .lock-title{font-size:1.2em; margin-bottom:8px;}
+.post.locked .lock-hint {color:var(--secondary-text); margin-bottom:15px;}
+.post.locked input{
+  width:100%; padding:10px; border-radius:8px; border:1px solid var(--neon-color);
+  background:rgba(0,0,0,.2); color:var(--text-color); margin-bottom:10px;
+}
+.post.locked button{
+  padding:8px 22px; border:none; border-radius:8px; cursor:pointer;
+  background:var(--neon-color); color:var(--bg-color); font-weight:500;
+}
+.lock-box{
+  padding:40px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  text-align:center;
+}
+.lock-title{color:var(--neon-color);font-weight:500}
+.lock-hint{color:var(--secondary-text);font-size:.95em}
+
 </style>
 <body>
     <div class="profile-section">
@@ -927,12 +959,13 @@ async function loadArchivePosts() {
             break;
         }
         html += `
-          <div class="post locked">
-            <div class="post-content">
-              <div class="post-description">🔒 Задание ${seq}</div>
-              ${controls}
-            </div>
-          </div>`;
+         <div class="post locked">
+  <div class="lock-box">
+    <div class="lock-title">🔒 Задание ${seq}</div>
+    ${p.taskHint ? `<div class="lock-hint">${p.taskHint}</div>` : ''}
+    ${controls}
+  </div>
+</div>`;
       }
     }
     grid.innerHTML = html;
