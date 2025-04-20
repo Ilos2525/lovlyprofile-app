@@ -711,33 +711,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* ---------- helpers для разблокировки архива ---------- */
-async function isTaskUnlocked(seq) {
-  const ref  = doc(db, 'userProgress', currentUser.id.toString());
-  const snap = await getDoc(ref);
-  return (snap.data()?.archiveUnlocked || []).includes(seq);
-}
-async function markTaskUnlocked(seq) {
-  await updateDoc(
-    doc(db, 'userProgress', currentUser.id.toString()),
-    { archiveUnlocked: arrayUnion(seq) }
-  );
-}
-/* ---------- UI‑коллбеки ---------- */
-window.unlockPassword = async (seq, correct) => {
-  const val = document.getElementById(`pwd-${seq}`).value.trim();
-  if (val === correct) { await markTaskUnlocked(seq); loadArchivePosts(); }
-  else alert('Неверный пароль');
-};
-window.unlockFinal = async seq => { await markTaskUnlocked(seq); loadArchivePosts(); };
-window.startQuiz = (seq, quizJson) => {
-  const q = quizJson[0];
-  const a = prompt(`${q.question}\n${q.options.join(', ')}`);
-  if (a?.trim() === q.answer) markTaskUnlocked(seq).then(loadArchivePosts);
-  else alert('Неверно');
-};
-
-
 // Конфигурация Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDPMqef3_hF-QpBr09qtry_45K4h28oMT0",
