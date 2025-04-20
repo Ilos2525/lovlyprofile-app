@@ -1052,9 +1052,11 @@ window.startQuiz = function(seq, quizArr){
       <div class="quiz-card">
         ${q.imgURL ? `<img src="${q.imgURL}" class="quiz-img" loading="lazy">` : ''}
         <div class="quiz-q">${q.question}</div>
-        ${q.options.map(opt=>`
-           <button class="quiz-opt">${opt}</button>
-        `).join('')}
+      ${q.options.map(opt => `
+  <button class="quiz-opt">
+    ${opt.imgURL ? `<img src="${opt.imgURL}" class="quiz-img">` : opt.text}
+  </button>
+`).join('')}
         <button class="quiz-close">✖ Закрыть</button>
       </div>`;
     /* навешиваем обработчики */
