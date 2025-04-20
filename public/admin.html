@@ -446,7 +446,7 @@
 
       <div id="fileInputGroup">
         <label for="fileInput">Файл:</label>
-        <input type="file" id="fileInput">
+        <input type="file" id="fileInput" accept="image/*" multiple>
         <div class="preview-container" id="filePreview"></div>
       </div>
 
@@ -859,25 +859,27 @@ quizGroup.style.display       = 'none';
     });
   }
 
-  /* ====== Предварительный просмотр файла (для фото/аудио) ====== */
-  document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('filePreview');
-    if (!file) return;
-    
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        preview.innerHTML = `<img src="${ev.target.result}" alt="Preview">`;
-      };
-      reader.readAsDataURL(file);
-    } else if (file.type.startsWith('audio/')) {
-      preview.innerHTML = `
-        <audio controls>
-          <source src="${URL.createObjectURL(file)}" type="${file.type}">
-        </audio>`;
-    }
-  });
+/* ====== Предварительный просмотр файла/файлов ====== */
+document.getElementById('fileInput').addEventListener('change', e => {
+  const files   = [...e.target.files].slice(0, 10);   // максимум 10
+  const preview = document.getElementById('filePreview');
+  if (!files.length) { preview.innerHTML = ''; return; }
+
+  // если выбрали несколько фото – выводим миниатюры
+  if (files[0].type.startsWith('image/')) {
+    preview.innerHTML = files
+      .map(f => `<img src="${URL.createObjectURL(f)}" style="width:100%;margin-bottom:8px;border-radius:8px;">`)
+      .join('');
+  }
+  // единственный аудиофайл – оставляем прежнюю логику
+  else if (files[0].type.startsWith('audio/')) {
+    preview.innerHTML = `
+      <audio controls style="width:100%">
+        <source src="${URL.createObjectURL(files[0])}" type="${files[0].type}">
+      </audio>`;
+  }
+});
+
   
 // ====== Предварительный просмотр обложки (coverFile) ======
 document.getElementById('coverFile').addEventListener('change', function(e) {
@@ -953,12 +955,20 @@ else if (category === 'video') {
   if (!fileURL) throw new Error('Укажите ссылку на YouTube');
   if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
 }
-// 3) все остальные категории (photo, music, uploaded_video)
-else {
+// 3) photo / music / uploaded_video
+else if (category === 'photo') {
+  /* --- несколько фото --- */
+  const files = [...document.getElementById('fileInput').files];
+  if (!files.length)       throw new Error('Выберите хотя бы одно фото');
+  if (files.length > 10)   throw new Error('Максимум 10 изображений');
+  fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));  // ← массив URL'ов
+}
+else {     // music | uploaded_video
   const file = document.getElementById('fileInput').files[0];
   if (!file) throw new Error('Выберите файл');
   fileURL = await uploadFile(file, category);
 }
+
 
 
       progressBar.style.width = '80%';
@@ -974,22 +984,28 @@ else {
     }
 
     // 3) Собираем объект
-    const newPost = {
-      category,
-      fileURL,
-      description,
-      author: auth.currentUser.email,
-      timestamp: serverTimestamp()
-    };
-    if (trackDateValue) newPost.trackDate = trackDateValue;
-    if (coverURL)     newPost.coverURL   = coverURL;
-  if (isArchive) {
-    newPost.isArchive       = true;
-    newPost.archiveSeq      = archiveSeq;
-    newPost.unlockType      = unlockTypeVal;
-    if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
-    if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
-  }
+   const newPost = {
+  category,
+  description,
+  author: auth.currentUser.email,
+  timestamp: serverTimestamp()
+};
+
+if (Array.isArray(fileURL)) newPost.photos  = fileURL; // галерея
+else                        newPost.fileURL = fileURL; // одиночный файл
+
+if (trackDateValue) newPost.trackDate = trackDateValue;
+if (coverURL)       newPost.coverURL  = coverURL;
+
+/* ----‑ архивные поля ---- */
+if (isArchive) {
+  newPost.isArchive  = true;
+  newPost.archiveSeq = archiveSeq;
+  newPost.unlockType = unlockTypeVal;
+  if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
+  if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+}
+
 
 
 // 4) Если редактируем — вызываем updateDoc, иначе addDoc
