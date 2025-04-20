@@ -832,6 +832,58 @@ async function loadPosts() {
   }
 }
 
+// === Загружаем архивные посты ============================================
+async function loadArchivePosts() {
+  const grid = document.getElementById('archivePosts');
+  grid.innerHTML = '<div class="loading">Загрузка…</div>';
+
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'posts'),
+        where('isArchive', '==', true),
+        orderBy('archiveSeq', 'asc')
+      )
+    );
+
+    if (snap.empty) {
+      grid.innerHTML = '<div class="loading">В архиве пока пусто</div>';
+      return;
+    }
+
+    let html = '';
+    snap.docs.forEach(d => {
+      const p = d.data();
+
+      // превью в зависимости от категории
+      const thumb =
+        p.category === 'photo'
+          ? p.fileURL
+          : p.category === 'video'
+              ? `https://img.youtube.com/vi/${getYoutubeVideoId(p.fileURL)}/mqdefault.jpg`
+              : p.category === 'music'
+                  ? (p.coverURL || 'https://via.placeholder.com/400x400?text=Track')
+                  : p.category === 'uploaded_video'
+                      ? (p.coverURL || p.fileURL)
+                      : '';
+
+      html += `
+        <div class="post">
+          ${thumb ? `<img src="${thumb}" loading="lazy">` : ''}
+          <div class="post-content">
+            <div class="post-description">${p.description || ''}</div>
+            <div class="post-date">Задание ${p.archiveSeq ?? '-'}</div>
+          </div>
+        </div>`;
+    });
+
+    grid.innerHTML = html;
+  } catch (e) {
+    console.error('archive load error:', e);
+    grid.innerHTML = '<div class="loading">Ошибка загрузки архива</div>';
+  }
+}
+
 
 function displayPosts(containerId, posts) {
   const container = document.getElementById(containerId);
@@ -1150,6 +1202,7 @@ window.showSection = function(sectionId) {
     if (sectionId==='music') mini.classList.remove('show');
     else if (currentMusicIndex>=0) mini.classList.add('show');
   }
+if (sectionId === 'archive') loadArchivePosts();
 };
 
 async function initTelegram() {
