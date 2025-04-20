@@ -718,6 +718,19 @@
   border-radius:10px;color:var(--text-color);cursor:pointer;
   transition:background .25s;
 }
+.quiz-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:18px
+}
+.quiz-opt{
+  width:110px;height:148px;padding:0;border:1px solid var(--neon-color);
+  border-radius:10px;background:rgba(255,255,255,.04);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  transition:background .25s;
+}
+.quiz-opt img{width:100%;height:110px;object-fit:cover;border-radius:10px 10px 0 0}
+.quiz-opt span{display:block;padding:6px 4px;font-size:.85em;line-height:1.2}
+.quiz-opt:hover{background:rgba(0,255,204,.12)}
+}
 .quiz-opt:hover{background:rgba(0,255,204,.12)}
 .quiz-close{
   margin-top:20px;background:transparent;border:none;
@@ -1041,8 +1054,9 @@ window.unlockFinal = async seq => {
   loadArchivePosts();
 };
 /* ---------- КВИЗ‑ОВЕРЛЕЙ ---------- */
+/* ---------- КВИЗ ---------- */
 window.startQuiz = function (seq, quizArr) {
-  let cur = 0;                                       // индекс текущего вопроса
+  let cur = 0;                                   // индекс текущего вопроса
   const ov = document.createElement('div');
   ov.className = 'quiz-overlay';
   document.body.appendChild(ov);
@@ -1050,41 +1064,37 @@ window.startQuiz = function (seq, quizArr) {
   const render = () => {
     const q = quizArr[cur];
 
+    /* карточки‑варианты */
+    const optsHtml = q.options.map((opt, i) => `
+      <button class="quiz-opt" data-idx="${i}">
+        ${opt.imgURL ? `<img src="${opt.imgURL}" loading="lazy">` : ''}
+        <span>${opt.text || ''}</span>
+      </button>`).join('');
+
+    /* разметка вопроса */
     ov.innerHTML = `
       <div class="quiz-card">
         ${q.imgURL ? `<img src="${q.imgURL}" class="quiz-img" loading="lazy">` : ''}
         <div class="quiz-q">${q.question}</div>
-        ${q.options
-          .map(
-            opt => `
-            <button class="quiz-opt">
-              ${
-                opt.imgURL
-                  ? `<img src="${opt.imgURL}" class="quiz-img">`
-                  : opt.text
-              }
-            </button>`
-          )
-          .join('')}
+        <div class="quiz-grid">${optsHtml}</div>
         <button class="quiz-close">✖ Закрыть</button>
       </div>`;
 
-    /* --- обработчики вариантов --- */
+    /* обработка кликов по вариантам */
     ov.querySelectorAll('.quiz-opt').forEach(btn => {
       btn.onclick = async () => {
-        // любой выбор считается правильным
-        if (++cur === quizArr.length) {
+        if (++cur === quizArr.length) {            // всё пройдено
           await markTaskUnlocked(seq);
           ov.remove();
           loadArchivePosts();
           alert('✅ Задание выполнено!');
         } else {
-          render(); // следующий вопрос
+          render();                                // следующий вопрос
         }
       };
-    }); /* ←←←   ВОТ ЭТОЙ СКОБКИ/СКОБКИ НЕ ХВАТАЛО   */
+    });
 
-    /* --- закрыть квиз --- */
+    /* закрытие оверлея */
     ov.querySelector('.quiz-close').onclick = () => ov.remove();
   };
 
