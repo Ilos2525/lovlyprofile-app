@@ -638,7 +638,33 @@
   border-radius: var(--border-radius);
   display: block;
 }
-    
+    /* --- СЛАЙДЕР ФОТО --- */
+.slider      { position:relative; overflow:hidden; }
+.slider .slide{
+  width:100%; height:300px; object-fit:cover; display:none;
+}
+.slider .prev,
+.slider .next{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:44px; height:44px; border-radius:50%;
+  border:none; background:rgba(0,0,0,.35); color:#fff;
+  font-size:32px; line-height:1; display:flex;
+  align-items:center; justify-content:center; cursor:pointer;
+  transition:background .2s;
+}
+.slider .prev{ left:12px; }
+.slider .next{ right:12px; }
+.slider:hover .prev,
+.slider:hover .next{ background:rgba(0,0,0,.55); }
+.slider .prev, .slider .next{ opacity:0; pointer-events:none; }
+.slider:hover .prev,
+.slider:hover .next{ opacity:1; pointer-events:auto; }
+
+/* свайп‑жест выглядит естественно, поэтому стрелки можем прятать на мобильных */
+@media (max-width:768px){
+  .slider .prev, .slider .next{ opacity:1; pointer-events:auto; }
+}
+
 </style>
 <body>
     <div class="profile-section">
@@ -955,73 +981,61 @@ window.startQuiz = (seq, quizJson) => {
 
 
 function displayPosts(containerId, posts) {
+  /* ---- сортируем, чтобы НОВЫЕ были первыми ---- */
+  const ts = p =>
+    p.trackDate ? +new Date(p.trackDate) :
+    p.timestamp?.seconds ? p.timestamp.seconds*1000 :
+    typeof p.timestamp === 'string' ? +new Date(p.timestamp) :
+    p.timestamp?.toDate ? +p.timestamp.toDate() :
+    0;
+
+  posts = [...posts].sort((a,b)=> ts(b)-ts(a));   // ↓ ↓ ↓
+
   const container = document.getElementById(containerId);
   if (!posts.length) {
-    container.innerHTML =
-      '<div class="post"><div class="post-content">Нет постов</div></div>';
+    container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
     return;
   }
 
   container.innerHTML = posts.map(post => {
-    /* -------- дата -------- */
-    let ts = null;
-    if (post.trackDate)                    ts = new Date(post.trackDate);
-    else if (post.timestamp?.seconds)      ts = new Date(post.timestamp.seconds * 1000);
-    else if (post.timestamp?.toDate)       ts = post.timestamp.toDate();
-    else if (typeof post.timestamp === 'string') ts = new Date(post.timestamp);
-    const date = ts ? ts.toLocaleDateString('ru-RU') : '—';
+    /* --- дата --- */
+    const date = ts(post) ? new Date(ts(post)).toLocaleDateString('ru-RU') : '—';
 
-    /* -------- медиа -------- */
-    let media = '';
-
-    /* — галерея (photos) — */
+    /* --- медиа --- */
+    let media='';
     if (Array.isArray(post.photos)) {
       media = `
         <div class="slider" data-idx="0">
-          ${post.photos.map((u,i)=>
-            `<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
+          ${post.photos.map((u,i)=>`<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
           <button class="prev">‹</button><button class="next">›</button>
         </div>`;
     }
-    /* — одиночные категории — */
-    else if (post.category === 'photo') {
-      media = `<img src="${post.fileURL}" loading="lazy">`;
-    } else if (post.category === 'music') {
-      const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
-      media = `
-        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
-          <div class="audio-cover"><img src="${cover}" alt="Cover"></div>
-          <div class="audio-info">
-            <h3 class="audio-title">${post.description}</h3>
-            <div class="audio-controls">
-              <button class="btn-prev">⏮️</button>
-              <button class="btn-play">▶️</button>
-              <button class="btn-next">⏭️</button>
-            </div>
-            <div class="audio-progress">
-              <div class="bar"><div class="fill"></div></div>
-              <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
-            </div>
-          </div>
-        </div>`;
-    } else if (post.category === 'video') {
-      const videoId = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
-      media = `
-        <div class="video-container">
-          <iframe
-            src="https://www.youtube.com/embed/${videoId}"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen>
-          </iframe>
-        </div>`;
-    } else if (post.category === 'uploaded_video') {
-      media = `
-        <video class="uploaded-video" controls poster="https://placehold.co/600x400?text=Preview">
-          <source src="${post.fileURL}" type="video/mp4">
-        </video>`;
+    else if (post.category==='photo'){
+      media=`<img src="${post.fileURL}" loading="lazy">`;
     }
-
-    const likedClass = post.isLiked ? 'liked' : '';
+    else if (post.category==='music'){
+      const cover=post.coverURL||'https://placehold.co/600x400?text=No+Cover';
+      media=`
+      <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
+        <div class="audio-cover"><img src="${cover}" alt=""></div>
+        <div class="audio-info">
+          <h3 class="audio-title">${post.description}</h3>
+          <div class="audio-controls">
+            <button class="btn-prev">⏮️</button><button class="btn-play">▶️</button><button class="btn-next">⏭️</button>
+          </div>
+          <div class="audio-progress"><div class="bar"><div class="fill"></div></div>
+            <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
+          </div>
+        </div>
+      </div>`;
+    }
+    else if (post.category==='video'){
+      const id=(post.fileURL.match(/v=([^&]+)/)||[])[1]||'';
+      media=`<div class="video-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
+    }
+    else if (post.category==='uploaded_video'){
+      media=`<video class="uploaded-video" controls poster="https://placehold.co/600x400?text=Preview"><source src="${post.fileURL}" type="video/mp4"></video>`;
+    }
 
     return `
       <div class="post" data-post-id="${post.id}">
@@ -1030,12 +1044,10 @@ function displayPosts(containerId, posts) {
           <div class="post-description">${post.description}</div>
           <div class="post-date">${date}</div>
           <div class="post-actions">
-            <button class="action-btn ${likedClass}" onclick="handleLike('${post.id}')">
-              ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
+            <button class="action-btn ${post.isLiked?'liked':''}" onclick="handleLike('${post.id}')">
+              ${post.isLiked?'❤️':'🤍'} ${post.likes||0}
             </button>
-            <button class="action-btn" onclick="toggleComments('${post.id}')">
-              💬 ${post.commentsCount || 0}
-            </button>
+            <button class="action-btn" onclick="toggleComments('${post.id}')">💬 ${post.commentsCount||0}</button>
           </div>
           <div class="comments-section" id="comments-${post.id}" style="display:none;">
             <div class="comments-container" id="comments-container-${post.id}"></div>
@@ -1048,27 +1060,35 @@ function displayPosts(containerId, posts) {
       </div>`;
   }).join('');
 
-  /* ---------- инициализация простого слайдера ---------- */
-  container.querySelectorAll('.slider').forEach(sl => {
-    const slides = sl.querySelectorAll('.slide');
-    sl.querySelector('.prev').onclick = () => show(-1);
-    sl.querySelector('.next').onclick = () => show(1);
-    function show(dir) {
-      let i = +sl.dataset.idx;
-      slides[i].style.display = 'none';
-      i = (i + dir + slides.length) % slides.length;
-      slides[i].style.display = 'block';
-      sl.dataset.idx = i;
-    }
+  /* --- инициализируем стрелки + свайп --- */
+  container.querySelectorAll('.slider').forEach(sl=>{
+    const slides=sl.querySelectorAll('.slide');
+    const show=i=>{
+      slides[+sl.dataset.idx].style.display='none';
+      sl.dataset.idx=(i+slides.length)%slides.length;
+      slides[sl.dataset.idx].style.display='block';
+    };
+    sl.querySelector('.prev').onclick = ()=>show(+sl.dataset.idx-1);
+    sl.querySelector('.next').onclick = ()=>show(+sl.dataset.idx+1);
+
+    /* свайп‑жест */
+    let x0=null;
+    sl.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
+    sl.addEventListener('touchend',e=>{
+      if(x0===null) return;
+      const dx=e.changedTouches[0].clientX-x0;
+      if(Math.abs(dx)>30) show(dx<0?+sl.dataset.idx+1:+sl.dataset.idx-1);
+      x0=null;
+    },{passive:true});
   });
 
   setupMobileKeyboardHandling();
-
-  container.querySelectorAll('video.uploaded-video').forEach(v => {
-    v.crossOrigin = 'anonymous';
-    v.addEventListener('loadedmetadata', () => captureFrame(v));
+  container.querySelectorAll('video.uploaded-video').forEach(v=>{
+    v.crossOrigin='anonymous';
+    v.addEventListener('loadedmetadata',()=>captureFrame(v));
   });
 }
+
 
 
 
