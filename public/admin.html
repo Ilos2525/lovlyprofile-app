@@ -973,89 +973,106 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
     }
   });
 
-  /* ====== Форма загрузки поста (uploadForm) ====== */
-  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const progressBar = document.querySelector('.progress');
-    try {
-      submitBtn.disabled = true;
-      progressBar.style.width = '10%';
+ /* ====== Форма загрузки поста (uploadForm) ====== */
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-      const category    = document.getElementById('category').value;
-const description = document.getElementById('description').value.trim();
-const taskHint    = document.getElementById('taskHint').value.trim();
+  const submitBtn   = e.target.querySelector('button[type="submit"]');
+  const progressBar = document.querySelector('.progress');
 
+  try {
+    submitBtn.disabled = true;
+    progressBar.style.width = '10%';
 
-  // —— Извлекаем параметры архива ——
-  const isArchive      = isArchiveCh.checked;
-  const archiveSeq     = parseInt(document.getElementById('archiveSeq').value) || null;
-  let unlockTypeVal  = unlockType.value;        // ← let, а не const
-  const unlockPassword = document.getElementById('unlockPassword').value.trim();
-let unlockQuiz = [];
-if (isArchive && unlockTypeVal === 'quiz') {
- const opts = [];
-for (const row of blk.querySelectorAll('.opt')) {
-  const txt = row.querySelector('.q-opt').value.trim();
-  const f   = row.querySelector('.q-opt-img').files[0];
-  let img   = row.querySelector('.q-opt-img').dataset.hasimg || '';
-  if (f) img = await uploadFile(f, 'quiz_opts');
-  if (!txt && !img) continue;          // пропустить пустое
-  opts.push({ text: txt, imgURL: img });
-}
-if (opts.length < 2) throw new Error('Добавьте минимум 2 варианта');
+    /* -------- базовые поля -------- */
+    const category    = document.getElementById('category').value;
+    const description = document.getElementById('description').value.trim();
+    const taskHint    = document.getElementById('taskHint').value.trim();
 
-unlockQuiz.push({
-  question: qText,
-  imgURL,
-  options: opts                     // ← теперь объекты
-});
-     
+    /* --------‑ параметры архива --------‑ */
+    const isArchive      = isArchiveCh.checked;
+    const archiveSeq     = parseInt(document.getElementById('archiveSeq').value) || null;
+    let   unlockTypeVal  = unlockType.value;               // может измениться
+    const unlockPassword = document.getElementById('unlockPassword').value.trim();
+    let   unlockQuiz     = [];
 
-    // картинка (если выбрана)
-    const fInp  = blk.querySelector('input[type="file"]');
-    let imgURL  = fInp?.dataset.hasimg || '';
-    if (fInp?.files[0]) {
-      imgURL = await uploadFile(fInp.files[0], 'quiz');
+    /* ---------- КОНСТРУКТОР КВИЗА ---------- */
+    if (isArchive && unlockTypeVal === 'quiz') {
+      for (const blk of quizBuilder.children) {
+
+        /* --- вопрос --- */
+        const qText = blk.querySelector('.q-text').value.trim();
+        if (!qText) throw new Error('Заполните текст вопроса');
+
+        /* --- картинка вопроса (опционально) --- */
+        const qImgInp = blk.querySelector('input[type="file"]');
+        let   qImgURL = qImgInp?.dataset.hasimg || '';
+        if (qImgInp?.files[0]) {
+          qImgURL = await uploadFile(qImgInp.files[0], 'quiz');
+        }
+
+        /* --- варианты ответа --- */
+        const opts = [];
+        for (const row of blk.querySelectorAll('.opt')) {
+          const txtInp = row.querySelector('.q-opt');
+          const imgInp = row.querySelector('.q-opt-img');
+
+          const text = txtInp.value.trim();
+          let   img  = imgInp?.dataset.hasimg || '';
+
+          if (imgInp?.files[0]) {
+            img = await uploadFile(imgInp.files[0], 'quiz_opts');
+          }
+
+          if (!text && !img) continue;           // пропускаем полностью пустой вариант
+          opts.push({ text, imgURL: img });
+        }
+
+        if (opts.length < 2)
+          throw new Error('Минимум два варианта на вопрос');
+
+        unlockQuiz.push({ question: qText, imgURL: qImgURL, options: opts });
+      }
+
+      if (!unlockQuiz.length)
+        throw new Error('Добавьте хотя бы один вопрос');
     }
 
-    unlockQuiz.push({
-      question: qText,
-      imgURL,
-      options: opts,
-      answer: opts[ansIdx]
-    });
+    /* -------------------------------------------------- */
+    /*  ---------- ЗАГРУЗКА ОСНОВНОГО ФАЙЛА ------------- */
+    /* -------------------------------------------------- */
+    let fileURL = '';
+
+    if (window.editingPostId) {                        // режим редактирования
+      fileURL = window.editingFileURL;
+    } else if (category === 'video') {                 // YouTube‑ссылка
+      fileURL = document.getElementById('youtubeLink').value.trim();
+      if (!fileURL) throw new Error('Укажите ссылку на YouTube');
+      if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
+    } else if (category === 'photo') {                 // галерея изображений
+      const files = [...document.getElementById('fileInput').files];
+      if (!files.length)     throw new Error('Выберите хотя бы одно фото');
+      if (files.length > 10) throw new Error('Максимум 10 изображений');
+      fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));
+    } else {                                           // music | uploaded_video
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) throw new Error('Выберите файл');
+      fileURL = await uploadFile(file, category);
+    }
+
+    /* ----- здесь оставь свой существующий код,
+       который собирает newPost, пишет в Firestore
+       и обновляет прогресс‑бар ----- */
+
+  } catch (err) {
+    console.error('Ошибка:', err);
+    alert(`Ошибка: ${err.message}`);
+  } finally {
+    submitBtn.disabled = false;
+    setTimeout(() => { progressBar.style.width = '0%'; }, 1000);
   }
-  if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
-}
+});
 
-
-// единая декларация
-let fileURL = '';
-
-// 1) в режиме редактирования берем сохранённый URL и пропускаем инпут-файл
-if (window.editingPostId) {
-  fileURL = window.editingFileURL;
-}
-// 2) YouTube–видео
-else if (category === 'video') {
-  fileURL = document.getElementById('youtubeLink').value.trim();
-  if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-  if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-}
-// 3) photo / music / uploaded_video
-else if (category === 'photo') {
-  /* --- несколько фото --- */
-  const files = [...document.getElementById('fileInput').files];
-  if (!files.length)       throw new Error('Выберите хотя бы одно фото');
-  if (files.length > 10)   throw new Error('Максимум 10 изображений');
-  fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));  // ← массив URL'ов
-}
-else {     // music | uploaded_video
-  const file = document.getElementById('fileInput').files[0];
-  if (!file) throw new Error('Выберите файл');
-  fileURL = await uploadFile(file, category);
-}
 
 
 
