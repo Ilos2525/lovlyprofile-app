@@ -1060,25 +1060,21 @@ window.startQuiz = function(seq, quizArr){
     /* навешиваем обработчики */
     ov.querySelectorAll('.quiz-opt').forEach(btn=>{
       btn.onclick = async () => {
-        if(btn.textContent.trim() === q.answer){
-          if(++cur === quizArr.length){            // квиз пройден
-            await markTaskUnlocked(seq);
-            ov.remove();                           // убираем оверлей
-            loadArchivePosts();                    // перерисовываем карточку
-            alert('✅ Задание выполнено!');
-          }else{
-            render();                              // следующий вопрос
-          }
-        }else{
-          alert('Неверно, попробуй ещё раз');
-        }
-      };
-    });
+  // любая кнопка = правильный ответ
+  if (++cur === quizArr.length) {
+    await markTaskUnlocked(seq);   // всё пройдено
+    ov.remove();
+    loadArchivePosts();
+    alert('✅ Задание выполнено!');
+  } else {
+    render();                      // следующий вопрос
+  }
+};
+
     ov.querySelector('.quiz-close').onclick = ()=> ov.remove();
   };
   render();
 };
-
 
 function displayPosts(containerId, posts) {
   /* ---- сортируем, чтобы НОВЫЕ были первыми ---- */
