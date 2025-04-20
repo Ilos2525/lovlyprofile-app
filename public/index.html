@@ -646,6 +646,13 @@
         <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
         <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
         <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
+         <a href="#"
+           id="navArchive"
+           class="nav-link"
+           style="display: none;"
+           onclick="showSection('archive')">
+          Архив
+        </a>
     </div>
 
     <div class="content">
@@ -666,7 +673,13 @@
                 <div class="loading">Загрузка видео</div>
             </div>
         </div>
-    </div>
+    </div><!-- Секция Архив (по умолчанию пустая и закрытая) -->
+        <div id="archive" class="section">
+          <div class="posts-grid" id="archivePosts">
+            <div class="loading">Архив пока закрыт</div>
+          </div>
+        </div>
+    </div> <!-- конец .content -->
 
     <!-- Блок предупреждения об авторизации -->
     <div id="authWarning" class="auth-warning">
@@ -795,6 +808,16 @@ function isAuthorized() {
     });
 
     return !!user;
+}
+
+        /**
+ * Показывает или прячет пункт меню «Архив»
+ * @param {boolean} unlocked
+ */
+function toggleArchiveNav(unlocked) {
+  document.getElementById('navArchive').style.display = unlocked
+    ? 'inline-block'
+    : 'none';
 }
 
         
@@ -945,6 +968,22 @@ async function initTelegram() {
         
         if (!currentUser?.id) {
             throw new Error('No user data available');
+        // —————— Инициализация прогресса пользователя ——————
+        const progRef = doc(db, 'userProgress', String(currentUser.id));
+        let progSnap = await getDoc(progRef);
+        if (!progSnap.exists()) {
+          // создаём начальный документ
+          await setDoc(progRef, {
+            playCount: 0,
+            firstTaskCompleted: false,
+            archiveUnlocked: []
+          });
+          progSnap = await getDoc(progRef);
+        }
+        // сразу показать или скрыть пункт меню «Архив»
+        toggleArchiveNav(progSnap.data().firstTaskCompleted);
+        // ————————————————————————————————————————————————
+            
         }
 
         // Записываем посещение
@@ -1275,14 +1314,41 @@ playBtn.onclick = () => {
 
 // воспроизведение по индексу
 function playTrack(index) {
-  // пауза текущего
   if (currentMusicIndex >= 0) musicPlaylist[currentMusicIndex].audio.pause();
   currentMusicIndex = index;
   const { audio } = musicPlaylist[index];
   audio.play();
+
+  // ————— учёт нажатия Play —————
+  onUserPlayed().catch(console.error);
+  // ——————————————————————————
+
   showMiniPlayer();
   updateUI();
 }
+
+/**
+ * После каждого нажатия Play увеличиваем счётчик
+ * и при достижении 5 показываем «Архив»
+ */
+async function onUserPlayed() {
+  const progRef = doc(db, 'userProgress', String(currentUser.id));
+  // +1
+  await updateDoc(progRef, { playCount: increment(1) });
+  const progSnap = await getDoc(progRef);
+  const { playCount, firstTaskCompleted } = progSnap.data();
+
+  // если впервые дошли до 5
+  if (!firstTaskCompleted && playCount >= 5) {
+    await updateDoc(progRef, { firstTaskCompleted: true });
+    alert(
+      '🎉 Ты стал ближе к артисту!\n' +
+      'Теперь в меню появилась вкладка «Архив».'
+    );
+    toggleArchiveNav(true);
+  }
+}
+
 
 // следующий
 function playNext() {
