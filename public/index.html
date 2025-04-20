@@ -1114,7 +1114,9 @@ function displayPosts(containerId, posts) {
 
     container.innerHTML = posts.map(post => {
         // если поле trackDate есть – используем его, иначе fallback на timestamp
-const rawDate = post.trackDate || post.timestamp?.seconds * 1000;
+const rawDate = post.trackDate
+  ? new Date(post.trackDate).getTime()
+  : post.timestamp?.seconds * 1000;
 const date = rawDate
   ? new Date(rawDate).toLocaleDateString('ru‑RU')
   : '—';
