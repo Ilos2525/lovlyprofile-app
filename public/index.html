@@ -1015,7 +1015,6 @@ function displayPosts(containerId, posts) {
                     </iframe>
                 </div>`;
         } else if (post.category === 'uploaded_video') {
-  // дефолтная заглушка пока кадр не снят
   const defaultPoster = 'https://placehold.co/600x400?text=Preview';
   mediaContent = `
     <video
@@ -1027,7 +1026,6 @@ function displayPosts(containerId, posts) {
       preload="metadata"
       crossorigin="anonymous"
       poster="${defaultPoster}"
-      onloadedmetadata="captureFrame(this)"
       style="max-width:100%;"
     >
       <source src="${post.fileURL}" type="video/mp4">
@@ -1066,6 +1064,16 @@ function displayPosts(containerId, posts) {
     }).join('');
     
     setupMobileKeyboardHandling();
+
+    // ——— добавляем «авто‑превью» для загруженных видео
+    container.querySelectorAll('video.uploaded-video').forEach(video => {
+      // убедиться, что у видео включён CORS
+      video.crossOrigin = 'anonymous';
+      // как только придут размеры и duration — снять кадр
+      video.addEventListener('loadedmetadata', () => {
+        captureFrame(video);
+      });
+    });
 }
 
 
@@ -1277,30 +1285,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, true);
 
-    // Функция захвата кадра из загруженного видео и установки в качестве poster
-    function captureFrame(video) {
-      const defaultPoster = 'https://placehold.co/600x400?text=Preview';
-      // Если у видео уже задан постер, отличный от дефолтного, то ничего не делаем
-      if (video.poster && video.poster !== defaultPoster) return;
-      // Если длительность недоступна – выйти
-      if (!video.duration || video.duration === Infinity) return;
-      // Поставим время либо 1 секунда, либо середину видео
-      video.currentTime = Math.min(1, video.duration / 2);
-      video.addEventListener('seeked', function handler() {
-          try {
-              const canvas = document.createElement('canvas');
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const dataURL = canvas.toDataURL();
-              video.poster = dataURL;
-          } catch (e) {
-              console.error('Error capturing video frame:', e);
-          }
-          video.removeEventListener('seeked', handler);
-      });
+// Функция захвата кадра из загруженного видео и установки в качестве poster
+function captureFrame(video) {
+  const defaultPoster = 'https://placehold.co/600x400?text=Preview';
+  // если уже задан пользовательский poster — выходим
+  if (video.poster && video.poster !== defaultPoster) return;
+  // если duration ещё не готов или бесконечный — выходим
+  if (!video.duration || video.duration === Infinity) return;
+
+  // Вычисляем во сколько секунд хотим сделать кадр
+  const targetTime = Math.min(1, video.duration / 2);
+
+  // Обработчик после seek
+  function onSeeked() {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL();
+      video.poster = dataURL;
+      // вернёмся на начало, чтобы сразу показывался poster, а не кадр из видео
+      video.currentTime = 0;
+    } catch (e) {
+      console.error('Error capturing video frame:', e);
     }
+    video.removeEventListener('seeked', onSeeked);
+  }
+
+  // Повесим слушатель и только потом начнём seek
+  video.addEventListener('seeked', onSeeked);
+  video.currentTime = targetTime;
+}
+
 
     window.addEventListener('load', () => {
         if (!window.Telegram?.WebApp) {
