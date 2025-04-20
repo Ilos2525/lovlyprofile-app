@@ -1127,7 +1127,8 @@ if (post.trackDate) {
 }
 
 const date = rawDate
-  ? new Date(rawDate).toLocaleDateString('ru‑RU')
+  // обращай внимание: здесь именно 'ru-RU' с обычным ASCII‑дефисом (код U+002D)
+  ? new Date(rawDate).toLocaleDateString('ru-RU')
   : '—';
 
         const isAdmin = currentUser?.id === '5794174511';
