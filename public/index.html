@@ -807,11 +807,23 @@ async function loadProfile() {
   }
 }
 
+// === Главная страница — выводим ТОЛЬКО не‑архивные посты ===
 async function loadPosts() {
   try {
-    const snap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc')));
-    const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    displayPosts('allPosts', posts.filter(p => ['photo','uploaded_video'].includes(p.category)));
+    const snap = await getDocs(
+      query(collection(db, 'posts'), orderBy('timestamp', 'desc'))
+    );
+
+    // ⚠️ убираем все записи, где isArchive === true
+    const posts = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(p => !p.isArchive);
+
+    // дальше оставляем вашу логику группировки по категориям
+    displayPosts(
+      'allPosts',
+      posts.filter(p => ['photo', 'uploaded_video'].includes(p.category))
+    );
     displayPosts('musicPosts', posts.filter(p => p.category === 'music'));
     initMusicPlaylist();
     displayPosts('videoPosts', posts.filter(p => p.category === 'video'));
@@ -819,6 +831,7 @@ async function loadPosts() {
     console.error('Error loading posts:', e);
   }
 }
+
 
 function displayPosts(containerId, posts) {
   const container = document.getElementById(containerId);
