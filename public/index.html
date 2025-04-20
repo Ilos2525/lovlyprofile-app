@@ -1232,17 +1232,17 @@ function initMusicPlaylist() {
 
   // сразу вешаем клики на кнопки
   window.musicPlaylist.forEach((item, i) => {
-      const playBtn = item.el.querySelector('.btn-play');
-  playBtn.onclick = () => {
-    const audio = item.audio;
-    if (!audio.paused) {
-      // если уже играет — ставим на паузу
-      audio.pause();
-    } else {
-      // иначе запускаем/переключаем трек
-      playTrack(i);
-    }
-  };
+const playBtn = item.el.querySelector('.btn-play');
+playBtn.onclick = () => {
+  const { audio } = musicPlaylist[i];
+  if (i === currentMusicIndex && !audio.paused) {
+    audio.pause();
+  } else {
+    playTrack(i);
+  }
+  updateUI();    // сразу обновляем иконку
+};
+
     item.el.querySelector('.btn-prev').onclick = playPrev;
     item.el.querySelector('.btn-next').onclick = playNext;
     // клик по бару — seek
