@@ -974,7 +974,8 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
   });
 
  /* ====== Форма загрузки поста (uploadForm) ====== */
-document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+/* ====== Форма загрузки поста (uploadForm) ====== */
+document.getElementById('uploadForm').addEventListener('submit', async e => {
   e.preventDefault();
 
   const submitBtn   = e.target.querySelector('button[type="submit"]');
@@ -984,99 +985,127 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
     progressBar.style.width = '10%';
 
-    /* -------- базовые поля -------- */
-    const category    = document.getElementById('category').value;
-    const description = document.getElementById('description').value.trim();
-    const taskHint    = document.getElementById('taskHint').value.trim();
+    /* ------------ основные поля ------------ */
+    const category    = category.value;                // селект
+    const description = description.value.trim();
+    const taskHint    = taskHint.value.trim();
 
-    /* --------‑ параметры архива --------‑ */
+    /* ------------ архивные опции ------------ */
     const isArchive      = isArchiveCh.checked;
-    const archiveSeq     = parseInt(document.getElementById('archiveSeq').value) || null;
-    let   unlockTypeVal  = unlockType.value;               // может измениться
-    const unlockPassword = document.getElementById('unlockPassword').value.trim();
-    let   unlockQuiz     = [];
+    const archiveSeq     = +archiveSeq.value || null;
+    let   unlockTypeVal  = unlockType.value;
+    const unlockPassword = unlockPassword.value.trim();
+    const unlockQuiz     = [];
 
-    /* ---------- КОНСТРУКТОР КВИЗА ---------- */
     if (isArchive && unlockTypeVal === 'quiz') {
+      /* --- проходим все вопросы конструктора --- */
       for (const blk of quizBuilder.children) {
-
-        /* --- вопрос --- */
         const qText = blk.querySelector('.q-text').value.trim();
         if (!qText) throw new Error('Заполните текст вопроса');
 
-        /* --- картинка вопроса (опционально) --- */
         const qImgInp = blk.querySelector('input[type="file"]');
         let   qImgURL = qImgInp?.dataset.hasimg || '';
-        if (qImgInp?.files[0]) {
-          qImgURL = await uploadFile(qImgInp.files[0], 'quiz');
-        }
+        if (qImgInp?.files[0]) qImgURL = await uploadFile(qImgInp.files[0], 'quiz');
 
-        /* --- варианты ответа --- */
         const opts = [];
         for (const row of blk.querySelectorAll('.opt')) {
-          const txtInp = row.querySelector('.q-opt');
-          const imgInp = row.querySelector('.q-opt-img');
-
-          const text = txtInp.value.trim();
-          let   img  = imgInp?.dataset.hasimg || '';
-
-          if (imgInp?.files[0]) {
-            img = await uploadFile(imgInp.files[0], 'quiz_opts');
-          }
-
-          if (!text && !img) continue;           // пропускаем полностью пустой вариант
-          opts.push({ text, imgURL: img });
+          const txt = row.querySelector('.q-opt').value.trim();
+          const imgF= row.querySelector('.q-opt-img');
+          let   img = imgF?.dataset.hasimg || '';
+          if (imgF?.files[0]) img = await uploadFile(imgF.files[0], 'quiz_opts');
+          if (!txt && !img) continue;
+          opts.push({ text: txt, imgURL: img });
         }
-
-        if (opts.length < 2)
-          throw new Error('Минимум два варианта на вопрос');
+        if (opts.length < 2) throw new Error('Минимум два варианта');
 
         unlockQuiz.push({ question: qText, imgURL: qImgURL, options: opts });
       }
-
-      if (!unlockQuiz.length)
-        throw new Error('Добавьте хотя бы один вопрос');
+      if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
     }
 
-    /* -------------------------------------------------- */
-    /*  ---------- ЗАГРУЗКА ОСНОВНОГО ФАЙЛА ------------- */
-    /* -------------------------------------------------- */
+    /* ------------ загрузка медиа ------------ */
     let fileURL = '';
 
-    if (window.editingPostId) {                        // режим редактирования
+    if (window.editingPostId) {                       // редактируем
       fileURL = window.editingFileURL;
-    } else if (category === 'video') {                 // YouTube‑ссылка
-      fileURL = document.getElementById('youtubeLink').value.trim();
-      if (!fileURL) throw new Error('Укажите ссылку на YouTube');
-      if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-    } else if (category === 'photo') {                 // галерея изображений
-      const files = [...document.getElementById('fileInput').files];
-      if (!files.length)     throw new Error('Выберите хотя бы одно фото');
-      if (files.length > 10) throw new Error('Максимум 10 изображений');
+    } else if (category === 'video') {                // YouTube
+      fileURL = youtubeLink.value.trim();
+      if (!fileURL || !getYoutubeVideoId(fileURL))
+        throw new Error('Укажите корректную ссылку YouTube');
+    } else if (category === 'photo') {                // галерея
+      const files = [...fileInput.files];
+      if (!files.length)          throw new Error('Выберите хотя бы одно фото');
+      if (files.length > 10)      throw new Error('Максимум 10 изображений');
       fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));
-    } else {                                           // music | uploaded_video
-      const file = document.getElementById('fileInput').files[0];
+    } else {                                          // music | uploaded_video
+      const file = fileInput.files[0];
       if (!file) throw new Error('Выберите файл');
       fileURL = await uploadFile(file, category);
     }
 
-    /* ----- здесь оставь свой существующий код,
-       который собирает newPost, пишет в Firestore
-       и обновляет прогресс‑бар ----- */
+    progressBar.style.width = '80%';
 
+    /* ------------ мета‑для музыки ------------ */
+    const trackDateValue = trackDate.value;
+    let   coverURL       = window.editingCoverURL || '';
+    if (coverFile.files[0]) coverURL = await uploadFile(coverFile.files[0], 'covers');
+
+    /* ------------ собираем объект ------------ */
+    const newPost = {
+      category,
+      description,
+      author   : auth.currentUser.email,
+      timestamp: serverTimestamp()
+    };
+    if (Array.isArray(fileURL)) newPost.photos  = fileURL;
+    else                        newPost.fileURL = fileURL;
+
+    if (trackDateValue) newPost.trackDate = trackDateValue;
+    if (coverURL)       newPost.coverURL  = coverURL;
+
+    if (isArchive) {
+      newPost.isArchive  = true;
+      newPost.archiveSeq = archiveSeq;
+      newPost.unlockType = unlockTypeVal;
+      if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
+      if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+      if (taskHint) newPost.taskHint = taskHint;
+    }
+
+    /* ------------ пишем в Firestore ------------ */
+    if (window.editingPostId) {
+      await updateDoc(doc(db, 'posts', window.editingPostId), newPost);
+      window.editingPostId  = null;
+      window.editingFileURL = '';
+      window.editingCoverURL= '';
+    } else {
+      await addDoc(collection(db, 'posts'), newPost);
+    }
+
+    progressBar.style.width = '100%';
+    alert('✅ Пост сохранён!');
+    loadPosts();
+    loadStats();
+
+    /* ------------ очистка формы ------------ */
+    e.target.reset();
+    filePreview.innerHTML    = '';
+    youtubePreview.innerHTML = '';
+    quizBuilder.innerHTML    = '';
+    isArchiveCh.checked      = false;
+    archiveSettings.style.display = 'none';
   } catch (err) {
-    console.error('Ошибка:', err);
+    console.error(err);
     alert(`Ошибка: ${err.message}`);
   } finally {
     submitBtn.disabled = false;
-    setTimeout(() => { progressBar.style.width = '0%'; }, 1000);
+    setTimeout(() => (progressBar.style.width = '0%'), 800);
   }
 });
 
 
 
 
-      progressBar.style.width = '80%';
 
   // 1) Дата трека — только если музыка, иначе пусто
     const trackDateValue = document.getElementById('trackDate').value || '';
