@@ -1015,13 +1015,16 @@ function displayPosts(containerId, posts) {
                     </iframe>
                 </div>`;
         } else if (post.category === 'uploaded_video') {
-            mediaContent = `
-                <video controls width="100%" preload="none">
-                    <source src="${post.fileURL}" type="video/mp4">
-                    Ваш браузер не поддерживает HTML5-видео.
-                </video>`;
-        }
-        
+    const defaultPoster = 'https://placehold.co/600x400?text=Preview';
+    mediaContent = `
+        <video id="video-${post.id}" class="uploaded-video" controls playsinline webkit-playsinline preload="metadata" 
+               poster="${ post.posterURL ? post.posterURL : defaultPoster }" 
+               onloadedmetadata="captureFrame(this)" style="max-width: 100%;">
+            <source src="${post.fileURL}" type="video/mp4">
+            Ваш браузер не поддерживает HTML5-видео.
+        </video>`;
+}
+
         return `
             <div class="post" data-post-id="${post.id}">
                 ${mediaContent}
@@ -1257,38 +1260,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Обработка ошибок изображений
-document.addEventListener('error', function(e) {
-    if (e.target.tagName.toLowerCase() === 'img') {
-        e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
-    }
-}, true);
+    // Обработка ошибок изображений
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName.toLowerCase() === 'img') {
+            e.target.src = 'https://placehold.co/300x300?text=Error+loading+image';
+        }
+    }, true);
 
-window.addEventListener('load', () => {
-    if (!window.Telegram?.WebApp) {
-        console.warn('Not in Telegram WebApp');
-        document.getElementById('authWarning').style.display = 'flex';
-    }
-});
-window.showSection = function(sectionId) {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-    if (clickedLink) {
-        clickedLink.classList.add('active');
+    // Функция захвата кадра из загруженного видео и установки в качестве poster
+    function captureFrame(video) {
+      const defaultPoster = 'https://placehold.co/600x400?text=Preview';
+      // Если у видео уже задан постер, отличный от дефолтного, то ничего не делаем
+      if (video.poster && video.poster !== defaultPoster) return;
+      // Если длительность недоступна – выйти
+      if (!video.duration || video.duration === Infinity) return;
+      // Поставим время либо 1 секунда, либо середину видео
+      video.currentTime = Math.min(1, video.duration / 2);
+      video.addEventListener('seeked', function handler() {
+          try {
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataURL = canvas.toDataURL();
+              video.poster = dataURL;
+          } catch (e) {
+              console.error('Error capturing video frame:', e);
+          }
+          video.removeEventListener('seeked', handler);
+      });
     }
 
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
+    window.addEventListener('load', () => {
+        if (!window.Telegram?.WebApp) {
+            console.warn('Not in Telegram WebApp');
+            document.getElementById('authWarning').style.display = 'flex';
+        }
     });
-    
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
-};
+
+    window.showSection = function(sectionId) {
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+        if (clickedLink) {
+            clickedLink.classList.add('active');
+        }
+
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+        }
+    };
 </script>
 </body>
 </html>
+
