@@ -671,9 +671,8 @@
         <div id="video" class="section">
             <div class="posts-grid" id="videoPosts">
                 <div class="loading">Загрузка видео</div>
-            </div>
-        </div>
-    </div><!-- Секция Архив (по умолчанию пустая и закрытая) -->
+
+        <!-- Секция Архив (по умолчанию пустая и закрытая) -->
         <div id="archive" class="section">
           <div class="posts-grid" id="archivePosts">
             <div class="loading">Архив пока закрыт</div>
@@ -966,25 +965,39 @@ async function initTelegram() {
         currentUser = tg.initDataUnsafe.user;
         console.log('Current user:', currentUser);
         
-        if (!currentUser?.id) {
-            throw new Error('No user data available');
-        // —————— Инициализация прогресса пользователя ——————
-        const progRef = doc(db, 'userProgress', String(currentUser.id));
-        let progSnap = await getDoc(progRef);
-        if (!progSnap.exists()) {
-          // создаём начальный документ
-          await setDoc(progRef, {
-            playCount: 0,
-            firstTaskCompleted: false,
-            archiveUnlocked: []
-          });
-          progSnap = await getDoc(progRef);
-        }
-        // сразу показать или скрыть пункт меню «Архив»
-        toggleArchiveNav(progSnap.data().firstTaskCompleted);
-        // ————————————————————————————————————————————————
-            
-        }
+        // Проверяем, что есть пользователь
+    if (!currentUser?.id) {
+      throw new Error('No user data available');
+    }
+
+    // —————— Инициализация прогресса пользователя ——————
+    const progRef = doc(db, 'userProgress', String(currentUser.id));
+    let progSnap = await getDoc(progRef);
+    if (!progSnap.exists()) {
+      await setDoc(progRef, {
+        playCount: 0,
+        firstTaskCompleted: false,
+        archiveUnlocked: []
+      });
+      progSnap = await getDoc(progRef);
+    }
+    toggleArchiveNav(progSnap.data().firstTaskCompleted);
+    // ————————————————————————————————————————————————
+
+    // Записываем посещение
+    await recordVisit({ … });
+
+    // Скрываем предупреждение
+    …
+
+    // Загружаем профиль и посты
+    await loadProfile();
+    await loadPosts();
+
+  } catch (error) {
+    …
+  }
+}
 
         // Записываем посещение
        await recordVisit({
