@@ -655,30 +655,36 @@
         </a>
     </div>
 
-    <div class="content">
-        <div id="all" class="section active">
-            <div class="posts-grid" id="allPosts">
-                <div class="loading">Загрузка постов</div>
-            </div>
-        </div>
-        
-        <div id="music" class="section">
-            <div class="posts-grid" id="musicPosts">
-                <div class="loading">Загрузка музыки</div>
-            </div>
-        </div>
+  <div class="content">
+  <!-- Главная -->
+  <div id="all" class="section active">
+    <div class="posts-grid" id="allPosts">
+      <div class="loading">Загрузка постов</div>
+    </div>
+  </div>
 
-        <div id="video" class="section">
-            <div class="posts-grid" id="videoPosts">
-                <div class="loading">Загрузка видео</div>
+  <!-- Музыка -->
+  <div id="music" class="section">
+    <div class="posts-grid" id="musicPosts">
+      <div class="loading">Загрузка музыки</div>
+    </div>
+  </div>
 
-        <!-- Секция Архив (по умолчанию пустая и закрытая) -->
-        <div id="archive" class="section">
-          <div class="posts-grid" id="archivePosts">
-            <div class="loading">Архив пока закрыт</div>
-          </div>
-        </div>
-    </div> <!-- конец .content -->
+  <!-- Видео -->
+  <div id="video" class="section">
+    <div class="posts-grid" id="videoPosts">
+      <div class="loading">Загрузка видео</div>
+    </div>
+  </div>
+
+  <!-- Архив (скрыт по умолчанию) -->
+  <div id="archive" class="section">
+    <div class="posts-grid" id="archivePosts">
+      <div class="loading">Архив пока закрыт</div>
+    </div>
+  </div>
+</div>
+
 
     <!-- Блок предупреждения об авторизации -->
     <div id="authWarning" class="auth-warning">
@@ -966,11 +972,11 @@ async function initTelegram() {
         console.log('Current user:', currentUser);
         
         // Проверяем, что есть пользователь
-    if (!currentUser?.id) {
+   if (!currentUser?.id) {
       throw new Error('No user data available');
     }
 
-    // —————— Инициализация прогресса пользователя ——————
+    // Инициализация прогресса
     const progRef = doc(db, 'userProgress', String(currentUser.id));
     let progSnap = await getDoc(progRef);
     if (!progSnap.exists()) {
@@ -982,20 +988,24 @@ async function initTelegram() {
       progSnap = await getDoc(progRef);
     }
     toggleArchiveNav(progSnap.data().firstTaskCompleted);
-    // ————————————————————————————————————————————————
 
     // Записываем посещение
-    await recordVisit({ … });
+    await recordVisit({
+      email: currentUser.username || 'Гость',
+      photoURL: currentUser.photo_url || null,
+      displayName: currentUser.first_name || 'Гость'
+    });
 
     // Скрываем предупреждение
-    …
+    document.getElementById('authWarning').style.display = 'none';
 
     // Загружаем профиль и посты
     await loadProfile();
     await loadPosts();
 
   } catch (error) {
-    …
+    console.error('Initialization failed:', error);
+    document.getElementById('authWarning').style.display = 'flex';
   }
 }
 
