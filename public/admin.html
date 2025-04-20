@@ -469,6 +469,36 @@
   <div class="preview-container" id="coverPreview"></div>
 </div>
 
+      <!-- ===== Блок настроек архива ===== -->
+      <label style="margin-top:15px">
+        <input type="checkbox" id="isArchive">
+        Опубликовать в «Архиве»
+      </label>
+
+      <div id="archiveSettings" style="display:none; margin:10px 0 20px 20px; padding-left:10px; border-left:2px solid var(--neon-color);">
+        <label for="archiveSeq">Номер задания (archiveSeq):</label>
+        <input type="number" id="archiveSeq" min="1" placeholder="1">
+
+        <label for="unlockType">Тип разблокировки:</label>
+        <select id="unlockType">
+          <option value="auto">auto (авто)</option>
+          <option value="password">password</option>
+          <option value="quiz">quiz</option>
+          <option value="final">final (кнопка)</option>
+        </select>
+
+        <div id="passwordGroup" style="display:none; margin-top:10px;">
+          <label for="unlockPassword">Пароль:</label>
+          <input type="text" id="unlockPassword" placeholder="A123">
+        </div>
+
+        <div id="quizGroup" style="display:none; margin-top:10px;">
+          <label for="unlockQuiz">Quiz JSON (массив вопросов):</label>
+          <textarea id="unlockQuiz" rows="3" placeholder='[{"question":"?","options":["A","B"],"answer":"A"}]'></textarea>
+        </div>
+      </div>
+      <!-- ===== /Блок архива ===== -->
+
 
       <div class="progress-bar">
         <div class="progress"></div>
@@ -750,32 +780,52 @@ import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-fi
     if (tabId === 'stats') loadStats();
   };
 
-  /* ====== Переключение типа поста (категория) ====== */
+ // ====== Переключение типа поста (категория) ======
 document.getElementById('category').addEventListener('change', function(e) {
   const cat = e.target.value;
-  if (cat === 'video') {
-    // Если выбрана категория "Видео (YouTube)"
-    document.getElementById('fileInputGroup').style.display = 'none';
-    document.getElementById('youtubeLinkGroup').style.display = 'block';
-  } else if (cat === 'uploaded_video') {
-    // Если выбрана категория "Видео (загруженное)"
-    document.getElementById('fileInputGroup').style.display = 'block';
-    document.getElementById('youtubeLinkGroup').style.display = 'none';
-  } else {
-    // Для фото и музыки
+
+  // Показываем/прячем input-файл и YouTube‑ссылку
+  document.getElementById('fileInputGroup').style.display    = (cat === 'video') ? 'none' : 'block';
+  document.getElementById('youtubeLinkGroup').style.display = (cat === 'video') ? 'block' : 'none';
+
+  // Для загруженного видео
+  if (cat === 'uploaded_video') {
     document.getElementById('fileInputGroup').style.display = 'block';
     document.getElementById('youtubeLinkGroup').style.display = 'none';
   }
-  // в конце функции change:
-const musicMeta = document.getElementById('musicMeta');
-if (e.target.value === 'music') {
-  musicMeta.style.display = 'block';
-} else {
-  musicMeta.style.display = 'none';
-}
-  document.getElementById('filePreview').innerHTML = '';
+
+  // Мета‑блок для музыки
+  document.getElementById('musicMeta').style.display = (cat === 'music') ? 'block' : 'none';
+
+  // Сброс превью
+  document.getElementById('filePreview').innerHTML    = '';
   document.getElementById('youtubePreview').innerHTML = '';
 });
+
+
+// ====== Логика показа/скрытия полей Архива ======
+// 1) Получаем элементы
+const isArchiveCh     = document.getElementById('isArchive');
+const archiveSettings = document.getElementById('archiveSettings');
+const unlockType      = document.getElementById('unlockType');
+const passwordGroup   = document.getElementById('passwordGroup');
+const quizGroup       = document.getElementById('quizGroup');
+
+// 2) При клике на чекбокс «Опубликовать в Архиве»
+isArchiveCh.addEventListener('change', () => {
+  archiveSettings.style.display = isArchiveCh.checked ? 'block' : 'none';
+});
+
+// 3) При выборе типа разблокировки
+unlockType.addEventListener('change', () => {
+  passwordGroup.style.display = (unlockType.value === 'password') ? 'block' : 'none';
+  quizGroup    .style.display = (unlockType.value === 'quiz')     ? 'block' : 'none';
+});
+
+// 4) Скрываем настройки архива по умолчанию
+archiveSettings.style.display = 'none';
+passwordGroup.style.display   = 'none';
+quizGroup.style.display       = 'none';
 
 
   /* ====== Обработка загрузки файла поста (uploadFile) ====== */
@@ -875,6 +925,21 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
       const category    = document.getElementById('category').value;
 const description = document.getElementById('description').value.trim();
 
+  // —— Извлекаем параметры архива ——
+  const isArchive      = isArchiveCh.checked;
+  const archiveSeq     = parseInt(document.getElementById('archiveSeq').value) || null;
+  const unlockTypeVal  = unlockType.value;
+  const unlockPassword = document.getElementById('unlockPassword').value.trim();
+  let   unlockQuiz     = [];
+
+  if (isArchive && unlockTypeVal === 'quiz') {
+    try {
+      unlockQuiz = JSON.parse(document.getElementById('unlockQuiz').value);
+    } catch {
+      throw new Error('Неверный JSON в блоке Quiz');
+    }
+  }
+
 // единая декларация
 let fileURL = '';
 
@@ -918,6 +983,14 @@ else {
     };
     if (trackDateValue) newPost.trackDate = trackDateValue;
     if (coverURL)     newPost.coverURL   = coverURL;
+  if (isArchive) {
+    newPost.isArchive       = true;
+    newPost.archiveSeq      = archiveSeq;
+    newPost.unlockType      = unlockTypeVal;
+    if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
+    if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+  }
+
 
 // 4) Если редактируем — вызываем updateDoc, иначе addDoc
 if (window.editingPostId) {
@@ -1305,6 +1378,18 @@ window.editPost = async function(postId) {
   // 3) заполняем описание и мета-данные
   document.getElementById('description').value = data.description || '';
   document.getElementById('trackDate').value   = data.trackDate   || '';
+
+// — проставляем архивные поля —
+isArchiveCh.checked = data.isArchive || false;
+isArchiveCh.dispatchEvent(new Event('change'));
+
+if (data.archiveSeq)     document.getElementById('archiveSeq').value     = data.archiveSeq;
+if (data.unlockType)     unlockType.value                              = data.unlockType;
+unlockType.dispatchEvent(new Event('change'));
+
+if (data.unlockPassword) document.getElementById('unlockPassword').value = data.unlockPassword;
+if (data.unlockQuiz)     document.getElementById('unlockQuiz').value     = JSON.stringify(data.unlockQuiz, null, 2);
+
 
   // 4) если есть обложка — показываем preview
   if (window.editingCoverURL) {
