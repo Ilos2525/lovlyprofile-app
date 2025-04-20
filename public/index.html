@@ -1232,7 +1232,17 @@ function initMusicPlaylist() {
 
   // сразу вешаем клики на кнопки
   window.musicPlaylist.forEach((item, i) => {
-    item.el.querySelector('.btn-play').onclick = () => playTrack(i);
+      const playBtn = item.el.querySelector('.btn-play');
+  playBtn.onclick = () => {
+    const audio = item.audio;
+    if (!audio.paused) {
+      // если уже играет — ставим на паузу
+      audio.pause();
+    } else {
+      // иначе запускаем/переключаем трек
+      playTrack(i);
+    }
+  };
     item.el.querySelector('.btn-prev').onclick = playPrev;
     item.el.querySelector('.btn-next').onclick = playNext;
     // клик по бару — seek
@@ -1291,11 +1301,18 @@ function updateUI() {
 // обновление только прогресса
 function updateProgress(idx) {
   if (idx !== currentMusicIndex) return;
-  const fill = musicPlaylist[idx].el.querySelector('.audio-progress .fill');
-  fill.style.width = `${(musicPlaylist[idx].audio.currentTime / musicPlaylist[idx].audio.duration) * 100}%`;
-  // в мини‑плеере
+  const item = musicPlaylist[idx];
+  const fill = item.el.querySelector('.audio-progress .fill');
+  fill.style.width = `${(item.audio.currentTime / item.audio.duration) * 100}%`;
+
+  // — новая строка:
+  item.el.querySelector('.audio-progress .current').textContent =
+    formatTime(item.audio.currentTime);
+
+  // обновляем мини‑плеер тоже
   updateUI();
 }
+
 
 // утилита форматирования
 function formatTime(sec) {
@@ -1584,24 +1601,36 @@ function captureFrame(video) {
     });
 
     window.showSection = function(sectionId) {
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-        
-        const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-        if (clickedLink) {
-            clickedLink.classList.add('active');
-        }
+  // 1) Сброс ссылок
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+  });
 
-        document.querySelectorAll('.section').forEach(section => {
-            section.classList.remove('active');
-        });
-        
-        const targetSection = document.getElementById(sectionId);
-        if (targetSection) {
-            targetSection.classList.add('active');
-        }
-    };
+  // 2) Подсветить выбранную
+  const clickedLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+  if (clickedLink) clickedLink.classList.add('active');
+
+  // 3) Спрятать все секции
+  document.querySelectorAll('.section').forEach(section => {
+    section.classList.remove('active');
+  });
+
+  // 4) Показать нужную
+  const targetSection = document.getElementById(sectionId);
+  if (targetSection) targetSection.classList.add('active');
+
+  // ==== Новый код для мини‑плеера ====
+  // Если мы на вкладке "music" — скрываем мини‑плеер,
+  // иначе — показываем его, но только если уже есть текущий трек.
+  const mini = document.querySelector('.mini-player');
+  if (mini) {
+    if (sectionId === 'music') {
+      mini.classList.remove('show');
+    } else if (currentMusicIndex >= 0) {
+      mini.classList.add('show');
+    }
+  }
+};
 </script>
 </body>
 </html>
