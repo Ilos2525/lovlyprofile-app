@@ -1096,17 +1096,17 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
 
 
-  // 1) Дата трека — только если музыка, иначе пусто
+  
     const trackDateValue = document.getElementById('trackDate').value || '';
 
-    // 2) Обложка: есть старая? используем её, потом — возможная замена файлом
+   
     let coverURL = window.editingCoverURL || '';  
     const coverFile = document.getElementById('coverFile').files[0];
     if (coverFile) {
       coverURL = await uploadFile(coverFile, 'covers');
     }
 
-    // 3) Собираем объект
+ 
    const newPost = {
   category,
   description,
@@ -1132,7 +1132,7 @@ if (taskHint) newPost.taskHint = taskHint;
 
 
 
-// 4) Если редактируем — вызываем updateDoc, иначе addDoc
+
 if (window.editingPostId) {
   await updateDoc(doc(db, 'posts', window.editingPostId), newPost);
 } else {
