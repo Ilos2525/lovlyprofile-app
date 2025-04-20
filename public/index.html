@@ -1041,42 +1041,56 @@ window.unlockFinal = async seq => {
   loadArchivePosts();
 };
 /* ---------- КВИЗ‑ОВЕРЛЕЙ ---------- */
-window.startQuiz = function(seq, quizArr){
-  let cur = 0;                             // индекс текущего вопроса
-  const ov = document.createElement('div');ov.className='quiz-overlay';
+window.startQuiz = function (seq, quizArr) {
+  let cur = 0;                                       // индекс текущего вопроса
+  const ov = document.createElement('div');
+  ov.className = 'quiz-overlay';
   document.body.appendChild(ov);
 
   const render = () => {
     const q = quizArr[cur];
+
     ov.innerHTML = `
       <div class="quiz-card">
         ${q.imgURL ? `<img src="${q.imgURL}" class="quiz-img" loading="lazy">` : ''}
         <div class="quiz-q">${q.question}</div>
-      ${q.options.map(opt => `
-  <button class="quiz-opt">
-    ${opt.imgURL ? `<img src="${opt.imgURL}" class="quiz-img">` : opt.text}
-  </button>
-`).join('')}
+        ${q.options
+          .map(
+            opt => `
+            <button class="quiz-opt">
+              ${
+                opt.imgURL
+                  ? `<img src="${opt.imgURL}" class="quiz-img">`
+                  : opt.text
+              }
+            </button>`
+          )
+          .join('')}
         <button class="quiz-close">✖ Закрыть</button>
       </div>`;
-    /* навешиваем обработчики */
-    ov.querySelectorAll('.quiz-opt').forEach(btn=>{
-      btn.onclick = async () => {
-  // любая кнопка = правильный ответ
-  if (++cur === quizArr.length) {
-    await markTaskUnlocked(seq);   // всё пройдено
-    ov.remove();
-    loadArchivePosts();
-    alert('✅ Задание выполнено!');
-  } else {
-    render();                      // следующий вопрос
-  }
-};
 
-    ov.querySelector('.quiz-close').onclick = ()=> ov.remove();
+    /* --- обработчики вариантов --- */
+    ov.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.onclick = async () => {
+        // любой выбор считается правильным
+        if (++cur === quizArr.length) {
+          await markTaskUnlocked(seq);
+          ov.remove();
+          loadArchivePosts();
+          alert('✅ Задание выполнено!');
+        } else {
+          render(); // следующий вопрос
+        }
+      };
+    }); /* ←←←   ВОТ ЭТОЙ СКОБКИ/СКОБКИ НЕ ХВАТАЛО   */
+
+    /* --- закрыть квиз --- */
+    ov.querySelector('.quiz-close').onclick = () => ov.remove();
   };
+
   render();
 };
+
 
 function displayPosts(containerId, posts) {
   /* ---- сортируем, чтобы НОВЫЕ были первыми ---- */
