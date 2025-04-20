@@ -977,21 +977,24 @@ const unlocked = (uType === 'auto') || await isTaskUnlocked(seq);
             </div>
           </div>`;
       } else {
-        /* ----- закрыт ----- */
-        let controls = '';
-        switch (p.unlockType) {
-          case 'password':
-            controls = `
-              <input id="pwd-${seq}" placeholder="Пароль">
-              <button onclick="unlockPassword(${seq}, '${p.unlockPassword}')">OK</button>`;
-            break;
-          case 'quiz':
-            controls = `<button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>Пройти квиз</button>`;
-            break;
-          case 'final':
-            controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
-            break;
-        }
+       /* ----- закрыт ----- */
+let controls = '';
+switch (uType) {                 // ← исправлено
+  case 'password':
+    controls = `
+      <input id="pwd-${seq}" placeholder="Пароль">
+      <button onclick="unlockPassword(${seq}, '${p.unlockPassword}')">OK</button>`;
+    break;
+  case 'quiz':
+    controls = `<button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>
+                  Пройти квиз
+                </button>`;
+    break;
+  case 'final':
+    controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
+    break;
+}
+
         html += `
          <div class="post locked">
   <div class="lock-box">
