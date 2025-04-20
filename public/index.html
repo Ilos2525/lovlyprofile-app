@@ -512,6 +512,126 @@
     color: var(--neon-color);
     text-decoration: none;
 }
+/* —— Расширенные стили для аудиопостов —— */
+.audio-post {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--neon-color);
+  overflow: hidden;
+}
+.audio-cover img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+.audio-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.audio-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.audio-controls button {
+  background: transparent;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--neon-color);
+}
+.audio-controls button:hover {
+  transform: scale(1.1);
+}
+.audio-progress {
+  margin-top: 8px;
+}
+.audio-progress .bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(0,255,204,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.audio-progress .fill {
+  width: 0;
+  height: 100%;
+  background: var(--neon-color);
+  transition: width 0.1s linear;
+}
+.audio-progress .time {
+  font-size: 0.8em;
+  margin-top: 4px;
+  color: var(--secondary-text);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* —— Мини‑плеер внизу экрана —— */
+.mini-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border-top: 1px solid var(--neon-color);
+  padding: 10px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  z-index: 500;
+}
+.mini-player.show {
+  display: flex;
+}
+.mini-player img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.mini-player .info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.mini-player .info .title {
+  font-size: 14px;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-player .mini-controls button {
+  background: transparent;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  color: var(--neon-color);
+  transition: var(--transition);
+}
+.mini-player .mini-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(0,255,204,0.2);
+  border-radius: 2px;
+  margin-top: 4px;
+  position: relative;
+}
+.mini-player .mini-progress .fill {
+  width: 0;
+  height: 100%;
+  background: var(--neon-color);
+}
+    
 </style>
 <body>
     <div class="profile-section">
@@ -777,9 +897,14 @@ async function loadPosts() {
         // Показываем все фото посты в разделе "Главная"
         displayPosts('allPosts', posts.filter(post => post.category === 'photo' || post.category === 'uploaded_video'));
         
-        // Фильтруем музыку и видео
-        displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
-        displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
+            // Фильтруем музыку
+    displayPosts('musicPosts', posts.filter(post => post.category === 'music'));
+    // — сразу инициализируем плейлист и вешаем клики на кнопки
+    initMusicPlaylist();
+
+    // Фильтруем видео
+    displayPosts('videoPosts', posts.filter(post => post.category === 'video'));
+
 
     } catch (error) {
         console.error('Error loading posts:', error);
@@ -995,15 +1120,35 @@ function displayPosts(containerId, posts) {
         if (post.category === 'photo') {
             mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
         } else if (post.category === 'music') {
-            mediaContent = `
-                <div class="audio-post">
-                    <h3 class="audio-title">${post.description}</h3>
-                    <div class="audio-player">
-                        <audio controls preload="none">
-                            <source src="${post.fileURL}" type="audio/mpeg">
-                        </audio>
-                    </div>
-                </div>`;
+-    mediaContent = `
+-        <div class="audio-post">
+-            <h3 class="audio-title">${post.description}</h3>
+-            <div class="audio-player">
+-                <audio controls preload="none">
+-                    <source src="${post.fileURL}" type="audio/mpeg">
+-                </audio>
+-            </div>
+-        </div>`;
++    // подготовка обложки
++    const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
++    mediaContent = `
++        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
++            <div class="audio-cover">
++                <img src="${cover}" alt="Cover for ${post.description}">
++            </div>
++            <div class="audio-info">
++                <h3 class="audio-title">${post.description}</h3>
++                <div class="audio-controls">
++                    <button class="btn-prev">⏮️</button>
++                    <button class="btn-play">▶️</button>
++                    <button class="btn-next">⏭️</button>
++                </div>
++                <div class="audio-progress">
++                    <div class="bar"><div class="fill"></div></div>
++                    <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
++                </div>
++            </div>
++        </div>`;
         } else if (post.category === 'video') {
             const videoId = getYoutubeVideoId(post.fileURL);
             mediaContent = `
@@ -1076,7 +1221,127 @@ function displayPosts(containerId, posts) {
     });
 }
 
+// —— Audio Playlist & Mini‑Player —— //
+window.musicPlaylist = [];
+let currentMusicIndex = -1;
 
+// инициализируем плейлист после рендера музыки
+function initMusicPlaylist() {
+  const posts = document.querySelectorAll('.audio-post');
+  window.musicPlaylist = Array.from(posts).map((el, i) => {
+    const src = el.dataset.src;
+    const audio = new Audio(src);
+    audio.preload = 'metadata';
+    // при окончании трека — следующий
+    audio.onended = playNext;
+    // обновление прогресса
+    audio.ontimeupdate = () => updateProgress(i);
+    return { el, audio, title: el.querySelector('.audio-title').textContent };
+  });
+
+  // сразу вешаем клики на кнопки
+  window.musicPlaylist.forEach((item, i) => {
+    item.el.querySelector('.btn-play').onclick = () => playTrack(i);
+    item.el.querySelector('.btn-prev').onclick = playPrev;
+    item.el.querySelector('.btn-next').onclick = playNext;
+    // клик по бару — seek
+    const bar = item.el.querySelector('.audio-progress .bar');
+    bar.onclick = e => {
+      const rect = bar.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      item.audio.currentTime = pct * item.audio.duration;
+      updateProgress(i);
+    };
+  });
+}
+
+// воспроизведение по индексу
+function playTrack(index) {
+  // пауза текущего
+  if (currentMusicIndex >= 0) musicPlaylist[currentMusicIndex].audio.pause();
+  currentMusicIndex = index;
+  const { audio } = musicPlaylist[index];
+  audio.play();
+  showMiniPlayer();
+  updateUI();
+}
+
+// следующий
+function playNext() {
+  const next = (currentMusicIndex + 1) % musicPlaylist.length;
+  playTrack(next);
+}
+// предыдущий
+function playPrev() {
+  const prev = (currentMusicIndex - 1 + musicPlaylist.length) % musicPlaylist.length;
+  playTrack(prev);
+}
+
+// обновить прогресс‑бар и иконку
+function updateUI() {
+  musicPlaylist.forEach((item, i) => {
+    const btn = item.el.querySelector('.btn-play');
+    btn.textContent = (i === currentMusicIndex && !item.audio.paused) ? '⏸️' : '▶️';
+    // duration
+    const dur = item.el.querySelector('.audio-progress .duration');
+    if (item.audio.duration) dur.textContent = formatTime(item.audio.duration);
+  });
+  // мини‑плеер
+  const mini = document.querySelector('.mini-player');
+  const img = mini.querySelector('img');
+  const title = mini.querySelector('.title');
+  const prog = mini.querySelector('.mini-progress .fill');
+  const ctl = musicPlaylist[currentMusicIndex];
+  img.src = ctl.el.querySelector('.audio-cover img').src;
+  title.textContent = ctl.title;
+  prog.style.width = `${(ctl.audio.currentTime / ctl.audio.duration) * 100}%`;
+}
+
+// обновление только прогресса
+function updateProgress(idx) {
+  if (idx !== currentMusicIndex) return;
+  const fill = musicPlaylist[idx].el.querySelector('.audio-progress .fill');
+  fill.style.width = `${(musicPlaylist[idx].audio.currentTime / musicPlaylist[idx].audio.duration) * 100}%`;
+  // в мини‑плеере
+  updateUI();
+}
+
+// утилита форматирования
+function formatTime(sec) {
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  const s = Math.floor(sec%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+// показываем мини‑плеер
+function showMiniPlayer() {
+  let mini = document.querySelector('.mini-player');
+  if (!mini) {
+    mini = document.createElement('div');
+    mini.className = 'mini-player';
+    mini.innerHTML = `
+      <img src="" alt="cover"><div class="info"><div class="title"></div>
+      <div class="mini-controls">
+        <button class="btn-prev">⏮️</button>
+        <button class="btn-play">▶️</button>
+        <button class="btn-next">⏭️</button>
+      </div>
+      <div class="mini-progress"><div class="fill"></div></div>
+    `;
+    document.body.appendChild(mini);
+    // клики
+    mini.querySelector('.btn-prev').onclick = playPrev;
+    mini.querySelector('.btn-play').onclick = () => playTrack(currentMusicIndex);
+    mini.querySelector('.btn-next').onclick = playNext;
+    mini.onclick = () => {
+      // скролл к разделу Музыка
+      document.querySelector(`[onclick="showSection('music')"]`).click();
+      document.getElementById('music').scrollIntoView({ behavior: 'smooth' });
+    };
+  }
+  mini.classList.add('show');
+  updateUI();
+}
 
 
         // Функция переключения отображения комментариев
