@@ -941,7 +941,6 @@ async function loadArchivePosts() {
     for (const d of snap.docs) {
       const p   = d.data();
       const seq = p.archiveSeq ?? 0;
-      const unlocked = p.unlockType === 'auto' || await isTaskUnlocked(seq);
 
       // превью (если массив фото — берём первую)
       const firstPic = Array.isArray(p.photos) && p.photos.length
