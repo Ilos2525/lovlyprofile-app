@@ -898,26 +898,26 @@ else {
 
       progressBar.style.width = '80%';
 
-   // 1) Считываем дату и URL обложки из формы
-    const trackDateValue = document.getElementById('trackDate').value;       // строка "YYYY-MM-DD"
-    let coverURL = document.getElementById('coverURL').value.trim();         // URL, если введён
+  // 1) Дата трека — только если музыка, иначе пусто
+    const trackDateValue = document.getElementById('trackDate').value || '';
 
-    // 2) Если загружен файл обложки — отправляем в Storage
+    // 2) Обложка: есть старая? используем её, потом — возможная замена файлом
+    let coverURL = window.editingCoverURL || '';  
     const coverFile = document.getElementById('coverFile').files[0];
     if (coverFile) {
       coverURL = await uploadFile(coverFile, 'covers');
     }
 
-    // 3) Формируем объект для Firestore
+    // 3) Собираем объект
     const newPost = {
       category,
       fileURL,
       description,
       author: auth.currentUser.email,
-      timestamp: serverTimestamp(),      // serverTimestamp() нужно импортировать из firestore
-      trackDate: trackDateValue         // сохраняем строку "YYYY-MM-DD"
+      timestamp: serverTimestamp()
     };
-    if (coverURL) newPost.coverURL = coverURL;
+    if (trackDateValue) newPost.trackDate = trackDateValue;
+    if (coverURL)     newPost.coverURL   = coverURL;
 
 // 4) Если редактируем — вызываем updateDoc, иначе addDoc
 if (window.editingPostId) {
@@ -1290,31 +1290,29 @@ window.editPost = async function(postId) {
   if (!docSnap.exists()) return alert('Пост не найден');
   const data = docSnap.data();
 
-  // 1) Переключаемся на таб «Добавить пост»
   showTab('posts');
-
-  // 2) Заполняем форму
   document.getElementById('category').value = data.category;
   document.getElementById('category').dispatchEvent(new Event('change'));
 
-  // сохраняем оригинальный URL, чтобы при submit не гонять повторно uploadFile
-  window.editingFileURL = data.fileURL;
+  // 1) сохраняем в глобальную переменную старые URLы
+  window.editingFileURL  = data.fileURL || '';
+  window.editingCoverURL = data.coverURL || '';
 
-  // прячем инпут выбора файла/ссылки — редактируем только описание и дату/обложку (для музыки)
-  document.getElementById('fileInputGroup').style.display = 'none';
-  document.getElementById('youtubeLinkGroup').style.display = 'none';
+  // 2) прячем выбор основного файла
+  document.getElementById('fileInputGroup').style.display     = 'none';
+  document.getElementById('youtubeLinkGroup').style.display   = 'none';
 
+  // 3) заполняем описание и мета-данные
   document.getElementById('description').value = data.description || '';
-  document.getElementById('trackDate').value    = data.trackDate || '';
-  document.getElementById('coverURL').value     = data.coverURL || '';
-  if (data.coverURL) {
+  document.getElementById('trackDate').value   = data.trackDate   || '';
+
+  // 4) если есть обложка — показываем preview
+  if (window.editingCoverURL) {
     document.getElementById('coverPreview').innerHTML =
-      `<img src="${data.coverURL}" alt="Cover">`;
+      `<img src="${window.editingCoverURL}" alt="Cover">`;
   }
 
-  // 3) Флаг «мы редактируем» и сохранённый fileURL
   window.editingPostId = postId;
-  // (editingFileURL уже лежит в window.editingFileURL)
 };
 
 
