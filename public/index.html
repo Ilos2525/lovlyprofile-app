@@ -706,9 +706,37 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import {
   getFirestore, collection, query, orderBy, getDocs,
   doc, getDoc, setDoc, updateDoc, addDoc,
-  serverTimestamp, writeBatch, increment, where
+  serverTimestamp, writeBatch, increment, where,
+  arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+/* ---------- helpers для разблокировки архива ---------- */
+async function isTaskUnlocked(seq) {
+  const ref  = doc(db, 'userProgress', currentUser.id.toString());
+  const snap = await getDoc(ref);
+  return (snap.data()?.archiveUnlocked || []).includes(seq);
+}
+async function markTaskUnlocked(seq) {
+  await updateDoc(
+    doc(db, 'userProgress', currentUser.id.toString()),
+    { archiveUnlocked: arrayUnion(seq) }
+  );
+}
+/* ---------- UI‑коллбеки ---------- */
+window.unlockPassword = async (seq, correct) => {
+  const val = document.getElementById(`pwd-${seq}`).value.trim();
+  if (val === correct) { await markTaskUnlocked(seq); loadArchivePosts(); }
+  else alert('Неверный пароль');
+};
+window.unlockFinal = async seq => { await markTaskUnlocked(seq); loadArchivePosts(); };
+window.startQuiz = (seq, quizJson) => {
+  const q = quizJson[0];
+  const a = prompt(`${q.question}\n${q.options.join(', ')}`);
+  if (a?.trim() === q.answer) markTaskUnlocked(seq).then(loadArchivePosts);
+  else alert('Неверно');
+};
+
 
 // Конфигурация Firebase
 const firebaseConfig = {
@@ -852,31 +880,62 @@ async function loadArchivePosts() {
     }
 
     let html = '';
-    snap.docs.forEach(d => {
-      const p = d.data();
+    for (const d of snap.docs) {
+      const p   = d.data();
+      const seq = p.archiveSeq ?? 0;
+      const unlocked = p.unlockType === 'auto' || await isTaskUnlocked(seq);
 
-      // превью в зависимости от категории
+      // превью (если массив фото — берём первую)
+      const firstPic = Array.isArray(p.photos) && p.photos.length
+        ? p.photos[0]
+        : p.fileURL;
+
       const thumb =
         p.category === 'photo'
-          ? p.fileURL
+          ? firstPic
           : p.category === 'video'
               ? `https://img.youtube.com/vi/${getYoutubeVideoId(p.fileURL)}/mqdefault.jpg`
               : p.category === 'music'
                   ? (p.coverURL || 'https://via.placeholder.com/400x400?text=Track')
                   : p.category === 'uploaded_video'
-                      ? (p.coverURL || p.fileURL)
+                      ? (p.coverURL || firstPic)
                       : '';
 
-      html += `
-        <div class="post">
-          ${thumb ? `<img src="${thumb}" loading="lazy">` : ''}
-          <div class="post-content">
-            <div class="post-description">${p.description || ''}</div>
-            <div class="post-date">Задание ${p.archiveSeq ?? '-'}</div>
-          </div>
-        </div>`;
-    });
-
+      if (unlocked) {
+        /* ----- открыт ----- */
+        html += `
+          <div class="post">
+            ${thumb ? `<img src="${thumb}" loading="lazy">` : ''}
+            <div class="post-content">
+              <div class="post-description">${p.description || ''}</div>
+              <div class="post-date">Задание ${seq}</div>
+            </div>
+          </div>`;
+      } else {
+        /* ----- закрыт ----- */
+        let controls = '';
+        switch (p.unlockType) {
+          case 'password':
+            controls = `
+              <input id="pwd-${seq}" placeholder="Пароль">
+              <button onclick="unlockPassword(${seq}, '${p.unlockPassword}')">OK</button>`;
+            break;
+          case 'quiz':
+            controls = `<button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>Пройти квиз</button>`;
+            break;
+          case 'final':
+            controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
+            break;
+        }
+        html += `
+          <div class="post locked">
+            <div class="post-content">
+              <div class="post-description">🔒 Задание ${seq}</div>
+              ${controls}
+            </div>
+          </div>`;
+      }
+    }
     grid.innerHTML = html;
   } catch (e) {
     console.error('archive load error:', e);
@@ -885,33 +944,74 @@ async function loadArchivePosts() {
 }
 
 
+/* ---------- helpers для разблокировки ---------- */
+async function isTaskUnlocked(seq) {
+  const ref = doc(db, 'userProgress', currentUser.id.toString());
+  const snap = await getDoc(ref);
+  const arr  = snap.data()?.archiveUnlocked || [];
+  return arr.includes(seq);
+}
+async function markTaskUnlocked(seq) {
+  const ref = doc(db, 'userProgress', currentUser.id.toString());
+  await updateDoc(ref, { archiveUnlocked: arrayUnion(seq) });
+}
+/* ---------- UI‑коллбеки ---------- */
+window.unlockPassword = async (seq, correct) => {
+  const inp = document.getElementById(`pwd-${seq}`);
+  if (inp.value.trim() === correct) {
+    await markTaskUnlocked(seq);
+    loadArchivePosts();   // перерисуем карточку
+  } else {
+    alert('Неверный пароль');
+  }
+};
+window.unlockFinal = async seq => {
+  await markTaskUnlocked(seq);
+  loadArchivePosts();
+};
+window.startQuiz = (seq, quizJson) => {
+  // простейший one‑question quiz; усложните по желанию
+  const q = quizJson[0];
+  const answer = prompt(`${q.question}\n${q.options.join(', ')}`);
+  if (answer?.trim() === q.answer) {
+    markTaskUnlocked(seq).then(loadArchivePosts);
+  } else {
+    alert('Неверно');
+  }
+};
+
+
 function displayPosts(containerId, posts) {
   const container = document.getElementById(containerId);
   if (!posts.length) {
-    container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+    container.innerHTML =
+      '<div class="post"><div class="post-content">Нет постов</div></div>';
     return;
   }
 
   container.innerHTML = posts.map(post => {
-    // ——— Корректный расчёт даты ———
+    /* -------- дата -------- */
     let ts = null;
-    if (post.trackDate) {
-      ts = new Date(post.trackDate);
-    } else if (post.timestamp?.seconds) {
-      // Firestore Timestamp
-      ts = new Date(post.timestamp.seconds * 1000);
-    } else if (typeof post.timestamp?.toDate === 'function') {
-      // старый Firestore-объект из бэка
-      ts = post.timestamp.toDate();
-    } else if (typeof post.timestamp === 'string') {
-      // если timestamp хранится строкой ISO
-      ts = new Date(post.timestamp);
-    }
+    if (post.trackDate)                    ts = new Date(post.trackDate);
+    else if (post.timestamp?.seconds)      ts = new Date(post.timestamp.seconds * 1000);
+    else if (post.timestamp?.toDate)       ts = post.timestamp.toDate();
+    else if (typeof post.timestamp === 'string') ts = new Date(post.timestamp);
     const date = ts ? ts.toLocaleDateString('ru-RU') : '—';
 
-    // ——— Медиа ———
+    /* -------- медиа -------- */
     let media = '';
-    if (post.category === 'photo') {
+
+    /* — галерея (photos) — */
+    if (Array.isArray(post.photos)) {
+      media = `
+        <div class="slider" data-idx="0">
+          ${post.photos.map((u,i)=>
+            `<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
+          <button class="prev">‹</button><button class="next">›</button>
+        </div>`;
+    }
+    /* — одиночные категории — */
+    else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     } else if (post.category === 'music') {
       const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
@@ -945,12 +1045,11 @@ function displayPosts(containerId, posts) {
       media = `
         <video class="uploaded-video" controls poster="https://placehold.co/600x400?text=Preview">
           <source src="${post.fileURL}" type="video/mp4">
-          Ваш браузер не поддерживает HTML5‑видео.
         </video>`;
     }
 
-    // ——— Собираем HTML карточки ———
     const likedClass = post.isLiked ? 'liked' : '';
+
     return `
       <div class="post" data-post-id="${post.id}">
         ${media}
@@ -976,14 +1075,28 @@ function displayPosts(containerId, posts) {
       </div>`;
   }).join('');
 
+  /* ---------- инициализация простого слайдера ---------- */
+  container.querySelectorAll('.slider').forEach(sl => {
+    const slides = sl.querySelectorAll('.slide');
+    sl.querySelector('.prev').onclick = () => show(-1);
+    sl.querySelector('.next').onclick = () => show(1);
+    function show(dir) {
+      let i = +sl.dataset.idx;
+      slides[i].style.display = 'none';
+      i = (i + dir + slides.length) % slides.length;
+      slides[i].style.display = 'block';
+      sl.dataset.idx = i;
+    }
+  });
+
   setupMobileKeyboardHandling();
 
-  // автопостер для загруженных видео
-  container.querySelectorAll('video.uploaded-video').forEach(video => {
-    video.crossOrigin = 'anonymous';
-    video.addEventListener('loadedmetadata', () => captureFrame(video));
+  container.querySelectorAll('video.uploaded-video').forEach(v => {
+    v.crossOrigin = 'anonymous';
+    v.addEventListener('loadedmetadata', () => captureFrame(v));
   });
 }
+
 
 
 
