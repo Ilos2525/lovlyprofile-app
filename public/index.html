@@ -958,10 +958,12 @@ async function loadArchivePosts() {
                       ? (p.coverURL || firstPic)
                       : '';
 // 1. определяем тип разблокировки, даже если его забыли записать
-const uType =
-      p.unlockType                              // явное поле
-   || (p.unlockQuiz?.length ? 'quiz' : null)    // есть вопросы → quiz
-   || (p.unlockPassword ? 'password' : 'auto'); // иначе password/auto
+let uType = p.unlockType;               // если явно «quiz» / «password» – берём
+if (!uType || uType === 'auto') {       // иначе определяем по содержимому
+  if (p.unlockQuiz?.length)      uType = 'quiz';
+  else if (p.unlockPassword)     uType = 'password';
+  else                           uType = 'auto';
+}
 
 // 2. используется дальше вместо p.unlockType
 const unlocked = (uType === 'auto') || await isTaskUnlocked(seq);
