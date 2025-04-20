@@ -458,6 +458,17 @@
 
       <label for="description">Описание:</label>
       <textarea id="description" rows="4" required></textarea>
+      
+ <label for="trackDate">Дата трека:</label>
+<input type="date" id="trackDate">
+
+<label for="coverURL">URL обложки (альтернатива загрузке):</label>
+<input type="url" id="coverURL" placeholder="https://…">
+
+  <label for="coverInput">Обложка (URL или файл):</label>
+  <input type="text" id="coverURL" placeholder="https://…">
+  <input type="file" id="coverFile" accept="image/*">
+  <div class="preview-container" id="coverPreview"></div>
 
       <div class="progress-bar">
         <div class="progress"></div>
@@ -620,6 +631,7 @@ import {
     uploadBytesResumable, 
     getDownloadURL 
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   /* ====== Конфигурация Firebase ====== */
   const firebaseConfig = {
@@ -809,6 +821,20 @@ document.getElementById('category').addEventListener('change', function(e) {
         </audio>`;
     }
   });
+  
+// ====== Предварительный просмотр обложки (coverFile) ======
+document.getElementById('coverFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const pr = document.getElementById('coverPreview');
+  if (!file || !file.type.startsWith('image/')) {
+    pr.innerHTML = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => pr.innerHTML = `<img src="${ev.target.result}" alt="Cover">`;
+  reader.readAsDataURL(file);
+});
+
 
   /* ====== Предпросмотр для YouTube (videoId) ====== */
   function getYoutubeVideoId(url) {
@@ -857,14 +883,37 @@ document.getElementById('category').addEventListener('change', function(e) {
 
       progressBar.style.width = '80%';
 
-      const newPost = {
-        category,
-        fileURL,
-        description,
-        timestamp: new Date().toISOString(),
-        author: auth.currentUser.email
-      };
-      await addDoc(collection(db, 'posts'), newPost);
+  // 1) Считываем дату и URL обложки из формы
+const trackDateValue = document.getElementById('trackDate').value;       // строка "YYYY-MM-DD"
+let coverURL = document.getElementById('coverURL').value.trim();         // URL, если введён
+
+// 2) Если загружен файл обложки — отправляем в Storage
+const coverFile = document.getElementById('coverFile').files[0];
+if (coverFile) {
+  coverURL = await uploadFile(coverFile, 'covers');
+}
+
+// 3) Формируем объект для Firestore
+const newPost = {
+  category,
+  fileURL,
+  description,
+  author: auth.currentUser.email,
+  timestamp: serverTimestamp(),      // serverTimestamp() нужно импортировать из firestore
+  trackDate: trackDateValue         // сохраняем строку "YYYY-MM-DD"
+};
+if (coverURL) newPost.coverURL = coverURL;
+
+// 4) Если редактируем — вызываем updateDoc, иначе addDoc
+if (window.editingPostId) {
+  await updateDoc(doc(db, 'posts', window.editingPostId), newPost);
+} else {
+  await addDoc(collection(db, 'posts'), newPost);
+}
+
+// после успешного сохранения сбрасываем флаг
+window.editingPostId = null;
+
 
       progressBar.style.width = '100%';
       alert('Пост успешно опубликован!');
@@ -925,7 +974,8 @@ document.getElementById('category').addEventListener('change', function(e) {
               <span class="post-category">${post.category}</span>
               <span class="post-date">${date}</span>
             </div>
-            <button class="delete-btn" onclick="deletePost('${docItem.id}')">Удалить</button>
+             <button class="delete-btn" onclick="deletePost('${docItem.id}')">Удалить</button>
+      <button class="tab-button" onclick="editPost('${docItem.id}')">Редактировать</button>
           </div>
           <div class="post-content">
             ${mediaPreview}
@@ -1219,6 +1269,37 @@ document.getElementById('category').addEventListener('change', function(e) {
       alert('Ошибка удаления комментария');
     }
   };
+// ==== Функция редактирования ====
+window.editPost = async function(postId) {
+  const docSnap = await getDoc(doc(db, 'posts', postId));
+  if (!docSnap.exists()) return alert('Пост не найден');
+  const data = docSnap.data();
+
+  // 1) Переключаемся на таб «Добавить пост»
+  showTab('posts');
+
+  // 2) Заполняем форму
+  document.getElementById('category').value = data.category;
+  document.getElementById('category').dispatchEvent(new Event('change'));
+
+  if (data.category === 'video') {
+    document.getElementById('youtubeLink').value = data.fileURL;
+    // при необходимости скопируйте ваш код превью YouTube
+  } else {
+    // для файлов — оставляем старый инпут пустым (можно загрузить новый)
+  }
+
+  document.getElementById('description').value = data.description || '';
+  document.getElementById('trackDate').value    = data.trackDate || '';
+  document.getElementById('coverURL').value     = data.coverURL || '';
+  if (data.coverURL) {
+    document.getElementById('coverPreview').innerHTML =
+      `<img src="${data.coverURL}" alt="Cover">`;
+  }
+
+  // 3) Сохраняем ID редактируемого поста
+  window.editingPostId = postId;
+};
 
   /* ====== При загрузке страницы (DOM готов) ====== */
   document.addEventListener('DOMContentLoaded', () => {
