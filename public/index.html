@@ -1113,7 +1113,11 @@ function displayPosts(containerId, posts) {
     }
 
     container.innerHTML = posts.map(post => {
-        const date = new Date(post.timestamp?.seconds * 1000 || Date.now()).toLocaleDateString('ru-RU');
+        // если поле trackDate есть – используем его, иначе fallback на timestamp
+const rawDate = post.trackDate || post.timestamp?.seconds * 1000;
+const date = rawDate
+  ? new Date(rawDate).toLocaleDateString('ru‑RU')
+  : '—';
         const isAdmin = currentUser?.id === '5794174511';
         
         let mediaContent = '';
