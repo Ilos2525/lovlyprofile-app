@@ -973,95 +973,87 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
     }
   });
 
- /* ====== Форма загрузки поста (uploadForm) ====== */
 /* ====== Форма загрузки поста (uploadForm) ====== */
-document.getElementById('uploadForm').addEventListener('submit', async e => {
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const submitBtn   = e.target.querySelector('button[type="submit"]');
   const progressBar = document.querySelector('.progress');
-
   try {
     submitBtn.disabled = true;
     progressBar.style.width = '10%';
 
-    /* ------------ основные поля ------------ */
-    const category    = category.value;                // селект
-    const description = description.value.trim();
-    const taskHint    = taskHint.value.trim();
+    // основные поля
+    const categoryVal = document.getElementById('category').value;
+    const descriptionVal = document.getElementById('description').value.trim();
+    const taskHintVal  = document.getElementById('taskHint').value.trim();
 
-    /* ------------ архивные опции ------------ */
-    const isArchive      = isArchiveCh.checked;
-    const archiveSeq     = +archiveSeq.value || null;
+    // архив
+    const isArchive  = isArchiveCh.checked;
+    const archiveSeq = +document.getElementById('archiveSeq').value || null;
     let   unlockTypeVal  = unlockType.value;
-    const unlockPassword = unlockPassword.value.trim();
-    const unlockQuiz     = [];
+    const unlockPassword = document.getElementById('unlockPassword').value.trim();
+    const unlockQuiz = [];
 
     if (isArchive && unlockTypeVal === 'quiz') {
-      /* --- проходим все вопросы конструктора --- */
       for (const blk of quizBuilder.children) {
         const qText = blk.querySelector('.q-text').value.trim();
         if (!qText) throw new Error('Заполните текст вопроса');
 
-        const qImgInp = blk.querySelector('input[type="file"]');
-        let   qImgURL = qImgInp?.dataset.hasimg || '';
-        if (qImgInp?.files[0]) qImgURL = await uploadFile(qImgInp.files[0], 'quiz');
+        let qImgURL = blk.querySelector('input[type="file"]').dataset.hasimg || '';
+        if (blk.querySelector('input[type="file"]').files[0])
+          qImgURL = await uploadFile(blk.querySelector('input[type="file"]').files[0], 'quiz');
 
         const opts = [];
         for (const row of blk.querySelectorAll('.opt')) {
           const txt = row.querySelector('.q-opt').value.trim();
-          const imgF= row.querySelector('.q-opt-img');
-          let   img = imgF?.dataset.hasimg || '';
-          if (imgF?.files[0]) img = await uploadFile(imgF.files[0], 'quiz_opts');
+          let img  = row.querySelector('.q-opt-img').dataset.hasimg || '';
+          if (row.querySelector('.q-opt-img').files[0])
+            img = await uploadFile(row.querySelector('.q-opt-img').files[0], 'quiz_opts');
           if (!txt && !img) continue;
           opts.push({ text: txt, imgURL: img });
         }
         if (opts.length < 2) throw new Error('Минимум два варианта');
-
         unlockQuiz.push({ question: qText, imgURL: qImgURL, options: opts });
       }
       if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
     }
 
-    /* ------------ загрузка медиа ------------ */
+    // основное медиа
     let fileURL = '';
-
-    if (window.editingPostId) {                       // редактируем
+    if (window.editingPostId) {
       fileURL = window.editingFileURL;
-    } else if (category === 'video') {                // YouTube
-      fileURL = youtubeLink.value.trim();
-      if (!fileURL || !getYoutubeVideoId(fileURL))
-        throw new Error('Укажите корректную ссылку YouTube');
-    } else if (category === 'photo') {                // галерея
-      const files = [...fileInput.files];
-      if (!files.length)          throw new Error('Выберите хотя бы одно фото');
-      if (files.length > 10)      throw new Error('Максимум 10 изображений');
+    } else if (categoryVal === 'video') {
+      fileURL = document.getElementById('youtubeLink').value.trim();
+      if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка YouTube');
+    } else if (categoryVal === 'photo') {
+      const files = [...document.getElementById('fileInput').files];
+      if (!files.length) throw new Error('Выберите хотя бы одно фото');
+      if (files.length > 10) throw new Error('Максимум 10 изображений');
       fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));
-    } else {                                          // music | uploaded_video
-      const file = fileInput.files[0];
-      if (!file) throw new Error('Выберите файл');
-      fileURL = await uploadFile(file, category);
+    } else {
+      const f = document.getElementById('fileInput').files[0];
+      if (!f) throw new Error('Выберите файл');
+      fileURL = await uploadFile(f, categoryVal);
     }
 
     progressBar.style.width = '80%';
 
-    /* ------------ мета‑для музыки ------------ */
-    const trackDateValue = trackDate.value;
-    let   coverURL       = window.editingCoverURL || '';
-    if (coverFile.files[0]) coverURL = await uploadFile(coverFile.files[0], 'covers');
+    // музыка: дата и обложка
+    const trackDateVal = document.getElementById('trackDate').value;
+    let   coverURL = window.editingCoverURL || '';
+    if (document.getElementById('coverFile').files[0])
+      coverURL = await uploadFile(document.getElementById('coverFile').files[0], 'covers');
 
-    /* ------------ собираем объект ------------ */
+    // объект поста
     const newPost = {
-      category,
-      description,
+      category : categoryVal,
+      description: descriptionVal,
       author   : auth.currentUser.email,
       timestamp: serverTimestamp()
     };
-    if (Array.isArray(fileURL)) newPost.photos  = fileURL;
-    else                        newPost.fileURL = fileURL;
-
-    if (trackDateValue) newPost.trackDate = trackDateValue;
-    if (coverURL)       newPost.coverURL  = coverURL;
+    Array.isArray(fileURL) ? newPost.photos = fileURL : newPost.fileURL = fileURL;
+    if (trackDateVal) newPost.trackDate = trackDateVal;
+    if (coverURL)     newPost.coverURL  = coverURL;
 
     if (isArchive) {
       newPost.isArchive  = true;
@@ -1069,13 +1061,13 @@ document.getElementById('uploadForm').addEventListener('submit', async e => {
       newPost.unlockType = unlockTypeVal;
       if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
       if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
-      if (taskHint) newPost.taskHint = taskHint;
+      if (taskHintVal)  newPost.taskHint = taskHintVal;
     }
 
-    /* ------------ пишем в Firestore ------------ */
+    // запись в Firestore
     if (window.editingPostId) {
       await updateDoc(doc(db, 'posts', window.editingPostId), newPost);
-      window.editingPostId  = null;
+      window.editingPostId = null;
       window.editingFileURL = '';
       window.editingCoverURL= '';
     } else {
@@ -1083,20 +1075,17 @@ document.getElementById('uploadForm').addEventListener('submit', async e => {
     }
 
     progressBar.style.width = '100%';
-    alert('✅ Пост сохранён!');
-    loadPosts();
-    loadStats();
+    alert('✅ Пост сохранён');
+    loadPosts(); loadStats();
 
-    /* ------------ очистка формы ------------ */
+    // очистка формы
     e.target.reset();
-    filePreview.innerHTML    = '';
-    youtubePreview.innerHTML = '';
-    quizBuilder.innerHTML    = '';
-    isArchiveCh.checked      = false;
+    filePreview.innerHTML = youtubePreview.innerHTML = quizBuilder.innerHTML = '';
+    isArchiveCh.checked = false;
     archiveSettings.style.display = 'none';
   } catch (err) {
+    alert(err.message);
     console.error(err);
-    alert(`Ошибка: ${err.message}`);
   } finally {
     submitBtn.disabled = false;
     setTimeout(() => (progressBar.style.width = '0%'), 800);
