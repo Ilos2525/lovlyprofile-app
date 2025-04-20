@@ -1313,7 +1313,7 @@ window.editingPostId = null;
         const dateStr = ts.toLocaleString('ru-RU');
         html += `
           <div class="user-activity-item">
-            <img src="${data.userPhoto || 'default-avatar.png'}" alt="User" class="user-photo">
+            <img src="${data.userPhoto || '/default-avatar.png'}" alt="User" class="user-photo">
             <div class="activity-info">
               <div class="user-email">${data.displayName || data.username || data.userEmail || 'Гость'}</div>
               <div class="activity-date">${dateStr}</div>
