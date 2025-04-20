@@ -497,6 +497,10 @@
           <textarea id="unlockQuiz" rows="3" placeholder='[{"question":"?","options":["A","B"],"answer":"A"}]'></textarea>
         </div>
       </div>
+
+  <label for="taskHint">Подсказка / текст задания:</label>
+  <textarea id="taskHint" rows="3"></textarea>
+</div>
       <!-- ===== /Блок архива ===== -->
 
 
@@ -933,6 +937,8 @@ const description = document.getElementById('description').value.trim();
   const unlockTypeVal  = unlockType.value;
   const unlockPassword = document.getElementById('unlockPassword').value.trim();
   let   unlockQuiz     = [];
+const taskHint = document.getElementById('taskHint').value.trim();
+
 
   if (isArchive && unlockTypeVal === 'quiz') {
     try {
@@ -1004,6 +1010,7 @@ if (isArchive) {
   newPost.unlockType = unlockTypeVal;
   if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
   if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+if (taskHint) newPost.taskHint = taskHint;
 }
 
 
@@ -1394,6 +1401,7 @@ window.editPost = async function(postId) {
   // 3) заполняем описание и мета-данные
   document.getElementById('description').value = data.description || '';
   document.getElementById('trackDate').value   = data.trackDate   || '';
+document.getElementById('taskHint').value = data.taskHint || '';
 
 // — проставляем архивные поля —
 isArchiveCh.checked = data.isArchive || false;
