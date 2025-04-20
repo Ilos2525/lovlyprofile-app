@@ -696,7 +696,7 @@
 }
 .lock-title{color:var(--neon-color);font-weight:500}
 .lock-hint{color:var(--secondary-text);font-size:.95em}
-
+</style>  
 <!-- ==== QUIZ OVERLAY ==== -->
 <style>
 .quiz-overlay{
@@ -723,7 +723,7 @@
   margin-top:20px;background:transparent;border:none;
   color:var(--secondary-text);cursor:pointer
 }
-
+<style>
 
 </style>
 <body>
@@ -959,6 +959,14 @@ async function loadArchivePosts() {
                   : p.category === 'uploaded_video'
                       ? (p.coverURL || firstPic)
                       : '';
+// 1. определяем тип разблокировки, даже если его забыли записать
+const uType =
+      p.unlockType                              // явное поле
+   || (p.unlockQuiz?.length ? 'quiz' : null)    // есть вопросы → quiz
+   || (p.unlockPassword ? 'password' : 'auto'); // иначе password/auto
+
+// 2. используется дальше вместо p.unlockType
+const unlocked = (uType === 'auto') || await isTaskUnlocked(seq);
 
       if (unlocked) {
         /* ----- открыт ----- */
