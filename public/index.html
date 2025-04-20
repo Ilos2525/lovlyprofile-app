@@ -697,6 +697,34 @@
 .lock-title{color:var(--neon-color);font-weight:500}
 .lock-hint{color:var(--secondary-text);font-size:.95em}
 
+<!-- ==== QUIZ OVERLAY ==== -->
+<style>
+.quiz-overlay{
+  position:fixed;inset:0;z-index:1500;
+  background:rgba(0,0,0,.85);
+  display:flex;justify-content:center;align-items:center;
+  padding:20px;
+}
+.quiz-card{
+  max-width:500px;width:100%;background:var(--card-bg);
+  border:1px solid var(--neon-color);border-radius:15px;
+  padding:25px;text-align:center;animation:fadeIn .3s ease;
+}
+.quiz-q{font-size:1.2em;margin-bottom:20px}
+.quiz-img{max-width:100%;border-radius:8px;margin-bottom:15px}
+.quiz-opt{
+  display:block;width:100%;margin:8px 0;padding:12px 18px;
+  background:rgba(255,255,255,.05);border:1px solid var(--neon-color);
+  border-radius:10px;color:var(--text-color);cursor:pointer;
+  transition:background .25s;
+}
+.quiz-opt:hover{background:rgba(0,255,204,.12)}
+.quiz-close{
+  margin-top:20px;background:transparent;border:none;
+  color:var(--secondary-text);cursor:pointer
+}
+
+
 </style>
 <body>
     <div class="profile-section">
@@ -1001,15 +1029,43 @@ window.unlockFinal = async seq => {
   await markTaskUnlocked(seq);
   loadArchivePosts();
 };
-window.startQuiz = (seq, quizJson) => {
-  // простейший one‑question quiz; усложните по желанию
-  const q = quizJson[0];
-  const answer = prompt(`${q.question}\n${q.options.join(', ')}`);
-  if (answer?.trim() === q.answer) {
-    markTaskUnlocked(seq).then(loadArchivePosts);
-  } else {
-    alert('Неверно');
-  }
+/* ---------- КВИЗ‑ОВЕРЛЕЙ ---------- */
+window.startQuiz = function(seq, quizArr){
+  let cur = 0;                             // индекс текущего вопроса
+  const ov = document.createElement('div');ov.className='quiz-overlay';
+  document.body.appendChild(ov);
+
+  const render = () => {
+    const q = quizArr[cur];
+    ov.innerHTML = `
+      <div class="quiz-card">
+        ${q.imgURL ? `<img src="${q.imgURL}" class="quiz-img" loading="lazy">` : ''}
+        <div class="quiz-q">${q.question}</div>
+        ${q.options.map(opt=>`
+           <button class="quiz-opt">${opt}</button>
+        `).join('')}
+        <button class="quiz-close">✖ Закрыть</button>
+      </div>`;
+    /* навешиваем обработчики */
+    ov.querySelectorAll('.quiz-opt').forEach(btn=>{
+      btn.onclick = async () => {
+        if(btn.textContent.trim() === q.answer){
+          if(++cur === quizArr.length){            // квиз пройден
+            await markTaskUnlocked(seq);
+            ov.remove();                           // убираем оверлей
+            loadArchivePosts();                    // перерисовываем карточку
+            alert('✅ Задание выполнено!');
+          }else{
+            render();                              // следующий вопрос
+          }
+        }else{
+          alert('Неверно, попробуй ещё раз');
+        }
+      };
+    });
+    ov.querySelector('.quiz-close').onclick = ()=> ov.remove();
+  };
+  render();
 };
 
 
