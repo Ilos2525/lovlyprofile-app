@@ -876,17 +876,23 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
       const description = document.getElementById('description').value.trim();
       let fileURL = '';
 
-    if (category === 'video') {
-  // Обработка YouTube-ссылки для видео
+ let fileURL = '';
+
+// если мы в режиме редактирования — берём сохранённый URL
+if (window.editingPostId) {
+  fileURL = window.editingFileURL;
+}
+// иначе — обычная логика загрузки
+else if (category === 'video') {
   fileURL = document.getElementById('youtubeLink').value.trim();
   if (!fileURL) throw new Error('Укажите ссылку на YouTube');
   if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
 } else {
-  // Для категорий: photo, music и uploaded_video — выбираем файл
   const file = document.getElementById('fileInput').files[0];
   if (!file) throw new Error('Выберите файл');
   fileURL = await uploadFile(file, category);
 }
+
 
       progressBar.style.width = '80%';
 
@@ -1289,12 +1295,12 @@ window.editPost = async function(postId) {
   document.getElementById('category').value = data.category;
   document.getElementById('category').dispatchEvent(new Event('change'));
 
-  if (data.category === 'video') {
-    document.getElementById('youtubeLink').value = data.fileURL;
-    // при необходимости скопируйте ваш код превью YouTube
-  } else {
-    // для файлов — оставляем старый инпут пустым (можно загрузить новый)
-  }
+  // сохраняем оригинальный URL, чтобы при submit не гонять повторно uploadFile
+  window.editingFileURL = data.fileURL;
+
+  // прячем инпут выбора файла/ссылки — редактируем только описание и дату/обложку (для музыки)
+  document.getElementById('fileInputGroup').style.display = 'none';
+  document.getElementById('youtubeLinkGroup').style.display = 'none';
 
   document.getElementById('description').value = data.description || '';
   document.getElementById('trackDate').value    = data.trackDate || '';
@@ -1304,9 +1310,11 @@ window.editPost = async function(postId) {
       `<img src="${data.coverURL}" alt="Cover">`;
   }
 
-  // 3) Сохраняем ID редактируемого поста
+  // 3) Флаг «мы редактируем» и сохранённый fileURL
   window.editingPostId = postId;
+  // (editingFileURL уже лежит в window.editingFileURL)
 };
+
 
   /* ====== При загрузке страницы (DOM готов) ====== */
   document.addEventListener('DOMContentLoaded', () => {
