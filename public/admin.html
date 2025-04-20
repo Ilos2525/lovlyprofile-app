@@ -995,17 +995,17 @@ const taskHint    = document.getElementById('taskHint').value.trim();
 let unlockQuiz = [];
 if (isArchive && unlockTypeVal === 'quiz') {
   for (const blk of quizBuilder.children) {
+if (isArchive && unlockQuiz.length) {
+  unlockTypeVal  = 'quiz';
+  unlockType.value = 'quiz';
+}
     const qText  = blk.querySelector('.q-text').value.trim();
     const opts   = [...blk.querySelectorAll('.q-opt')].map(o => o.value.trim()).filter(Boolean);
     const ansIdx = [...blk.querySelectorAll(`input[name="ans-${blk.dataset.id}"]`)].findIndex(r => r.checked);
 
     if (!qText || opts.length < 2 || ansIdx < 0) {
       throw new Error('Заполните все поля викторины');
-
-    if (isArchive && unlockQuiz.length) {
-  unlockTypeVal = 'quiz';                     // если есть вопросы – автоматом «quiz»
-  unlockType.value = 'quiz';                  // визуально переключаем селект
-}
+}        
 
 
     // картинка (если выбрана)
