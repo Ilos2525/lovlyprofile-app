@@ -872,22 +872,24 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
       submitBtn.disabled = true;
       progressBar.style.width = '10%';
 
-      const category = document.getElementById('category').value;
-      const description = document.getElementById('description').value.trim();
-      let fileURL = '';
+      const category    = document.getElementById('category').value;
+const description = document.getElementById('description').value.trim();
 
- let fileURL = '';
+// единая декларация
+let fileURL = '';
 
-// если мы в режиме редактирования — берём сохранённый URL
+// 1) в режиме редактирования берем сохранённый URL и пропускаем инпут-файл
 if (window.editingPostId) {
   fileURL = window.editingFileURL;
 }
-// иначе — обычная логика загрузки
+// 2) YouTube–видео
 else if (category === 'video') {
   fileURL = document.getElementById('youtubeLink').value.trim();
   if (!fileURL) throw new Error('Укажите ссылку на YouTube');
   if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка на YouTube');
-} else {
+}
+// 3) все остальные категории (photo, music, uploaded_video)
+else {
   const file = document.getElementById('fileInput').files[0];
   if (!file) throw new Error('Выберите файл');
   fileURL = await uploadFile(file, category);
