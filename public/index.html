@@ -1114,14 +1114,22 @@ function displayPosts(containerId, posts) {
 
     container.innerHTML = posts.map(post => {
         // если поле trackDate есть – используем его, иначе fallback на timestamp
-// новое: если это музыка и задана дата — используем её, иначе — метку времени
-const rawDate = (post.category === 'music' && post.trackDate)
-  ? new Date(post.trackDate).getTime()
-  : post.timestamp?.seconds * 1000;
+// сначала пробуем trackDate (только для music-постов),
+// потом — Firestore‑Timestamp, потом — ISO‑строку старых постов
+let rawDate = 0;
+
+if (post.trackDate) {
+  rawDate = new Date(post.trackDate).getTime();
+} else if (post.timestamp?.seconds) {
+  rawDate = post.timestamp.seconds * 1000;
+} else if (typeof post.timestamp === 'string') {
+  rawDate = new Date(post.timestamp).getTime();
+}
 
 const date = rawDate
   ? new Date(rawDate).toLocaleDateString('ru‑RU')
   : '—';
+
         const isAdmin = currentUser?.id === '5794174511';
         
         let mediaContent = '';
