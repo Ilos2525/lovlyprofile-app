@@ -990,7 +990,7 @@ const taskHint    = document.getElementById('taskHint').value.trim();
   // —— Извлекаем параметры архива ——
   const isArchive      = isArchiveCh.checked;
   const archiveSeq     = parseInt(document.getElementById('archiveSeq').value) || null;
-  const unlockTypeVal  = unlockType.value;
+  let unlockTypeVal  = unlockType.value;        // ← let, а не const
   const unlockPassword = document.getElementById('unlockPassword').value.trim();
 let unlockQuiz = [];
 if (isArchive && unlockTypeVal === 'quiz') {
@@ -1001,7 +1001,12 @@ if (isArchive && unlockTypeVal === 'quiz') {
 
     if (!qText || opts.length < 2 || ansIdx < 0) {
       throw new Error('Заполните все поля викторины');
-    }
+
+    if (isArchive && unlockQuiz.length) {
+  unlockTypeVal = 'quiz';                     // если есть вопросы – автоматом «quiz»
+  unlockType.value = 'quiz';                  // визуально переключаем селект
+}
+
 
     // картинка (если выбрана)
     const fInp  = blk.querySelector('input[type="file"]');
