@@ -459,16 +459,16 @@
       <label for="description">Описание:</label>
       <textarea id="description" rows="4" required></textarea>
       
- <label for="trackDate">Дата трека:</label>
-<input type="date" id="trackDate">
+ <!-- показываем только при music -->
+<div id="musicMeta" style="display:none">
+  <label for="trackDate">Дата трека:</label>
+  <input type="date" id="trackDate">
 
-<label for="coverURL">URL обложки (альтернатива загрузке):</label>
-<input type="url" id="coverURL" placeholder="https://…">
-
-  <label for="coverInput">Обложка (URL или файл):</label>
-  <input type="text" id="coverURL" placeholder="https://…">
+  <label for="coverFile">Обложка трека:</label>
   <input type="file" id="coverFile" accept="image/*">
   <div class="preview-container" id="coverPreview"></div>
+</div>
+
 
       <div class="progress-bar">
         <div class="progress"></div>
@@ -766,6 +766,13 @@ document.getElementById('category').addEventListener('change', function(e) {
     document.getElementById('fileInputGroup').style.display = 'block';
     document.getElementById('youtubeLinkGroup').style.display = 'none';
   }
+  // в конце функции change:
+const musicMeta = document.getElementById('musicMeta');
+if (e.target.value === 'music') {
+  musicMeta.style.display = 'block';
+} else {
+  musicMeta.style.display = 'none';
+}
   document.getElementById('filePreview').innerHTML = '';
   document.getElementById('youtubePreview').innerHTML = '';
 });
@@ -883,26 +890,26 @@ document.getElementById('coverFile').addEventListener('change', function(e) {
 
       progressBar.style.width = '80%';
 
-  // 1) Считываем дату и URL обложки из формы
-const trackDateValue = document.getElementById('trackDate').value;       // строка "YYYY-MM-DD"
-let coverURL = document.getElementById('coverURL').value.trim();         // URL, если введён
+   // 1) Считываем дату и URL обложки из формы
+    const trackDateValue = document.getElementById('trackDate').value;       // строка "YYYY-MM-DD"
+    let coverURL = document.getElementById('coverURL').value.trim();         // URL, если введён
 
-// 2) Если загружен файл обложки — отправляем в Storage
-const coverFile = document.getElementById('coverFile').files[0];
-if (coverFile) {
-  coverURL = await uploadFile(coverFile, 'covers');
-}
+    // 2) Если загружен файл обложки — отправляем в Storage
+    const coverFile = document.getElementById('coverFile').files[0];
+    if (coverFile) {
+      coverURL = await uploadFile(coverFile, 'covers');
+    }
 
-// 3) Формируем объект для Firestore
-const newPost = {
-  category,
-  fileURL,
-  description,
-  author: auth.currentUser.email,
-  timestamp: serverTimestamp(),      // serverTimestamp() нужно импортировать из firestore
-  trackDate: trackDateValue         // сохраняем строку "YYYY-MM-DD"
-};
-if (coverURL) newPost.coverURL = coverURL;
+    // 3) Формируем объект для Firestore
+    const newPost = {
+      category,
+      fileURL,
+      description,
+      author: auth.currentUser.email,
+      timestamp: serverTimestamp(),      // serverTimestamp() нужно импортировать из firestore
+      trackDate: trackDateValue         // сохраняем строку "YYYY-MM-DD"
+    };
+    if (coverURL) newPost.coverURL = coverURL;
 
 // 4) Если редактируем — вызываем updateDoc, иначе addDoc
 if (window.editingPostId) {
