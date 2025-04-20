@@ -1119,37 +1119,28 @@ function displayPosts(containerId, posts) {
         let mediaContent = '';
         if (post.category === 'photo') {
             mediaContent = `<img src="${post.fileURL}" alt="Photo" loading="lazy">`;
-        } else if (post.category === 'music') {
--    mediaContent = `
--        <div class="audio-post">
--            <h3 class="audio-title">${post.description}</h3>
--            <div class="audio-player">
--                <audio controls preload="none">
--                    <source src="${post.fileURL}" type="audio/mpeg">
--                </audio>
--            </div>
--        </div>`;
-+    // подготовка обложки
-+    const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
-+    mediaContent = `
-+        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
-+            <div class="audio-cover">
-+                <img src="${cover}" alt="Cover for ${post.description}">
-+            </div>
-+            <div class="audio-info">
-+                <h3 class="audio-title">${post.description}</h3>
-+                <div class="audio-controls">
-+                    <button class="btn-prev">⏮️</button>
-+                    <button class="btn-play">▶️</button>
-+                    <button class="btn-next">⏭️</button>
-+                </div>
-+                <div class="audio-progress">
-+                    <div class="bar"><div class="fill"></div></div>
-+                    <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
-+                </div>
-+            </div>
-+        </div>`;
-        } else if (post.category === 'video') {
+       } else if (post.category === 'music') {
+    // подготовка обложки
+    const cover = post.coverURL || 'https://placehold.co/600x400?text=No+Cover';
+    mediaContent = `
+        <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
+            <div class="audio-cover">
+                <img src="${cover}" alt="Cover for ${post.description}">
+            </div>
+            <div class="audio-info">
+                <h3 class="audio-title">${post.description}</h3>
+                <div class="audio-controls">
+                    <button class="btn-prev">⏮️</button>
+                    <button class="btn-play">▶️</button>
+                    <button class="btn-next">⏭️</button>
+                </div>
+                <div class="audio-progress">
+                    <div class="bar"><div class="fill"></div></div>
+                    <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
+                </div>
+            </div>
+        </div>`;
+} else if (post.category === 'video') {
             const videoId = getYoutubeVideoId(post.fileURL);
             mediaContent = `
                 <div class="video-container">
