@@ -855,11 +855,11 @@ function addQuestion(data = {}) {                    // data = {question,imgURL,
       <input type="file" accept="image/*" ${data.imgURL ? 'data-hasimg="' + data.imgURL + '"' : ''}><br>
       <input type="text" class="q-text" placeholder="Текст вопроса" value="${data.question || ''}">
 
-      ${[0, 1, 2, 3].map(i => `
-        <div class="opt">
-          <input type="radio" name="ans-${idx}" ${data.answer === i ? 'checked' : ''}>
-          <input type="text" class="q-opt" placeholder="Вариант ${i + 1}" value="${data.options?.[i] || ''}">
-        </div>`).join('')}
+     ${[0, 1, 2, 3].map(i => `
+  <div class="opt">
+    <input type="text"  class="q-opt"     placeholder="Вариант ${i + 1} (текст)">
+    <input type="file"  class="q-opt-img" accept="image/*">
+  </div>`).join('')}
     </div>`);
 }
 
@@ -994,19 +994,23 @@ const taskHint    = document.getElementById('taskHint').value.trim();
   const unlockPassword = document.getElementById('unlockPassword').value.trim();
 let unlockQuiz = [];
 if (isArchive && unlockTypeVal === 'quiz') {
-  for (const blk of quizBuilder.children) {
-if (isArchive && unlockQuiz.length) {
-  unlockTypeVal  = 'quiz';
-  unlockType.value = 'quiz';
+ const opts = [];
+for (const row of blk.querySelectorAll('.opt')) {
+  const txt = row.querySelector('.q-opt').value.trim();
+  const f   = row.querySelector('.q-opt-img').files[0];
+  let img   = row.querySelector('.q-opt-img').dataset.hasimg || '';
+  if (f) img = await uploadFile(f, 'quiz_opts');
+  if (!txt && !img) continue;          // пропустить пустое
+  opts.push({ text: txt, imgURL: img });
 }
-    const qText  = blk.querySelector('.q-text').value.trim();
-    const opts   = [...blk.querySelectorAll('.q-opt')].map(o => o.value.trim()).filter(Boolean);
-    const ansIdx = [...blk.querySelectorAll(`input[name="ans-${blk.dataset.id}"]`)].findIndex(r => r.checked);
+if (opts.length < 2) throw new Error('Добавьте минимум 2 варианта');
 
-    if (!qText || opts.length < 2 || ansIdx < 0) {
-      throw new Error('Заполните все поля викторины');
-}        
-
+unlockQuiz.push({
+  question: qText,
+  imgURL,
+  options: opts                     // ← теперь объекты
+});
+     
 
     // картинка (если выбрана)
     const fInp  = blk.querySelector('input[type="file"]');
