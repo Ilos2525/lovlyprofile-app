@@ -834,6 +834,25 @@
         </a>
     </div>
 
+<button
+  id="resetProgressBtn"
+  style="
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    padding: 10px 15px;
+    background: var(--neon-color);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 8px;
+    z-index: 1000;
+    font-weight: 500;
+  "
+>
+  Сбросить прогресс
+</button>
+
   <div class="content">
   <!-- Главная -->
   <div id="all" class="section active">
@@ -1751,6 +1770,35 @@ async function initTelegram() {
     const ok = await verifyTelegramWebAppData(tg.initData);
     if (!ok) throw new Error();
     currentUser = tg.initDataUnsafe.user;
+ 
+    const MY_TG_ID = 5794174511;  // <-- сюда впиши свой ID
+
+    if (currentUser.id === MY_TG_ID) {
+      const btn = document.getElementById('resetProgressBtn');
+      btn.style.display = 'block';
+      btn.onclick = async () => {
+        try {
+          // перезаписываем документ userProgress/<yourId>
+          await setDoc(
+            doc(db, 'userProgress', currentUser.id.toString()),
+            {
+              playCount: 0,
+              firstTaskCompleted: false,
+              archiveUnlocked: []
+            },
+            { merge: true }
+          );
+          alert('✅ Ваш прогресс сброшен');
+          // чтобы сразу увидеть эффект
+          loadPosts();
+          loadArchivePosts();
+        } catch (e) {
+          console.error(e);
+          alert('Ошибка при сбросе прогресса');
+        }
+      };
+    }
+
     if (!currentUser?.id) throw new Error();
     const progRef = doc(db,'userProgress',currentUser.id.toString());
     let snap = await getDoc(progRef);
