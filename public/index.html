@@ -1191,6 +1191,7 @@ function displayPosts(containerId, posts) {
           ${post.photos.map((u,i)=>`<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
           <button class="prev">‹</button><button class="next">›</button>
         </div>`;
+
 if (post.videos?.length) {
   media += post.videos
     .map(u => `
@@ -1199,7 +1200,7 @@ if (post.videos?.length) {
       </video>`)
     .join('');
 }
-
+}
     else if (post.category==='photo'){
       media=`<img src="${post.fileURL}" loading="lazy">`;
     }
