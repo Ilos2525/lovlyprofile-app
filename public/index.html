@@ -1071,16 +1071,17 @@ const unlocked = (uType === 'auto') || await isTaskUnlocked(seq);
       } else {
        /* ----- закрыт ----- */
 let controls = '';
-switch (uType) {                 // ← исправлено
+switch (uType) {
   case 'password':
     controls = `
       <input id="pwd-${seq}" placeholder="Пароль">
       <button onclick="unlockPassword(${seq}, '${p.unlockPassword}')">OK</button>`;
     break;
   case 'quiz':
-    controls = `<button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>
-                  Пройти квиз
-                </button>`;
+    controls = `
+      <button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>
+        Пройти квиз
+      </button>`;
     break;
   case 'final':
     controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
@@ -1088,7 +1089,11 @@ switch (uType) {                 // ← исправлено
   case 'audio':
     controls = `<button onclick="startAudioGate(${seq}, '${p.unlockAudio}')">▶️ Слушать</button>`;
     break;
+  case 'video':
+    controls = `<button onclick="startVideoGate(${seq}, '${p.unlockVideo}')">▶️ Смотреть</button>`;
+    break;
 }
+
 
         html += `
          <div class="post locked">
@@ -1214,8 +1219,41 @@ window.startAudioGate = function(seq, url){
   };
 };
 
+// -------- VIDEO GATE --------
+window.startVideoGate = function(seq, url) {
+  const ov = document.createElement('div');
+  ov.className = 'quiz-overlay';
+  ov.innerHTML = `
+    <div class="quiz-card">
+      <video id="gateVideo" controls src="${url}" style="width:100%;height:auto"></video>
+      <p style="margin-top:15px">Смотреть минимум 10 секунд…</p>
+      <button class="quiz-close">✖ Закрыть</button>
+    </div>`;
+  document.body.appendChild(ov);
 
-// Вставьте вместо вашей старой функции:
+  const v = ov.querySelector('#gateVideo');
+  let watched = 0, timer = null;
+
+  v.onplay  = () => timer = setInterval(() => { if (++watched >= 10) finish(); }, 1000);
+  v.onpause = () => clearInterval(timer);
+
+  function finish() {
+    clearInterval(timer);
+    markTaskUnlocked(seq).then(() => {
+      // НЕ закрываем оверлей — просто разблокируем задание
+      // можно поменять его оформление, но оставим окно открытым
+      alert('✅ Задание выполнено! Теперь вы можете закрыть окно');
+    });
+  }
+
+  ov.querySelector('.quiz-close').onclick = () => {
+    clearInterval(timer);
+    ov.remove();
+    loadArchivePosts();
+  };
+};
+
+
 function displayPosts(containerId, posts) {
   // Вспомогательная функция для таймстемпа
   const ts = p =>
