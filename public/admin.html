@@ -510,10 +510,12 @@
           <input type="text" id="unlockPassword" placeholder="A123">
         </div>
 
-<div id="audioGroup" style="display:none;margin-top:10px;">
+<div id="audioGroup" style="display:none; margin-top:10px;">
   <label for="unlockAudio">Аудио‑файл (mp3):</label>
-  <input type="file" id="unlockAudio" accept="audio/*">
+  <!-- теперь фильтр по mp3 и всем аудио‑типам -->
+  <input type="file" id="unlockAudio" accept=".mp3,audio/*">
 </div>
+
 
         <div id="videoGroup" style="display:none;margin-top:10px;">
   <label for="unlockVideo">Видео‑файл (mp4):</label>
