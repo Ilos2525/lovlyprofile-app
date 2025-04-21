@@ -1176,7 +1176,7 @@ async function loadArchivePosts() {
     // 1) Собираем массив постов
     const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // 2) Асинхронно строим HTML: unlocked → renderOpenPost, locked → renderLockedPost
+    // 2) Для каждого асинхронно выбираем рендеринг locked/open
     const fragments = await Promise.all(
       raw.map(async post => {
         const seq = post.archiveSeq;
@@ -1187,13 +1187,14 @@ async function loadArchivePosts() {
       })
     );
 
-    // 3) Вставляем результат
+    // 3) Вставляем итоговую разметку
     grid.innerHTML = fragments.join('');
 
-    // 4) Инициализируем UI: слайдеры (фото/видео)
+    // 4) Инициализируем слайдеры (фото/видео)
     grid.querySelectorAll('.slider').forEach(slider => {
       const slides = slider.querySelectorAll('.slide');
-      slides[0]?.classList.add('active');
+      if (!slides.length) return;
+      slides[0].classList.add('active');
       let x0 = null;
       const show = idx => {
         slides.forEach(s => s.classList.remove('active'));
@@ -1212,7 +1213,7 @@ async function loadArchivePosts() {
       }, { passive: true });
     });
 
-    // YouTube‑превью
+    // 5) Ленивое встраивание YouTube‑превью
     grid.querySelectorAll('.video-container.preview').forEach(div => {
       const vid = div.dataset.videoId;
       if (!vid) return;
@@ -1226,7 +1227,7 @@ async function loadArchivePosts() {
       });
     });
 
-    // «Читать далее»
+    // 6) «Читать далее» для описаний
     grid.querySelectorAll('.post-description').forEach(p => {
       if (p.scrollHeight <= 120) {
         p.classList.add('expanded');
@@ -1235,13 +1236,13 @@ async function loadArchivePosts() {
       }
     });
 
-    // Захват кадра для собственных видео
+    // 7) Постер для собственных видео
     grid.querySelectorAll('video.uploaded-video').forEach(v => {
       v.crossOrigin = 'anonymous';
       v.addEventListener('loadedmetadata', () => captureFrame(v));
     });
 
-    // Инициализируем аудио‑плейлисты
+    // 8) Инициализируем аудио‑плейлисты (если в архиве есть музыкальные посты)
     initMusicPlaylist();
 
   } catch (e) {
@@ -1249,6 +1250,7 @@ async function loadArchivePosts() {
     grid.innerHTML = '<div class="loading">Ошибка загрузки архива</div>';
   }
 }
+
 
 
 
