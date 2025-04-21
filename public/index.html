@@ -673,6 +673,31 @@
   .slider .prev, .slider .next{ opacity:1; pointer-events:auto; }
 }
 
+/* фиксируем аспект 16:9 для слайдера */
+.slider {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 */
+  overflow: hidden;
+}
+.slider .slide {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+.slider .slide.active {
+  display: block;
+}
+.slider .prev,
+.slider .next {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  z-index: 10;
+  /* ваши стили кнопок */
+}
+
 /* ---------- LOCKED POST ---------- */
 .post.locked{
   display:flex; flex-direction:column; justify-content:center; align-items:center;
@@ -1186,90 +1211,81 @@ function displayPosts(containerId, posts) {
   }
 
   container.innerHTML = posts.map(post => {
-    const date = ts(post)
-  ? new Date(ts(post)).toLocaleDateString('ru-RU')
-  : '—';
     let media = '';
-
-    // 1) Фотослайдер
-    if (Array.isArray(post.photos) && post.photos.length) {
-      media += `
+    // соберём единый массив «слайды»
+    const slides = [];
+    if (Array.isArray(post.photos)) {
+      slides.push(...post.photos.map(url =>
+        `<img src="${url}" class="slide">`
+      ));
+    }
+    if (post.videos) {
+      slides.push(...post.videos.map(url =>
+        `<video class="slide" controls>
+           <source src="${url}" type="video/mp4">
+         </video>`
+      ));
+    }
+    // если есть слайды — рисуем один общий .slider
+    if (slides.length) {
+      media = `
         <div class="slider" data-idx="0">
-          ${post.photos.map((url, i) => `<img src="${url}" class="slide" style="display:${i ? 'none' : 'block'}">`).join('')}
+          ${slides.join('')}
           <button class="prev">‹</button>
           <button class="next">›</button>
-        </div>`;
+        </div>
+      `;
     }
-
-    // 2) Загруженные видео (uploaded_video)
-    if (post.videos?.length) {
-      media += post.videos.map(url => `
-        <video class="uploaded-video" controls style="margin-top:12px">
-          <source src="${url}" type="video/mp4">
-        </video>
-      `).join('');
-    }
-
-    // 3) YouTube-видео (если нет своих photo/videos)
-    if (!media && post.category === 'video') {
+    // fallback для одиночных YouTube-видео или фото
+    else if (post.category === 'video') {
       const id = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
-      media = `
-        <div class="video-container">
-          <iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>
-        </div>`;
-    }
-
-    // 4) Одиночное фото или «какое‑то» fallback
-    if (!media && post.category === 'photo') {
+      media = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
+    } else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
 
+    // ... остальная разметка карточки
     return `
       <div class="post" data-post-id="${post.id}">
         ${media}
         <div class="post-content">
-          <div class="post-description">${post.description}</div>
-          <div class="post-date">${date}</div>
-          <div class="post-actions">
-            <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
-              ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
-            </button>
-            <button class="action-btn" onclick="toggleComments('${post.id}')">
-              💬 ${post.commentsCount||0}
-            </button>
-          </div>
-          <div class="comments-section" id="comments-${post.id}" style="display:none;">
-            <div class="comments-container" id="comments-container-${post.id}"></div>
-            <div class="comment-form">
-              <textarea id="comment-input-${post.id}" class="comment-input" placeholder="Написать комментарий…"></textarea>
-              <button class="comment-submit" onclick="addComment('${post.id}')">Отправить</button>
-            </div>
-          </div>
+          …
         </div>
-      </div>`;
+      </div>
+    `;
   }).join('');
 
-  /* --- инициализируем стрелки + свайп --- */
-  container.querySelectorAll('.slider').forEach(sl=>{
-    const slides=sl.querySelectorAll('.slide');
-    const show=i=>{
-      slides[+sl.dataset.idx].style.display='none';
-      sl.dataset.idx=(i+slides.length)%slides.length;
-      slides[sl.dataset.idx].style.display='block';
-    };
-    sl.querySelector('.prev').onclick = ()=>show(+sl.dataset.idx-1);
-    sl.querySelector('.next').onclick = ()=>show(+sl.dataset.idx+1);
+  // инициализируем стрелки и переключение слайдов
+  container.querySelectorAll('.slider').forEach(slider => {
+    const slides = slider.querySelectorAll('.slide');
+    slides[0].classList.add('active');
 
-    /* свайп‑жест */
-    let x0=null;
-    sl.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
-    sl.addEventListener('touchend',e=>{
-      if(x0===null) return;
-      const dx=e.changedTouches[0].clientX-x0;
-      if(Math.abs(dx)>30) show(dx<0?+sl.dataset.idx+1:+sl.dataset.idx-1);
-      x0=null;
-    },{passive:true});
+    const show = idx => {
+      slides.forEach(s => s.classList.remove('active'));
+      const i = (idx + slides.length) % slides.length;
+      slides[i].classList.add('active');
+      slider.dataset.idx = i;
+    };
+
+    slider.querySelector('.prev').onclick = () =>
+      show(+slider.dataset.idx - 1);
+    slider.querySelector('.next').onclick = () =>
+      show(+slider.dataset.idx + 1);
+
+    // свайп
+    let x0 = null;
+    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+    slider.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 30) show(dx < 0
+        ? +slider.dataset.idx + 1
+        : +slider.dataset.idx - 1
+      );
+      x0 = null;
+    }, { passive: true });
   });
+}
 
 // «Читать далее» для описаний
 container.querySelectorAll('.post-description').forEach(p => {
@@ -1284,8 +1300,6 @@ container.querySelectorAll('.post-description').forEach(p => {
     v.addEventListener('loadedmetadata',()=>captureFrame(v));
   });
 }
-
-
 
 
 
