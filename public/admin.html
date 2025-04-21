@@ -495,13 +495,15 @@
         <input type="number" id="archiveSeq" min="1" placeholder="1">
 
         <label for="unlockType">Тип разблокировки:</label>
-        <select id="unlockType">
-          <option value="auto">auto (авто)</option>
-          <option value="password">password</option>
-          <option value="quiz">quiz</option>
-          <option value="final">final (кнопка)</option>
- <option value="audio">audio</option>
-        </select>
+      <select id="unlockType">
+  <option value="auto">auto (авто)</option>
+  <option value="password">password</option>
+  <option value="quiz">quiz</option>
+  <option value="final">final (кнопка)</option>
+  <option value="audio">audio</option>
+  <option value="video">video</option>
+</select>
+
 
         <div id="passwordGroup" style="display:none; margin-top:10px;">
           <label for="unlockPassword">Пароль:</label>
@@ -511,6 +513,11 @@
 <div id="audioGroup" style="display:none;margin-top:10px;">
   <label for="unlockAudio">Аудио‑файл (mp3):</label>
   <input type="file" id="unlockAudio" accept="audio/*">
+</div>
+
+        <div id="videoGroup" style="display:none;margin-top:10px;">
+  <label for="unlockVideo">Видео‑файл (mp4):</label>
+  <input type="file" id="unlockVideo" accept="video/*">
 </div>
 
 
@@ -904,8 +911,10 @@ isArchiveCh.addEventListener('change', () => {
 unlockType.addEventListener('change', () => {
   passwordGroup.style.display = (unlockType.value === 'password') ? 'block' : 'none';
   quizGroup    .style.display = (unlockType.value === 'quiz')     ? 'block' : 'none';
-audioGroup.style.display = (unlockType.value === 'audio') ? 'block' : 'none';
+  audioGroup   .style.display = (unlockType.value === 'audio')    ? 'block' : 'none';
+  videoGroup   .style.display = (unlockType.value === 'video')    ? 'block' : 'none';
 });
+
 
 // 4) Скрываем настройки архива по умолчанию
 archiveSettings.style.display = 'none';
@@ -1021,11 +1030,11 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const unlockTypeVal   = unlockType.value;
     const unlockPassword  = document.getElementById('unlockPassword').value.trim();
     let   unlockAudioURL  = '';
+    let   unlockVideoURL  = '';
     const unlockQuiz      = [];
 
     if (isArchive && unlockTypeVal === 'quiz') {
-      // здесь ваш код сборки quiz
-      // …
+      // здесь ваш код сборки quiz …
       if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
     }
 
@@ -1035,77 +1044,69 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       unlockAudioURL = await uploadFile(f, 'task_audio');
     }
 
-   // ==== Формируем объект поста ====
-const newPost = {
-  category:    categoryVal,
-  description: descriptionVal,
-  author:      auth.currentUser.email,
-  timestamp:   serverTimestamp()
-};
+    if (isArchive && unlockTypeVal === 'video') {
+      const vf = document.getElementById('unlockVideo').files[0];
+      if (!vf) throw new Error('Загрузите видео‑файл');
+      unlockVideoURL = await uploadFile(vf, 'task_video');
+    }
 
-// ==== Основное медиа ====
-if (window.editingPostId) {
-  // при редактировании оставляем старый URL
-  if (window.editingFileURL) {
-    newPost.fileURL = window.editingFileURL;
-  }
-} else if (categoryVal === 'video') {
-  // YouTube‑ссылка
-  const ytUrl = document.getElementById('youtubeLink').value.trim();
-  if (!getYoutubeVideoId(ytUrl)) throw new Error('Неверная ссылка YouTube');
-  newPost.fileURL = ytUrl;
-} else if (categoryVal === 'photo') {
-  // несколько фото и/или видео
-  const files = [...document.getElementById('fileInput').files];
-  if (!files.length) throw new Error('Добавьте фото или видео');
-  const images = files.filter(f => f.type.startsWith('image/'));
-  const videos = files.filter(f => f.type.startsWith('video/'));
-  if (images.length) {
-    newPost.photos = await Promise.all(
-      images.map(f => uploadFile(f, 'photo'))
-    );
-  }
-  if (videos.length) {
-    newPost.videos = await Promise.all(
-      videos.map(f => uploadFile(f, 'uploaded_video'))
-    );
-  }
-} else {
-  // всё остальное (музыка, аудио, uploaded_video)
-  const f = document.getElementById('fileInput').files[0];
-  if (!f) throw new Error('Выберите файл');
-  const url = await uploadFile(f, categoryVal);
-  newPost.fileURL = url;
-}
+    // ==== Формируем объект поста ====
+    const newPost = {
+      category:    categoryVal,
+      description: descriptionVal,
+      author:      auth.currentUser.email,
+      timestamp:   serverTimestamp()
+    };
 
-progressBar.style.width = '80%';
+    // ==== Основное медиа ====
+    if (window.editingPostId) {
+      if (window.editingFileURL) {
+        newPost.fileURL = window.editingFileURL;
+      }
+    } else if (categoryVal === 'video') {
+      const ytUrl = document.getElementById('youtubeLink').value.trim();
+      if (!getYoutubeVideoId(ytUrl)) throw new Error('Неверная ссылка YouTube');
+      newPost.fileURL = ytUrl;
+    } else if (categoryVal === 'photo') {
+      const files = [...document.getElementById('fileInput').files];
+      if (!files.length) throw new Error('Добавьте фото или видео');
+      const images = files.filter(f => f.type.startsWith('image/'));
+      const videos = files.filter(f => f.type.startsWith('video/'));
+      if (images.length) {
+        newPost.photos = await Promise.all(images.map(f => uploadFile(f, 'photo')));
+      }
+      if (videos.length) {
+        newPost.videos = await Promise.all(videos.map(f => uploadFile(f, 'uploaded_video')));
+      }
+    } else {
+      const f = document.getElementById('fileInput').files[0];
+      if (!f) throw new Error('Выберите файл');
+      newPost.fileURL = await uploadFile(f, categoryVal);
+    }
 
-// ==== Музыка: дата и обложка ====
-const trackDateVal = document.getElementById('trackDate').value;
-if (trackDateVal) {
-  newPost.trackDate = trackDateVal;
-}
+    progressBar.style.width = '80%';
 
-let coverURL = window.editingCoverURL || '';
-const coverFile = document.getElementById('coverFile').files[0];
-if (coverFile) {
-  coverURL = await uploadFile(coverFile, 'covers');
-}
-if (coverURL) {
-  newPost.coverURL = coverURL;
-}
+    // ==== Музыка: дата и обложка ====
+    const trackDateVal = document.getElementById('trackDate').value;
+    if (trackDateVal) {
+      newPost.trackDate = trackDateVal;
+    }
+    let coverURL = window.editingCoverURL || '';
+    const coverFile = document.getElementById('coverFile').files[0];
+    if (coverFile) coverURL = await uploadFile(coverFile, 'covers');
+    if (coverURL) newPost.coverURL = coverURL;
 
-// ==== Архивные поля (если включён архив) ====
-if (isArchive) {
-  newPost.isArchive   = true;
-  newPost.archiveSeq  = archiveSeq;
-  newPost.unlockType  = unlockTypeVal;
-  if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
-  if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
-  if (taskHintVal)                  newPost.taskHint      = taskHintVal;
-  if (unlockTypeVal === 'audio')    newPost.unlockAudio   = unlockAudioURL;
-}
-
+    // ==== Архивные поля (если включён архив) ====
+    if (isArchive) {
+      newPost.isArchive   = true;
+      newPost.archiveSeq  = archiveSeq;
+      newPost.unlockType  = unlockTypeVal;
+      if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
+      if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+      if (taskHintVal)                  newPost.taskHint      = taskHintVal;
+      if (unlockTypeVal === 'audio')    newPost.unlockAudio   = unlockAudioURL;
+      if (unlockTypeVal === 'video')    newPost.unlockVideo   = unlockVideoURL;
+    }
 
     // ==== Сохраняем в Firestore ====
     if (window.editingPostId) {
