@@ -1450,11 +1450,17 @@ else if (post.category === 'music') {
     });
   });
 
-  // «Читать далее»
-  container.querySelectorAll('.post-description').forEach(p => {
-    if (p.scrollHeight <= 120) p.classList.add('expanded');
-    p.onclick = () => p.classList.toggle('expanded');
-  });
+// «Читать далее» — делаем кликабельной обрезанную по высоте подсказку
+container.querySelectorAll('.post-description').forEach(p => {
+  // если текст короче 120px — сразу разворачиваем и скрываем подсказку
+  if (p.scrollHeight <= 120) {
+    p.classList.add('expanded');
+  } else {
+    // иначе добавляем слушатель, который по клику переключает класс
+    p.addEventListener('click', () => p.classList.toggle('expanded'));
+  }
+});
+
 
   // Постер для uploaded-video
   container.querySelectorAll('video.uploaded-video').forEach(v => {
