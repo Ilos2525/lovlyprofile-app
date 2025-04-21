@@ -1025,6 +1025,127 @@ async function loadPosts() {
   displayPosts('videoPosts', posts.filter(p => p.category === 'video'));
 }
 
+/**
+ * Возвращает HTML для одного «locked» поста,
+ * в зависимости от его unlockType и параметров.
+ */
+function renderLockedPost(post) {
+  const seq   = post.archiveSeq;
+  const hint  = post.taskHint || '';
+  const type  = post.unlockType;
+  const pw    = post.unlockPassword || '';
+  const audio = post.unlockAudio    || '';
+  const video = post.unlockVideo    || '';
+  const quiz  = JSON.stringify(post.unlockQuiz || []);
+
+  // общий контейнер
+  let html = `<div class="post locked" data-post-id="${post.id}">
+    <div class="lock-box">
+      <div class="lock-title">${post.description || 'Квест №' + seq}</div>
+      <div class="lock-hint">${hint}</div>`;
+
+  // password
+  if (type === 'password') {
+    html += `
+      <input id="pwd-${seq}" placeholder="Введите пароль">
+      <button onclick="unlockPassword(${seq}, '${pw}')">Открыть</button>`;
+  }
+  // quiz
+  else if (type === 'quiz') {
+    html += `
+      <button onclick='startQuiz(${seq}, ${quiz})'>
+        Пройти викторину
+      </button>`;
+  }
+  // audio
+  else if (type === 'audio') {
+    html += `
+      <button onclick="startAudioGate(${seq}, '${audio}')">
+        Прослушать аудио
+      </button>`;
+  }
+  // video
+  else if (type === 'video') {
+    html += `
+      <button onclick="startVideoGate(${seq}, '${video}')">
+        Просмотреть видео
+      </button>`;
+  }
+  // final
+  else if (type === 'final') {
+    html += `<button onclick="unlockFinal(${seq})">Открыть</button>`;
+  }
+  // auto, fallback
+  else {
+    html += `<button onclick="unlockFinal(${seq})">Открыть</button>`;
+  }
+
+  html += `
+    </div>
+  </div>`;
+
+  return html;
+}
+/**
+ * Рендерит полностью открытый (unlocked) архивный пост
+ */
+function renderOpenPost(post) {
+  let media = '';
+  // собственные загруженные видео
+  if (post.category === 'uploaded_video' && post.fileURL) {
+    media = `
+      <video class="uploaded-video" playsinline webkit-playsinline controls
+             src="${post.fileURL}" preload="metadata"></video>`;
+  } else {
+    // собираем слайды из фото/видео
+    const slides = [];
+    if (Array.isArray(post.photos)) {
+      slides.push(...post.photos.map(u => `<img src="${u}" class="slide">`));
+    }
+    if (Array.isArray(post.videos)) {
+      slides.push(...post.videos.map(u => `
+        <video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
+          <source src="${u}" type="video/mp4">
+        </video>`));
+    }
+    if (slides.length) {
+      media = `<div class="slider" data-idx="0">
+        ${slides.join('')}
+        <button class="prev">‹</button>
+        <button class="next">›</button>
+      </div>`;
+    }
+    else if (post.category === 'video') {
+      const id    = getYoutubeVideoId(post.fileURL);
+      const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+      media = `
+        <div class="video-container preview"
+             data-video-id="${id}"
+             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
+        </div>`;
+    }
+    else if (post.category === 'photo') {
+      media = `<img src="${post.fileURL}" loading="lazy">`;
+    }
+  }
+
+  // дата
+  const ts = post.timestamp?.seconds
+    ? post.timestamp.seconds * 1000
+    : post.trackDate
+      ? new Date(post.trackDate).getTime()
+      : 0;
+  const date = ts ? new Date(ts).toLocaleDateString('ru-RU') : '—';
+
+  return `
+    <div class="post" data-post-id="${post.id}">
+      ${media}
+      <div class="post-content">
+        <div class="post-description">${post.description || ''}</div>
+        <div class="post-date">${date}</div>
+      </div>
+    </div>`;
+}
 
 // === Загружаем архивные посты ============================================
 async function loadArchivePosts() {
@@ -1045,10 +1166,22 @@ async function loadArchivePosts() {
     }
 
     // 1) Собираем массив постов
-    const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // 2) Для каждого рисуем HTML как в displayPosts()
-    let html = raw.map(post => {
-      let media = '';
+  const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 2) Асинхронно строим HTML: если unlocked — renderOpenPost, иначе — renderLockedPost
+  const fragments = await Promise.all(
+    raw.map(async post => {
+      const seq = post.archiveSeq;
+      const unlocked = await isTaskUnlocked(seq);
+      return unlocked
+        ? renderOpenPost(post)
+        : renderLockedPost(post);
+    })
+  );
+
+  // 3) Вставляем результат
+  grid.innerHTML = fragments.join('');
+
 
       // собственное видео
       if (post.category === 'uploaded_video' && post.fileURL) {
