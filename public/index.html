@@ -183,6 +183,14 @@
     }
 </style>
 <style>
+
+.uploaded-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 12px;   /* немного пространства под слайдером */
+}
+
     /* Посты */
     .posts-grid {
         display: grid;
@@ -1163,69 +1171,55 @@ window.startAudioGate = function(seq, url){
 
 
 function displayPosts(containerId, posts) {
-  /* ---- сортируем, чтобы НОВЫЕ были первыми ---- */
   const ts = p =>
     p.trackDate ? +new Date(p.trackDate) :
-    p.timestamp?.seconds ? p.timestamp.seconds*1000 :
+    p.timestamp?.seconds ? p.timestamp.seconds * 1000 :
     typeof p.timestamp === 'string' ? +new Date(p.timestamp) :
-    p.timestamp?.toDate ? +p.timestamp.toDate() :
-    0;
+    p.timestamp?.toDate ? +p.timestamp.toDate() : 0;
 
-  posts = [...posts].sort((a,b)=> ts(b)-ts(a));   // ↓ ↓ ↓
-
+  posts = [...posts].sort((a, b) => ts(b) - ts(a));
   const container = document.getElementById(containerId);
+
   if (!posts.length) {
-    container.innerHTML = '<div class="post"><div class="post-content">Нет постов</div></div>';
+    container.innerHTML = `<div class="post"><div class="post-content">Нет постов</div></div>`;
     return;
   }
 
   container.innerHTML = posts.map(post => {
-    /* --- дата --- */
-    const date = ts(post) ? new Date(ts(post)).toLocaleDateString('ru-RU') : '—';
+    const date = ts(post) ? new Date(ts(post)).toLocaleDateString('ru‑RU') : '—';
+    let media = '';
 
-    /* --- медиа --- */
-    let media='';
-    if (Array.isArray(post.photos)) {
-      media = `
+    // 1) Фотослайдер
+    if (Array.isArray(post.photos) && post.photos.length) {
+      media += `
         <div class="slider" data-idx="0">
-          ${post.photos.map((u,i)=>`<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
-          <button class="prev">‹</button><button class="next">›</button>
+          ${post.photos.map((url, i) => `<img src="${url}" class="slide" style="display:${i ? 'none' : 'block'}">`).join('')}
+          <button class="prev">‹</button>
+          <button class="next">›</button>
         </div>`;
+    }
 
-if (post.videos?.length) {
-  media += post.videos
-    .map(u => `
-      <video class="uploaded-video" controls>
-        <source src="${u}" type="video/mp4">
-      </video>`)
-    .join('');
-}
-}
-    else if (post.category==='photo'){
-      media=`<img src="${post.fileURL}" loading="lazy">`;
+    // 2) Загруженные видео (uploaded_video)
+    if (post.videos?.length) {
+      media += post.videos.map(url => `
+        <video class="uploaded-video" controls style="margin-top:12px">
+          <source src="${url}" type="video/mp4">
+        </video>
+      `).join('');
     }
-    else if (post.category==='music'){
-      const cover=post.coverURL||'https://placehold.co/600x400?text=No+Cover';
-      media=`
-      <div class="audio-post" data-id="${post.id}" data-src="${post.fileURL}">
-        <div class="audio-cover"><img src="${cover}" alt=""></div>
-        <div class="audio-info">
-          <h3 class="audio-title">${post.description}</h3>
-          <div class="audio-controls">
-            <button class="btn-prev">⏮️</button><button class="btn-play">▶️</button><button class="btn-next">⏭️</button>
-          </div>
-          <div class="audio-progress"><div class="bar"><div class="fill"></div></div>
-            <div class="time"><span class="current">00:00</span> / <span class="duration">00:00</span></div>
-          </div>
-        </div>
-      </div>`;
+
+    // 3) YouTube-видео (если нет своих photo/videos)
+    if (!media && post.category === 'video') {
+      const id = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
+      media = `
+        <div class="video-container">
+          <iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>
+        </div>`;
     }
-    else if (post.category==='video'){
-      const id=(post.fileURL.match(/v=([^&]+)/)||[])[1]||'';
-      media=`<div class="video-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
-    }
-    else if (post.category==='uploaded_video'){
-      media=`<video class="uploaded-video" controls poster="https://placehold.co/600x400?text=Preview"><source src="${post.fileURL}" type="video/mp4"></video>`;
+
+    // 4) Одиночное фото или «какое‑то» fallback
+    if (!media && post.category === 'photo') {
+      media = `<img src="${post.fileURL}" loading="lazy">`;
     }
 
     return `
@@ -1235,10 +1229,12 @@ if (post.videos?.length) {
           <div class="post-description">${post.description}</div>
           <div class="post-date">${date}</div>
           <div class="post-actions">
-            <button class="action-btn ${post.isLiked?'liked':''}" onclick="handleLike('${post.id}')">
-              ${post.isLiked?'❤️':'🤍'} ${post.likes||0}
+            <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
+              ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
             </button>
-            <button class="action-btn" onclick="toggleComments('${post.id}')">💬 ${post.commentsCount||0}</button>
+            <button class="action-btn" onclick="toggleComments('${post.id}')">
+              💬 ${post.commentsCount||0}
+            </button>
           </div>
           <div class="comments-section" id="comments-${post.id}" style="display:none;">
             <div class="comments-container" id="comments-container-${post.id}"></div>
