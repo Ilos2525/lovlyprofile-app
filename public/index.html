@@ -1323,30 +1323,35 @@ container.innerHTML = posts.map(post => {
         </div>`;
     }
     // 3) Музыкальный пост
-    else if (post.category === 'music') {
-      media = `
-        <div class="audio-post" data-src="${post.fileURL}">
-          <div class="audio-cover">
-            <img src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
-                 alt="Cover" loading="lazy">
+else if (post.category === 'music') {
+  media = `
+    <div class="audio-post">
+      <div class="audio-cover">
+        <img
+          src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
+          alt="Cover"
+          loading="lazy"
+        >
+      </div>
+      <!-- вот здесь data-src должно быть на audio-info -->
+      <div class="audio-info" data-src="${post.fileURL}">
+        <div class="audio-title">${post.description || ''}</div>
+        <div class="audio-controls">
+          <button class="btn-prev">⏮️</button>
+          <button class="btn-play">▶️</button>
+          <button class="btn-next">⏭️</button>
+        </div>
+        <div class="audio-progress">
+          <div class="bar"><div class="fill"></div></div>
+          <div class="time">
+            <span class="current">00:00</span>
+            <span class="duration">00:00</span>
           </div>
-          <div class="audio-info">
-            <div class="audio-title">${post.description || ''}</div>
-            <div class="audio-controls">
-              <button class="btn-prev">⏮️</button>
-              <button class="btn-play">▶️</button>
-              <button class="btn-next">⏭️</button>
-            </div>
-            <div class="audio-progress">
-              <div class="bar"><div class="fill"></div></div>
-              <div class="time">
-                <span class="current">00:00</span>
-                <span class="duration">00:00</span>
-              </div>
-            </div>
-          </div>
-        </div>`;
-    }
+        </div>
+      </div>
+    </div>`;
+}
+
     // 4) YouTube‑видео
     else if (post.category === 'video') {
       const id    = getYoutubeVideoId(post.fileURL);
