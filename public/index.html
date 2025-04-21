@@ -1315,12 +1315,12 @@ function displayPosts(containerId, posts) {
     // 4) Музыкальный пост
     else if (post.category === 'music') {
       media = `
-        <div class="audio-post" data-src="${post.fileURL}">
-          ${post.coverURL
-            ? `<div class="audio-cover"><img src="${post.coverURL}" loading="lazy"></div>`
-            : ''
-          }
-          <div class="audio-info">
+        <div class="audio-post">
+          <div class="audio-cover">
+            <img src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
+                 alt="Cover" loading="lazy">
+          </div>
+          <div class="audio-info" data-src="${post.fileURL}">
             <div class="audio-title">${post.description || ''}</div>
             <div class="audio-controls">
               <button class="btn-prev">⏮️</button>
@@ -1337,6 +1337,7 @@ function displayPosts(containerId, posts) {
           </div>
         </div>`;
     }
+
     // 5) YouTube‑видео
     else if (post.category === 'video') {
       const id = getYoutubeVideoId(post.fileURL);
