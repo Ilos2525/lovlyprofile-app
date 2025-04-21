@@ -1020,96 +1020,108 @@ async function loadArchivePosts() {
         orderBy('archiveSeq', 'asc')
       )
     );
-
     if (snap.empty) {
       grid.innerHTML = '<div class="loading">В архиве пока пусто</div>';
       return;
     }
 
-    let html = '';
-    for (const d of snap.docs) {
-      const p   = d.data();
-      const seq = p.archiveSeq ?? 0;
+    // 1) Собираем массив постов
+    const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 2) Для каждого рисуем HTML как в displayPosts()
+    let html = raw.map(post => {
+      let media = '';
 
-      // превью (если массив фото — берём первую)
-      const firstPic = Array.isArray(p.photos) && p.photos.length
-        ? p.photos[0]
-        : p.fileURL;
-
-      const thumb =
-        p.category === 'photo'
-          ? firstPic
-          : p.category === 'video'
-              ? `https://img.youtube.com/vi/${getYoutubeVideoId(p.fileURL)}/mqdefault.jpg`
-              : p.category === 'music'
-                  ? (p.coverURL || 'https://via.placeholder.com/400x400?text=Track')
-                  : p.category === 'uploaded_video'
-                      ? (p.coverURL || firstPic)
-                      : '';
-// 1. определяем тип разблокировки, даже если его забыли записать
-let uType = p.unlockType;
-if (!uType || uType === 'auto') {
-  if (p.unlockQuiz?.length)      uType = 'quiz';
-  else if (p.unlockPassword)     uType = 'password';
-  else if (p.unlockAudio)        uType = 'audio';       // ← добавили
-  else                           uType = 'auto';
-}
-
-// 2. используется дальше вместо p.unlockType
-const unlocked = (uType === 'auto') || await isTaskUnlocked(seq);
-
-      if (unlocked) {
-        /* ----- открыт ----- */
-        html += `
-          <div class="post">
-            ${thumb ? `<img src="${thumb}" loading="lazy">` : ''}
-            <div class="post-content">
-              <div class="post-description">${p.description || ''}</div>
-              <div class="post-date">Задание ${seq}</div>
-            </div>
-          </div>`;
+      // собственное видео
+      if (post.category === 'uploaded_video' && post.fileURL) {
+        media = `
+          <video class="uploaded-video" playsinline webkit-playsinline controls
+                 src="${post.fileURL}" preload="metadata"></video>`;
       } else {
-       /* ----- закрыт ----- */
-let controls = '';
-switch (uType) {
-  case 'password':
-    controls = `
-      <input id="pwd-${seq}" placeholder="Пароль">
-      <button onclick="unlockPassword(${seq}, '${p.unlockPassword}')">OK</button>`;
-    break;
-  case 'quiz':
-    controls = `
-      <button onclick='startQuiz(${seq}, ${JSON.stringify(p.unlockQuiz)})'>
-        Пройти квиз
-      </button>`;
-    break;
-  case 'final':
-    controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
-    break;
-  case 'audio':
-    controls = `<button onclick="startAudioGate(${seq}, '${p.unlockAudio}')">▶️ Слушать</button>`;
-    break;
-  case 'video':
-    controls = `<button onclick="startVideoGate(${seq}, '${p.unlockVideo}')">▶️ Смотреть</button>`;
-    break;
-}
-
-
-        html += `
-         <div class="post locked">
-  <div class="lock-box">
-    <div class="lock-title">🔒 Задание ${seq}</div>
-    ${p.taskHint ? `<div class="lock-hint">${p.taskHint}</div>` : ''}
-    ${controls}
-  </div>
-</div>`;
+        // собираем слайды из фото/видео
+        const slides = [];
+        if (Array.isArray(post.photos)) {
+          slides.push(...post.photos.map(url => `<img src="${url}" class="slide">`));
+        }
+        if (Array.isArray(post.videos)) {
+          slides.push(...post.videos.map(url => `
+            <video class="slide uploaded-video" playsinline webkit-playsinline muted
+                   preload="metadata" controls>
+              <source src="${url}" type="video/mp4">
+            </video>`));
+        }
+        if (slides.length) {
+          media = `<div class="slider" data-idx="0">${slides.join('')}
+                    <button class="prev">‹</button>
+                    <button class="next">›</button>
+                   </div>`;
+        }
+        else if (post.category === 'video') {
+          const id = getYoutubeVideoId(post.fileURL);
+          const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+          media = `
+            <div class="video-container preview"
+                 data-video-id="${id}"
+                 style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
+            </div>`;
+        }
+        else if (post.category === 'photo') {
+          media = `<img src="${post.fileURL}" loading="lazy">`;
+        }
       }
-    }
 
-      // Вставляем HTML-посты в контейнер
+      const date = post.timestamp
+        ? new Date(post.timestamp.seconds * 1000).toLocaleDateString('ru-RU')
+        : '—';
+
+      return `
+        <div class="post" data-post-id="${post.id}">
+          ${media}
+          <div class="post-content">
+            <div class="post-description">${post.description || ''}</div>
+            <div class="post-date">${date}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // 3) Вставляем инициализируем
     grid.innerHTML = html;
 
-    // После вставки вешаем «Читать далее» на описания
+    // 3.1) Слайдеры (кнопки и свайп)
+    grid.querySelectorAll('.slider').forEach(slider => {
+      const slides = slider.querySelectorAll('.slide');
+      slides[0]?.classList.add('active');
+      let x0 = null;
+      const show = idx => {
+        slides.forEach(s => s.classList.remove('active'));
+        const i = (idx + slides.length) % slides.length;
+        slides[i].classList.add('active');
+        slider.dataset.idx = i;
+      };
+      slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
+      slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
+      slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+      slider.addEventListener('touchend', e => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0;
+        if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
+        x0 = null;
+      }, { passive: true });
+    });
+
+    // 3.2) YouTube‑превью
+    grid.querySelectorAll('.video-container.preview').forEach(div => {
+      const vid = div.dataset.videoId;
+      if (!vid) return;
+      div.addEventListener('click', () => {
+        div.innerHTML = `
+          <iframe src="https://www.youtube.com/embed/${vid}?autoplay=1"
+                  allowfullscreen
+                  style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;">
+          </iframe>`;
+      });
+    });
+
+    // 3.3) Читать далее
     grid.querySelectorAll('.post-description').forEach(p => {
       if (p.scrollHeight <= 120) {
         p.classList.add('expanded');
@@ -1117,6 +1129,16 @@ switch (uType) {
         p.addEventListener('click', () => p.classList.toggle('expanded'));
       }
     });
+
+    // 3.4) Захват кадра для собственных видео
+    grid.querySelectorAll('video.uploaded-video').forEach(v => {
+      v.crossOrigin = 'anonymous';
+      v.addEventListener('loadedmetadata', () => captureFrame(v));
+    });
+
+    // 3.5) Инициализируем аудио‑плейлисты (если есть музыка)
+    initMusicPlaylist();
+
   } catch (e) {
     console.error('archive load error:', e);
     grid.innerHTML = '<div class="loading">Ошибка загрузки архива</div>';
