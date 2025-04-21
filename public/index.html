@@ -810,17 +810,22 @@
 .post-description.expanded::after{
   display:none;
 }
+
+
+/* 2) растянуть .lock-box на всю карточку и поднять его выше */
 .post.locked .lock-box {
-  position: relative;
-  z-index: 10;
-}
-.post.locked .lock-box {
+  position: absolute;
+  inset: 0;                  /* top:0; right:0; bottom:0; left:0; */
   background: var(--card-bg);
   border-radius: var(--border-radius);
-  padding: 20px;
-  position: relative; /* чтобы z-index работал */
-  z-index: 1;
+  padding: 20px;             /* или ваш отступ */
+  z-index: 10;
+  display: flex;             /* чтобы сохранить ваши flex‑центровки */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
+
 
     
 </style>
@@ -1159,7 +1164,7 @@ function renderOpenPost(post) {
     </div>`;
 }
 
-// === Загружаем архивные посты ============================================
+
 // === Загружаем архивные посты ============================================
 async function loadArchivePosts() {
   const grid = document.getElementById('archivePosts');
