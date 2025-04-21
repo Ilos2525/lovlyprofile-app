@@ -1186,7 +1186,9 @@ function displayPosts(containerId, posts) {
   }
 
   container.innerHTML = posts.map(post => {
-    const date = ts(post) ? new Date(ts(post)).toLocaleDateString('ru‑RU') : '—';
+    const date = ts(post)
+  ? new Date(ts(post)).toLocaleDateString('ru-RU')
+  : '—';
     let media = '';
 
     // 1) Фотослайдер
