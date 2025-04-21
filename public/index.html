@@ -1278,17 +1278,29 @@ function displayPosts(containerId, posts) {
   }
 
   // Собираем HTML
-  container.innerHTML = posts.map(post => {
-    let media = '';
+container.innerHTML = posts.map(post => {
+  let media = '';
+
+  // 1) Если это собственное загруженное видео — сразу отрисовать <video>
+  if (post.category === 'uploaded_video' && post.fileURL) {
+    media = `
+      <video
+        class="uploaded-video"
+        playsinline webkit-playsinline
+        controls
+        src="${post.fileURL}"
+        preload="metadata"
+      ></video>`;
+  }
+  else {
+    // 2) Иначе собираем слайды (фото + свои видео)
     const slides = [];
 
-    // 1) Фото
     if (Array.isArray(post.photos)) {
       slides.push(...post.photos.map(url =>
         `<img src="${url}" class="slide">`
       ));
     }
-    // 2) Своё видео
     if (Array.isArray(post.videos)) {
       slides.push(...post.videos.map(url =>
         `<video
@@ -1301,7 +1313,7 @@ function displayPosts(containerId, posts) {
       ));
     }
 
-    // 3) Общий слайдер для фото/видео
+    // 2.1) общий слайдер, если есть хотя бы один слайд
     if (slides.length) {
       media = `
         <div class="slider" data-idx="0">
@@ -1310,15 +1322,15 @@ function displayPosts(containerId, posts) {
           <button class="next">›</button>
         </div>`;
     }
-    // 4) Музыкальный пост
+    // 3) Музыкальный пост
     else if (post.category === 'music') {
       media = `
-        <div class="audio-post">
+        <div class="audio-post" data-src="${post.fileURL}">
           <div class="audio-cover">
             <img src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
                  alt="Cover" loading="lazy">
           </div>
-          <div class="audio-info" data-src="${post.fileURL}">
+          <div class="audio-info">
             <div class="audio-title">${post.description || ''}</div>
             <div class="audio-controls">
               <button class="btn-prev">⏮️</button>
@@ -1335,10 +1347,9 @@ function displayPosts(containerId, posts) {
           </div>
         </div>`;
     }
-
-    // 5) YouTube‑видео
+    // 4) YouTube‑видео
     else if (post.category === 'video') {
-      const id = getYoutubeVideoId(post.fileURL);
+      const id    = getYoutubeVideoId(post.fileURL);
       const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
       media = `
         <div
@@ -1347,37 +1358,39 @@ function displayPosts(containerId, posts) {
           style="background:url(${thumb}) center/cover no-repeat;cursor:pointer;">
         </div>`;
     }
-    // 6) Одиночная картинка
+    // 5) Фото‑пост
     else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
-    // 7) Фоллбэк
+    // 6) Фоллбэк
     else {
       media = `<div class="video-container" style="background:#000"></div>`;
     }
+  }
 
-    const date = ts(post)
-      ? new Date(ts(post)).toLocaleDateString('ru-RU')
-      : '—';
+  const date = ts(post)
+    ? new Date(ts(post)).toLocaleDateString('ru-RU')
+    : '—';
 
-    return `
-      <div class="post" data-post-id="${post.id}">
-        ${media}
-        <div class="post-content">
-          <div class="post-description">${post.description}</div>
-          <div class="post-date">${date}</div>
-          <div class="post-actions">
-            <button class="action-btn ${post.isLiked ? 'liked' : ''}"
-                    onclick="handleLike('${post.id}')">
-              ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
-            </button>
-            <button class="action-btn" onclick="toggleComments('${post.id}')">
-              💬 ${post.commentsCount||0}
-            </button>
-          </div>
+  return `
+    <div class="post" data-post-id="${post.id}">
+      ${media}
+      <div class="post-content">
+        <div class="post-description">${post.description}</div>
+        <div class="post-date">${date}</div>
+        <div class="post-actions">
+          <button class="action-btn ${post.isLiked ? 'liked' : ''}"
+                  onclick="handleLike('${post.id}')">
+            ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
+          </button>
+          <button class="action-btn" onclick="toggleComments('${post.id}')">
+            💬 ${post.commentsCount||0}
+          </button>
         </div>
-      </div>`;
-  }).join('');
+      </div>
+    </div>`;
+}).join('');
+
 
   // Инициализация слайдеров (фото/видео)
   container.querySelectorAll('.slider').forEach(slider => {
