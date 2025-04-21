@@ -1387,6 +1387,23 @@ container.innerHTML = posts.map(post => {
             💬 ${post.commentsCount||0}
           </button>
         </div>
+<div class="comments-section" id="comments-${post.id}" style="display:none">
+          <div class="comments-container" id="comments-container-${post.id}"></div>
+          <div class="comment-form">
+            <textarea
+              class="comment-input"
+              id="comment-input-${post.id}"
+              placeholder="Написать комментарий..."
+            ></textarea>
+            <button
+              class="comment-submit"
+              onclick="addComment('${post.id}')"
+            >
+              Отправить
+            </button>
+          </div>
+        </div>
+        <!-- /конец блока -->
       </div>
     </div>`;
 }).join('');
