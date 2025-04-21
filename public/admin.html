@@ -814,27 +814,45 @@ import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-fi
     if (tabId === 'stats') loadStats();
   };
 
- // ====== Переключение типа поста (категория) ======
-document.getElementById('category').addEventListener('change', function(e) {
+// ====== Переключение типа поста (категория) ======
+const categoryEl   = document.getElementById('category');
+const fileInput    = document.getElementById('fileInput');
+const fileGroup    = document.getElementById('fileInputGroup');
+const ytGroup      = document.getElementById('youtubeLinkGroup');
+const musicMeta    = document.getElementById('musicMeta');
+const filePreview  = document.getElementById('filePreview');
+const ytPreview    = document.getElementById('youtubePreview');
+
+categoryEl.addEventListener('change', e => {
   const cat = e.target.value;
 
-  // Показываем/прячем input-файл и YouTube‑ссылку
-  document.getElementById('fileInputGroup').style.display    = (cat === 'video') ? 'none' : 'block';
-  document.getElementById('youtubeLinkGroup').style.display = (cat === 'video') ? 'block' : 'none';
-
-  // Для загруженного видео
+  // 1) Динамически задаём accept
   if (cat === 'uploaded_video') {
-    document.getElementById('fileInputGroup').style.display = 'block';
-    document.getElementById('youtubeLinkGroup').style.display = 'none';
+    fileInput.accept = 'video/*';
+  } else if (cat === 'photo') {
+    fileInput.accept = 'image/*,video/*';
+  } else {
+    // для music и остальных — только картинки
+    fileInput.accept = 'image/*';
   }
 
-  // Мета‑блок для музыки
-  document.getElementById('musicMeta').style.display = (cat === 'music') ? 'block' : 'none';
+  // 2) Прячет/показывает fileInput vs YouTube‑ссылку
+  if (cat === 'video') {
+    fileGroup.style.display = 'none';
+    ytGroup.style.display   = 'block';
+  } else {
+    ytGroup.style.display   = 'none';
+    fileGroup.style.display = 'block';
+  }
 
-  // Сброс превью
-  document.getElementById('filePreview').innerHTML    = '';
-  document.getElementById('youtubePreview').innerHTML = '';
+  // 3) Мета‑блок для музыки
+  musicMeta.style.display = (cat === 'music') ? 'block' : 'none';
+
+  // 4) Сброс превью
+  filePreview.innerHTML = '';
+  ytPreview.innerHTML   = '';
 });
+
 
 
 // ====== Логика показа/скрытия полей Архива ======
