@@ -1105,6 +1105,15 @@ switch (uType) {
 </div>`;
       }
     }
+
+   grid.querySelectorAll('.post-description').forEach(p => {
+     if (p.scrollHeight <= 120) {
+       p.classList.add('expanded');
+     } else {
+       p.addEventListener('click', () => p.classList.toggle('expanded'));
+    }
+  });
+      
     grid.innerHTML = html;
   } catch (e) {
     console.error('archive load error:', e);
