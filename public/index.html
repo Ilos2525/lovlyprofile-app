@@ -1213,6 +1213,7 @@ window.startAudioGate = function(seq, url){
 };
 
 
+// Вставьте вместо вашей старой функции:
 function displayPosts(containerId, posts) {
   const ts = p =>
     p.trackDate ? +new Date(p.trackDate) :
@@ -1220,6 +1221,7 @@ function displayPosts(containerId, posts) {
     typeof p.timestamp === 'string' ? +new Date(p.timestamp) :
     p.timestamp?.toDate ? +p.timestamp.toDate() : 0;
 
+  // сортируем по дате
   posts = [...posts].sort((a, b) => ts(b) - ts(a));
   const container = document.getElementById(containerId);
 
@@ -1232,23 +1234,26 @@ function displayPosts(containerId, posts) {
     let media = '';
     const slides = [];
 
-    // — свои видео (post.videos) —
-    if (post.videos) {
+    // 1) сначала фото
+    if (Array.isArray(post.photos)) {
+      slides.push(...post.photos.map(url =>
+        `<img src="${url}" class="slide">`
+      ));
+    }
+    // 2) затем «свои» загруженные видео
+    if (Array.isArray(post.videos)) {
       slides.push(...post.videos.map(url =>
         `<video 
-            class="slide uploaded-video" 
-            playsinline 
-            webkit-playsinline 
-            muted 
-            preload="metadata" 
-            controls
-          >
+           class="slide uploaded-video" 
+           playsinline webkit-playsinline 
+           muted preload="metadata" controls
+         >
            <source src="${url}" type="video/mp4">
          </video>`
       ));
     }
 
-    // если есть слайды — рисуем слайдер
+    // если есть хоть один слайд — общий слайдер
     if (slides.length) {
       media = `
         <div class="slider" data-idx="0">
@@ -1257,23 +1262,25 @@ function displayPosts(containerId, posts) {
           <button class="next">›</button>
         </div>`;
     }
-    // — YouTube (fallback) —
+    // иначе — YouTube‑видео
     else if (post.category === 'video') {
-      const id = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
-      const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-      media = `
-        <div 
-          class="video-container" 
-          style="
-            background: url(${thumb}) center/cover no-repeat;
-            cursor: pointer;
-          "
-          onclick="
-            this.innerHTML = '<iframe src=\\\"https://www.youtube.com/embed/${id}?autoplay=1\\\" allowfullscreen style=\\\"position:absolute;top:0;left:0;width:100%;height:100%;border:none;\\\"></iframe>'
-          ">
-        </div>`;
+      const id = getYoutubeVideoId(post.fileURL);
+      if (id) {
+        // показываем картинку‑миниатюру и по клику встраиваем iframe
+        const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+        media = `
+          <div class="video-container"
+               style="background:url(${thumb}) center/cover no-repeat;cursor:pointer;"
+               onclick="
+                 this.innerHTML = '<iframe src=\\\"https://www.youtube.com/embed/${id}?autoplay=1\\\" allowfullscreen style=\\\"position:absolute;top:0;left:0;width:100%;height:100%;border:none;\\\"></iframe>'
+               ">
+          </div>`;
+      } else {
+        // если не нашли ID — предохранитель от 404
+        media = `<div class="video-container" style="background:#000"></div>`;
+      }
     }
-    // — одиночная картинка —
+    // одиночная картинка
     else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
@@ -1300,10 +1307,11 @@ function displayPosts(containerId, posts) {
       </div>`;
   }).join('');
 
-  // инициализируем слайдеры
+  // инициализация слайдера
   container.querySelectorAll('.slider').forEach(slider => {
     const slides = slider.querySelectorAll('.slide');
-    slides[0]?.classList.add('active');
+    if (!slides.length) return;
+    slides[0].classList.add('active');
     const show = idx => {
       slides.forEach(s => s.classList.remove('active'));
       const i = (idx + slides.length) % slides.length;
@@ -1312,6 +1320,7 @@ function displayPosts(containerId, posts) {
     };
     slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
     slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
+
     // свайп
     let x0 = null;
     slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
@@ -1323,18 +1332,25 @@ function displayPosts(containerId, posts) {
     }, { passive: true });
   });
 
-  // “читалка” для описаний
+  // Читать далее
   container.querySelectorAll('.post-description').forEach(p => {
     if (p.scrollHeight <= 120) p.classList.add('expanded');
     p.onclick = () => p.classList.toggle('expanded');
   });
 
-  // захват превью‑кадра для своих видео
+  // захват постера для «своих» видео
   container.querySelectorAll('video.uploaded-video').forEach(v => {
     v.crossOrigin = 'anonymous';
     v.addEventListener('loadedmetadata', () => captureFrame(v));
   });
 }
+
+// универсальный парсер YouTube‑ID
+function getYoutubeVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|\/embed\/)([^&?/]+)/);
+  return m ? m[1] : '';
+}
+
 
 
 
