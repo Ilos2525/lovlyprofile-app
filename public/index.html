@@ -208,7 +208,7 @@
 
     .post img {
         width: 100%;
-        height: 300px;
+       height:auto;
         object-fit: cover;
         transition: var(--transition);
     }
@@ -737,6 +737,29 @@
   color:var(--secondary-text);cursor:pointer
 }
 
+.post-description{
+  max-height:120px;
+  overflow:hidden;
+  position:relative;
+  cursor:pointer;
+}
+.post-description::after{
+  content:'Читать далее';
+  position:absolute;
+  bottom:0; left:0; right:0;
+  padding:20px 0 5px;
+  text-align:center;
+  background:linear-gradient(0deg,rgba(0,0,0,0.8),transparent);
+  color:var(--neon-color);
+  font-size:.9em;
+}
+.post-description.expanded{
+  max-height:none;
+}
+.post-description.expanded::after{
+  display:none;
+}
+
 </style>
 <body>
     <div class="profile-section">
@@ -971,10 +994,11 @@ async function loadArchivePosts() {
                       ? (p.coverURL || firstPic)
                       : '';
 // 1. определяем тип разблокировки, даже если его забыли записать
-let uType = p.unlockType;               // если явно «quiz» / «password» – берём
-if (!uType || uType === 'auto') {       // иначе определяем по содержимому
+let uType = p.unlockType;
+if (!uType || uType === 'auto') {
   if (p.unlockQuiz?.length)      uType = 'quiz';
   else if (p.unlockPassword)     uType = 'password';
+  else if (p.unlockAudio)        uType = 'audio';       // ← добавили
   else                           uType = 'auto';
 }
 
@@ -1007,6 +1031,9 @@ switch (uType) {                 // ← исправлено
     break;
   case 'final':
     controls = `<button onclick="unlockFinal(${seq})">Открыть</button>`;
+    break;
+  case 'audio':
+    controls = `<button onclick="startAudioGate(${seq}, '${p.unlockAudio}')">▶️ Слушать</button>`;
     break;
 }
 
@@ -1101,6 +1128,39 @@ window.startQuiz = function (seq, quizArr) {
   render();
 };
 
+/* -------- AUDIO GATE --------- */
+window.startAudioGate = function(seq, url){
+  const ov = document.createElement('div');
+  ov.className = 'quiz-overlay';
+  ov.innerHTML = `
+    <div class="quiz-card">
+      <audio id="gateAudio" controls src="${url}"></audio>
+      <p style="margin-top:15px">Слушайте минимум 10 секунд…</p>
+      <button class="quiz-close">✖ Закрыть</button>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const a = ov.querySelector('#gateAudio');
+  let played = 0, timer = null;
+
+  a.onplay  = () => timer = setInterval(() => { if (++played >= 10) finish(); }, 1000);
+  a.onpause = () => clearInterval(timer);
+
+  function finish(){
+    clearInterval(timer);
+    markTaskUnlocked(seq)
+      .then(()=>{
+        ov.remove();
+        loadArchivePosts();
+        alert('✅ Задание выполнено!');
+      });
+  }
+  ov.querySelector('.quiz-close').onclick = () => { 
+    clearInterval(timer); 
+    ov.remove(); 
+  };
+};
+
 
 function displayPosts(containerId, posts) {
   /* ---- сортируем, чтобы НОВЫЕ были первыми ---- */
@@ -1131,7 +1191,15 @@ function displayPosts(containerId, posts) {
           ${post.photos.map((u,i)=>`<img src="${u}" class="slide" style="display:${i?'none':'block'}">`).join('')}
           <button class="prev">‹</button><button class="next">›</button>
         </div>`;
-    }
+if (post.videos?.length) {
+  media += post.videos
+    .map(u => `
+      <video class="uploaded-video" controls>
+        <source src="${u}" type="video/mp4">
+      </video>`)
+    .join('');
+}
+
     else if (post.category==='photo'){
       media=`<img src="${post.fileURL}" loading="lazy">`;
     }
@@ -1203,6 +1271,13 @@ function displayPosts(containerId, posts) {
       x0=null;
     },{passive:true});
   });
+
+// «Читать далее» для описаний
+container.querySelectorAll('.post-description').forEach(p => {
+  if (p.scrollHeight <= 120) p.classList.add('expanded');  // короткие сразу раскрыты
+  p.onclick = () => p.classList.toggle('expanded');
+});
+
 
   setupMobileKeyboardHandling();
   container.querySelectorAll('video.uploaded-video').forEach(v=>{
