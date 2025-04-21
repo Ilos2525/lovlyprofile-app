@@ -1106,20 +1106,23 @@ switch (uType) {
       }
     }
 
-   grid.querySelectorAll('.post-description').forEach(p => {
-     if (p.scrollHeight <= 120) {
-       p.classList.add('expanded');
-     } else {
-       p.addEventListener('click', () => p.classList.toggle('expanded'));
-    }
-  });
-      
+      // Вставляем HTML-посты в контейнер
     grid.innerHTML = html;
+
+    // После вставки вешаем «Читать далее» на описания
+    grid.querySelectorAll('.post-description').forEach(p => {
+      if (p.scrollHeight <= 120) {
+        p.classList.add('expanded');
+      } else {
+        p.addEventListener('click', () => p.classList.toggle('expanded'));
+      }
+    });
   } catch (e) {
     console.error('archive load error:', e);
     grid.innerHTML = '<div class="loading">Ошибка загрузки архива</div>';
   }
 }
+
 
 
 /* ---------- helpers для разблокировки ---------- */
