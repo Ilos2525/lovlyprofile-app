@@ -1017,66 +1017,77 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       unlockAudioURL = await uploadFile(f, 'task_audio');
     }
 
-    // ==== Основное медиа ====
-    let fileURL = '';
-    if (window.editingPostId) {
-      // при редактировании оставляем старый URL
-      fileURL = window.editingFileURL;
-    }
-    else if (categoryVal === 'video') {
-      fileURL = document.getElementById('youtubeLink').value.trim();
-      if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка YouTube');
-    }
-    else if (categoryVal === 'photo') {
-      const files = [...document.getElementById('fileInput').files];
-      if (!files.length) throw new Error('Добавьте фото или видео');
-      const images = files.filter(f => f.type.startsWith('image/'));
-      const videos = files.filter(f => f.type.startsWith('video/'));
-      if (images.length)
-        newPost.photos = await Promise.all(images.map(f => uploadFile(f, 'photo')));
-      if (videos.length)
-        newPost.videos = await Promise.all(videos.map(f => uploadFile(f, 'uploaded_video')));
-    }
-    else {
-      const f = document.getElementById('fileInput').files[0];
-      if (!f) throw new Error('Выберите файл');
-      fileURL = await uploadFile(f, categoryVal);
-    }
+   // ==== Формируем объект поста ====
+const newPost = {
+  category:    categoryVal,
+  description: descriptionVal,
+  author:      auth.currentUser.email,
+  timestamp:   serverTimestamp()
+};
 
-    progressBar.style.width = '80%';
+// ==== Основное медиа ====
+if (window.editingPostId) {
+  // при редактировании оставляем старый URL
+  if (window.editingFileURL) {
+    newPost.fileURL = window.editingFileURL;
+  }
+} else if (categoryVal === 'video') {
+  // YouTube‑ссылка
+  const ytUrl = document.getElementById('youtubeLink').value.trim();
+  if (!getYoutubeVideoId(ytUrl)) throw new Error('Неверная ссылка YouTube');
+  newPost.fileURL = ytUrl;
+} else if (categoryVal === 'photo') {
+  // несколько фото и/или видео
+  const files = [...document.getElementById('fileInput').files];
+  if (!files.length) throw new Error('Добавьте фото или видео');
+  const images = files.filter(f => f.type.startsWith('image/'));
+  const videos = files.filter(f => f.type.startsWith('video/'));
+  if (images.length) {
+    newPost.photos = await Promise.all(
+      images.map(f => uploadFile(f, 'photo'))
+    );
+  }
+  if (videos.length) {
+    newPost.videos = await Promise.all(
+      videos.map(f => uploadFile(f, 'uploaded_video'))
+    );
+  }
+} else {
+  // всё остальное (музыка, аудио, uploaded_video)
+  const f = document.getElementById('fileInput').files[0];
+  if (!f) throw new Error('Выберите файл');
+  const url = await uploadFile(f, categoryVal);
+  newPost.fileURL = url;
+}
 
-    // ==== Музыка: дата и обложка ====
-    const trackDateVal = document.getElementById('trackDate').value;
-    let   coverURL     = window.editingCoverURL || '';
-    if (document.getElementById('coverFile').files[0]) {
-      coverURL = await uploadFile(
-        document.getElementById('coverFile').files[0],
-        'covers'
-      );
-    }
+progressBar.style.width = '80%';
 
-    // ==== Формируем объект поста ====
-    const newPost = {
-      category:    categoryVal,
-      description: descriptionVal,
-      author:      auth.currentUser.email,
-      timestamp:   serverTimestamp()
-    };
-    Array.isArray(fileURL)
-      ? newPost.photos = fileURL
-      : newPost.fileURL = fileURL;
-    if (trackDateVal) newPost.trackDate = trackDateVal;
-    if (coverURL)     newPost.coverURL   = coverURL;
+// ==== Музыка: дата и обложка ====
+const trackDateVal = document.getElementById('trackDate').value;
+if (trackDateVal) {
+  newPost.trackDate = trackDateVal;
+}
 
-    if (isArchive) {
-      newPost.isArchive     = true;
-      newPost.archiveSeq    = archiveSeq;
-      newPost.unlockType    = unlockTypeVal;
-      if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
-      if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
-      if (taskHintVal)                 newPost.taskHint      = taskHintVal;
-      if (unlockTypeVal === 'audio')   newPost.unlockAudio   = unlockAudioURL;
-    }
+let coverURL = window.editingCoverURL || '';
+const coverFile = document.getElementById('coverFile').files[0];
+if (coverFile) {
+  coverURL = await uploadFile(coverFile, 'covers');
+}
+if (coverURL) {
+  newPost.coverURL = coverURL;
+}
+
+// ==== Архивные поля (если включён архив) ====
+if (isArchive) {
+  newPost.isArchive   = true;
+  newPost.archiveSeq  = archiveSeq;
+  newPost.unlockType  = unlockTypeVal;
+  if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
+  if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
+  if (taskHintVal)                  newPost.taskHint      = taskHintVal;
+  if (unlockTypeVal === 'audio')    newPost.unlockAudio   = unlockAudioURL;
+}
+
 
     // ==== Сохраняем в Firestore ====
     if (window.editingPostId) {
