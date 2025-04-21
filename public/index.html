@@ -1260,8 +1260,6 @@ window.startVideoGate = function(seq, url) {
   };
 };
 
-
-
 function displayPosts(containerId, posts) {
   // Вспомогательная функция для таймстемпа
   const ts = p =>
@@ -1445,26 +1443,42 @@ window.musicPlaylist = [];
 let currentMusicIndex = -1;
 function initMusicPlaylist() {
   const posts = document.querySelectorAll('.audio-post');
-  window.musicPlaylist = Array.from(posts).map((el,i)=> {
-    const audio = new Audio(el.dataset.src);
-    audio.preload='metadata';
+  window.musicPlaylist = Array.from(posts).map((el, i) => {
+    // находим .audio-info внутри текущего .audio-post
+    const infoEl = el.querySelector('.audio-info');
+    const src = infoEl.dataset.src;
+    const audio = new Audio(src);
+    audio.preload = 'metadata';
     audio.onended = playNext;
-    audio.ontimeupdate = ()=> updateProgress(i);
-    return { el, audio, title: el.querySelector('.audio-title').textContent };
-  });
-  musicPlaylist.forEach((item,i)=>{
-    item.el.querySelector('.btn-play').onclick = ()=>{
-      if (i===currentMusicIndex && !item.audio.paused) item.audio.pause();
-      else playTrack(i);
+    audio.ontimeupdate = () => updateProgress(i);
+    return {
+      el,
+      audio,
+      title: el.querySelector('.audio-title').textContent
     };
+  });
+
+  musicPlaylist.forEach((item, i) => {
+    // play/pause
+    item.el.querySelector('.btn-play').onclick = () => {
+      if (i === currentMusicIndex && !item.audio.paused) {
+        item.audio.pause();
+      } else {
+        playTrack(i);
+      }
+    };
+    // prev / next
     item.el.querySelector('.btn-prev').onclick = playPrev;
     item.el.querySelector('.btn-next').onclick = playNext;
-    item.el.querySelector('.bar').onclick = e=>{
-      const pct = (e.clientX - e.currentTarget.getBoundingClientRect().left)/e.currentTarget.clientWidth;
-      item.audio.currentTime = pct*item.audio.duration;
+    // прогресс-бар кликабельный
+    item.el.querySelector('.bar').onclick = e => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pct  = (e.clientX - rect.left) / rect.width;
+      item.audio.currentTime = pct * (item.audio.duration || 0);
     };
   });
 }
+
 
 function playTrack(i) {
   if (currentMusicIndex>=0) musicPlaylist[currentMusicIndex].audio.pause();
