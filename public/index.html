@@ -1524,10 +1524,6 @@ window.handleLike = debounce(async function(postId) {
   loadPosts();
 }, 300);
 
-function getYoutubeVideoId(url) {
-  const m = url.match(/v=([^&]+)/);
-  return m? m[1] : null;
-}
 
 function captureFrame(video) {
   if (video.poster && video.poster!=='https://placehold.co/600x400?text=Preview') return;
