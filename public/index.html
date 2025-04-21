@@ -1210,15 +1210,18 @@ function displayPosts(containerId, posts) {
     return;
   }
 
+  // Собираем HTML
   container.innerHTML = posts.map(post => {
     let media = '';
-    // соберём единый массив «слайды»
     const slides = [];
+
+    // фото
     if (Array.isArray(post.photos)) {
       slides.push(...post.photos.map(url =>
         `<img src="${url}" class="slide">`
       ));
     }
+    // загруженные видео
     if (post.videos) {
       slides.push(...post.videos.map(url =>
         `<video class="slide" controls>
@@ -1226,52 +1229,63 @@ function displayPosts(containerId, posts) {
          </video>`
       ));
     }
-    // если есть слайды — рисуем один общий .slider
+    // единый слайдер, если есть хоть один слайд
     if (slides.length) {
       media = `
         <div class="slider" data-idx="0">
           ${slides.join('')}
           <button class="prev">‹</button>
           <button class="next">›</button>
-        </div>
-      `;
+        </div>`;
     }
-    // fallback для одиночных YouTube-видео или фото
+    // fallback YouTube
     else if (post.category === 'video') {
       const id = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
-      media = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
-    } else if (post.category === 'photo') {
+      media = `<div class="video-container">
+                 <iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>
+               </div>`;
+    }
+    // одиночная картинка
+    else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
 
-    // ... остальная разметка карточки
+    // Собираем карточку
+    const date = ts(post)
+      ? new Date(ts(post)).toLocaleDateString('ru-RU')
+      : '—';
+
     return `
       <div class="post" data-post-id="${post.id}">
         ${media}
         <div class="post-content">
-          …
+          <div class="post-description">${post.description}</div>
+          <div class="post-date">${date}</div>
+          <div class="post-actions">
+            <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
+              ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
+            </button>
+            <button class="action-btn" onclick="toggleComments('${post.id}')">
+              💬 ${post.commentsCount||0}
+            </button>
+          </div>
         </div>
       </div>
     `;
   }).join('');
 
-  // инициализируем стрелки и переключение слайдов
+  // инициализируем слайдеры
   container.querySelectorAll('.slider').forEach(slider => {
     const slides = slider.querySelectorAll('.slide');
     slides[0].classList.add('active');
-
     const show = idx => {
       slides.forEach(s => s.classList.remove('active'));
       const i = (idx + slides.length) % slides.length;
       slides[i].classList.add('active');
       slider.dataset.idx = i;
     };
-
-    slider.querySelector('.prev').onclick = () =>
-      show(+slider.dataset.idx - 1);
-    slider.querySelector('.next').onclick = () =>
-      show(+slider.dataset.idx + 1);
-
+    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
+    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
     // свайп
     let x0 = null;
     slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
@@ -1285,21 +1299,20 @@ function displayPosts(containerId, posts) {
       x0 = null;
     }, { passive: true });
   });
-}
 
-// «Читать далее» для описаний
-container.querySelectorAll('.post-description').forEach(p => {
-  if (p.scrollHeight <= 120) p.classList.add('expanded');  // короткие сразу раскрыты
-  p.onclick = () => p.classList.toggle('expanded');
-});
+  // «Читать далее» для описаний
+  container.querySelectorAll('.post-description').forEach(p => {
+    if (p.scrollHeight <= 120) p.classList.add('expanded');
+    p.onclick = () => p.classList.toggle('expanded');
+  });
 
-
-  setupMobileKeyboardHandling();
-  container.querySelectorAll('video.uploaded-video').forEach(v=>{
-    v.crossOrigin='anonymous';
-    v.addEventListener('loadedmetadata',()=>captureFrame(v));
+  // Видео: захват превью‑кадра
+  container.querySelectorAll('video.uploaded-video').forEach(v => {
+    v.crossOrigin = 'anonymous';
+    v.addEventListener('loadedmetadata', () => captureFrame(v));
   });
 }
+
 
 
 
