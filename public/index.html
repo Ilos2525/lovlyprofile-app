@@ -1232,16 +1232,23 @@ window.startVideoGate = function(seq, url) {
   document.body.appendChild(ov);
 
   const v = ov.querySelector('#gateVideo');
-  let watched = 0, timer = null;
+  let watched = 0;
+  let timer = null;
+  let finished = false;
 
-  v.onplay  = () => timer = setInterval(() => { if (++watched >= 10) finish(); }, 1000);
+  v.onplay = () => {
+    if (finished) return;
+    timer = setInterval(() => {
+      if (++watched >= 10) finish();
+    }, 1000);
+  };
   v.onpause = () => clearInterval(timer);
 
   function finish() {
+    if (finished) return;
+    finished = true;
     clearInterval(timer);
     markTaskUnlocked(seq).then(() => {
-      // НЕ закрываем оверлей — просто разблокируем задание
-      // можно поменять его оформление, но оставим окно открытым
       alert('✅ Задание выполнено! Теперь вы можете закрыть окно');
     });
   }
@@ -1252,6 +1259,7 @@ window.startVideoGate = function(seq, url) {
     loadArchivePosts();
   };
 };
+
 
 
 function displayPosts(containerId, posts) {
