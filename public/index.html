@@ -814,9 +814,14 @@
   position: relative;
   z-index: 10;
 }
-.post.locked .post-description {
-  display: none !important;
+.post.locked .lock-box {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  position: relative; /* чтобы z-index работал */
+  z-index: 1;
 }
+
     
 </style>
 <body>
@@ -1179,8 +1184,7 @@ async function loadArchivePosts() {
     // 2) Генерируем HTML через renderOpenPost / renderLockedPost
     const fragments = await Promise.all(
       raw.map(async post => {
-        const unlocked = await isTaskUnlocked(post.archiveSeq);
-        return unlocked
+        return (await isTaskUnlocked(post.archiveSeq))
           ? renderOpenPost(post)
           : renderLockedPost(post);
       })
@@ -1189,7 +1193,7 @@ async function loadArchivePosts() {
     // 3) Рендерим только их
     grid.innerHTML = fragments.join('');
 
-    // 4) Инициализируем все UI‑хелперы:
+    // 4) Инициализируем UI‑хелперы
     grid.querySelectorAll('.slider').forEach(initSlider);
     grid.querySelectorAll('.video-container.preview').forEach(initYouTubePreview);
     grid.querySelectorAll('.post-description').forEach(initReadMore);
@@ -1205,9 +1209,9 @@ async function loadArchivePosts() {
   }
 }
 
-// ====================== Helpers для UI ======================
+// ======= UI‑хелперы =======
 
-// Инициализация слайдера
+// Слайдер фото/видео
 function initSlider(slider) {
   const slides = slider.querySelectorAll('.slide');
   if (!slides.length) return;
@@ -1221,7 +1225,7 @@ function initSlider(slider) {
   slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
   slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
   slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
-  slider.addEventListener('touchend', e => {
+  slider.addEventListener('touchend',   e => {
     if (startX === null) return;
     const dx = e.changedTouches[0].clientX - startX;
     if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
@@ -1229,7 +1233,7 @@ function initSlider(slider) {
   }, { passive: true });
 }
 
-// Ленивый YouTube‑превью
+// Ленивое YouTube‑встраивание
 function initYouTubePreview(div) {
   const vid = div.dataset.videoId;
   if (!vid) return;
@@ -1243,7 +1247,7 @@ function initYouTubePreview(div) {
   };
 }
 
-// «Читать далее»
+// "Читать далее" для описаний
 function initReadMore(p) {
   if (p.scrollHeight <= 120) {
     p.classList.add('expanded');
@@ -1251,8 +1255,6 @@ function initReadMore(p) {
     p.onclick = () => p.classList.toggle('expanded');
   }
 }
-
-
 
 
 
