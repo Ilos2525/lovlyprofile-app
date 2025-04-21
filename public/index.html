@@ -1303,7 +1303,7 @@ function displayPosts(containerId, posts) {
       ));
     }
 
-    // 3) Если есть слайды — общий слайдер
+    // 3) Общий слайдер для фото/видео
     if (slides.length) {
       media = `
         <div class="slider" data-idx="0">
@@ -1312,7 +1312,32 @@ function displayPosts(containerId, posts) {
           <button class="next">›</button>
         </div>`;
     }
-    // 4) Иначе — YouTube‑видео
+    // 4) Музыкальный пост
+    else if (post.category === 'music') {
+      media = `
+        <div class="audio-post" data-src="${post.fileURL}">
+          ${post.coverURL
+            ? `<div class="audio-cover"><img src="${post.coverURL}" loading="lazy"></div>`
+            : ''
+          }
+          <div class="audio-info">
+            <div class="audio-title">${post.description || ''}</div>
+            <div class="audio-controls">
+              <button class="btn-prev">⏮️</button>
+              <button class="btn-play">▶️</button>
+              <button class="btn-next">⏭️</button>
+            </div>
+            <div class="audio-progress">
+              <div class="bar"><div class="fill"></div></div>
+              <div class="time">
+                <span class="current">00:00</span>
+                <span class="duration">00:00</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+    // 5) YouTube‑видео
     else if (post.category === 'video') {
       const id = getYoutubeVideoId(post.fileURL);
       const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
@@ -1323,11 +1348,11 @@ function displayPosts(containerId, posts) {
           style="background:url(${thumb}) center/cover no-repeat;cursor:pointer;">
         </div>`;
     }
-    // 5) Иначе — одиночная картинка
+    // 6) Одиночная картинка
     else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
-    // 6) Фоллбэк
+    // 7) Фоллбэк
     else {
       media = `<div class="video-container" style="background:#000"></div>`;
     }
@@ -1343,7 +1368,8 @@ function displayPosts(containerId, posts) {
           <div class="post-description">${post.description}</div>
           <div class="post-date">${date}</div>
           <div class="post-actions">
-            <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
+            <button class="action-btn ${post.isLiked ? 'liked' : ''}"
+                    onclick="handleLike('${post.id}')">
               ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
             </button>
             <button class="action-btn" onclick="toggleComments('${post.id}')">
@@ -1354,7 +1380,7 @@ function displayPosts(containerId, posts) {
       </div>`;
   }).join('');
 
-  // Инициализация слайдеров
+  // Инициализация слайдеров (фото/видео)
   container.querySelectorAll('.slider').forEach(slider => {
     const slides = slider.querySelectorAll('.slide');
     slides[0]?.classList.add('active');
@@ -1366,7 +1392,6 @@ function displayPosts(containerId, posts) {
     };
     slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
     slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
-    // Свайп
     let x0 = null;
     slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
     slider.addEventListener('touchend', e => {
@@ -1377,7 +1402,7 @@ function displayPosts(containerId, posts) {
     }, { passive: true });
   });
 
-  // Ленивый YouTube: по клику вставляем iframe
+  // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
     const vid = div.dataset.videoId;
     if (!vid) return;
@@ -1397,12 +1422,16 @@ function displayPosts(containerId, posts) {
     p.onclick = () => p.classList.toggle('expanded');
   });
 
-  // Постер для своих видео
+  // Постер для uploaded-video
   container.querySelectorAll('video.uploaded-video').forEach(v => {
     v.crossOrigin = 'anonymous';
     v.addEventListener('loadedmetadata', () => captureFrame(v));
   });
+
+  // После отрисовки всех постов нужно инициализировать аудио-плееры:
+  initMusicPlaylist();
 }
+
 
 // Универсальный парсер YouTube‑ID
 function getYoutubeVideoId(url) {
