@@ -1228,27 +1228,27 @@ function displayPosts(containerId, posts) {
     return;
   }
 
-  // Собираем HTML
   container.innerHTML = posts.map(post => {
     let media = '';
     const slides = [];
 
-    // фото
-    if (Array.isArray(post.photos)) {
-      slides.push(...post.photos.map(url =>
-        `<img src="${url}" class="slide">`
+    // — свои видео (post.videos) —
+    if (post.videos) {
+      slides.push(...post.videos.map(url =>
+        `<video 
+            class="slide uploaded-video" 
+            playsinline 
+            webkit-playsinline 
+            muted 
+            preload="metadata" 
+            controls
+          >
+           <source src="${url}" type="video/mp4">
+         </video>`
       ));
     }
-    // загруженные видео
-if (post.videos) {
-  slides.push(...post.videos.map(url =>
-    `<video class="slide" controls playsinline webkit-playsinline>
-       <source src="${url}" type="video/mp4">
-     </video>`
-  ));
-}
 
-    // единый слайдер, если есть хоть один слайд
+    // если есть слайды — рисуем слайдер
     if (slides.length) {
       media = `
         <div class="slider" data-idx="0">
@@ -1257,19 +1257,27 @@ if (post.videos) {
           <button class="next">›</button>
         </div>`;
     }
-    // fallback YouTube
+    // — YouTube (fallback) —
     else if (post.category === 'video') {
       const id = (post.fileURL.match(/v=([^&]+)/) || [])[1] || '';
-      media = `<div class="video-container">
-                 <iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>
-               </div>`;
+      const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+      media = `
+        <div 
+          class="video-container" 
+          style="
+            background: url(${thumb}) center/cover no-repeat;
+            cursor: pointer;
+          "
+          onclick="
+            this.innerHTML = '<iframe src=\\\"https://www.youtube.com/embed/${id}?autoplay=1\\\" allowfullscreen style=\\\"position:absolute;top:0;left:0;width:100%;height:100%;border:none;\\\"></iframe>'
+          ">
+        </div>`;
     }
-    // одиночная картинка
+    // — одиночная картинка —
     else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
     }
 
-    // Собираем карточку
     const date = ts(post)
       ? new Date(ts(post)).toLocaleDateString('ru-RU')
       : '—';
@@ -1289,14 +1297,13 @@ if (post.videos) {
             </button>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 
   // инициализируем слайдеры
   container.querySelectorAll('.slider').forEach(slider => {
     const slides = slider.querySelectorAll('.slide');
-    slides[0].classList.add('active');
+    slides[0]?.classList.add('active');
     const show = idx => {
       slides.forEach(s => s.classList.remove('active'));
       const i = (idx + slides.length) % slides.length;
@@ -1311,27 +1318,23 @@ if (post.videos) {
     slider.addEventListener('touchend', e => {
       if (x0 === null) return;
       const dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 30) show(dx < 0
-        ? +slider.dataset.idx + 1
-        : +slider.dataset.idx - 1
-      );
+      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
       x0 = null;
     }, { passive: true });
   });
 
-  // «Читать далее» для описаний
+  // “читалка” для описаний
   container.querySelectorAll('.post-description').forEach(p => {
     if (p.scrollHeight <= 120) p.classList.add('expanded');
     p.onclick = () => p.classList.toggle('expanded');
   });
 
-  // Видео: захват превью‑кадра
+  // захват превью‑кадра для своих видео
   container.querySelectorAll('video.uploaded-video').forEach(v => {
     v.crossOrigin = 'anonymous';
     v.addEventListener('loadedmetadata', () => captureFrame(v));
   });
 }
-
 
 
 
