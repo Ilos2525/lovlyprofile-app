@@ -1004,16 +1004,22 @@ let unlockAudioURL = '';
     const unlockPassword = document.getElementById('unlockPassword').value.trim();
     const unlockQuiz = [];
 
+        // ==== Блок архива: quiz ====
     if (isArchive && unlockTypeVal === 'quiz') {
       for (const blk of quizBuilder.children) {
         const qText = blk.querySelector('.q-text').value.trim();
         if (!qText) throw new Error('Заполните текст вопроса');
+        // …остальной код quiz…
+      }
+      if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
+    }
 
-if (isArchive && unlockTypeVal === 'audio') {
-  const f = document.getElementById('unlockAudio').files[0];
-  if (!f) throw new Error('Загрузите аудио‑файл');
-  unlockAudioURL = await uploadFile(f,'task_audio');
-}
+    // ==== Блок архива: audio ====
+    if (isArchive && unlockTypeVal === 'audio') {
+      const f = document.getElementById('unlockAudio').files[0];
+      if (!f) throw new Error('Загрузите аудио‑файл');
+      unlockAudioURL = await uploadFile(f, 'task_audio');
+    }
 
         let qImgURL = blk.querySelector('input[type="file"]').dataset.hasimg || '';
         if (blk.querySelector('input[type="file"]').files[0])
@@ -1035,27 +1041,33 @@ if (isArchive && unlockTypeVal === 'audio') {
     }
 
     // основное медиа
+    // ===== основное медиа =====
     let fileURL = '';
     if (window.editingPostId) {
       fileURL = window.editingFileURL;
-    } else if (categoryVal === 'video') {
+    }
+    else if (categoryVal === 'video') {
       fileURL = document.getElementById('youtubeLink').value.trim();
       if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка YouTube');
-   } else if (categoryVal === 'photo') {
-  const files = [...document.getElementById('fileInput').files];
-  if (!files.length) throw new Error('Добавьте фото или видео');
+    }
+    else if (categoryVal === 'photo') {
+      const files = [...document.getElementById('fileInput').files];
+      if (!files.length) throw new Error('Добавьте фото или видео');
+      const images = files.filter(f => f.type.startsWith('image/'));
+      const videos = files.filter(f => f.type.startsWith('video/'));
+      if (images.length)
+        newPost.photos = await Promise.all(images.map(f => uploadFile(f, 'photo')));
+      if (videos.length)
+        newPost.videos = await Promise.all(videos.map(f => uploadFile(f, 'uploaded_video')));
+      // файл в fileURL больше не нужен
+    }
+    else {
+      // всё остальное (music, uploaded_video, audio и т.п.)
+      const f = document.getElementById('fileInput').files[0];
+      if (!f) throw new Error('Выберите файл');
+      fileURL = await uploadFile(f, categoryVal);
+    }
 
-  const images = files.filter(f => f.type.startsWith('image/'));
-  const videos = files.filter(f => f.type.startsWith('video/'));
-
-  if (images.length)
-    newPost.photos  = await Promise.all(images.map(f => uploadFile(f, 'photo')));
-  if (videos.length)
-    newPost.videos  = await Promise.all(videos.map(f => uploadFile(f,'uploaded_video')));
-
-  /* fileURL больше не нужен */
-  fileURL = '';
-}
 
     } else {
       const f = document.getElementById('fileInput').files[0];
