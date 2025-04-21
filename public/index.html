@@ -188,7 +188,8 @@
   display: block;
   width: 100%;
   height: auto;
-  margin-top: 12px;   /* немного пространства под слайдером */
+  margin-top: 12px; 
+ object-fit: cover;    /* немного пространства под слайдером */
 }
 
     /* Посты */
@@ -646,57 +647,74 @@
   border-radius: var(--border-radius);
   display: block;
 }
-    /* --- СЛАЙДЕР ФОТО --- */
-.slider      { position:relative; overflow:hidden; }
-.slider .slide{
-  width:100%; height:300px; object-fit:cover; display:none;
-}
-.slider .prev,
-.slider .next{
-  position:absolute; top:50%; transform:translateY(-50%);
-  width:44px; height:44px; border-radius:50%;
-  border:none; background:rgba(0,0,0,.35); color:#fff;
-  font-size:32px; line-height:1; display:flex;
-  align-items:center; justify-content:center; cursor:pointer;
-  transition:background .2s;
-}
-.slider .prev{ left:12px; }
-.slider .next{ right:12px; }
-.slider:hover .prev,
-.slider:hover .next{ background:rgba(0,0,0,.55); }
-.slider .prev, .slider .next{ opacity:0; pointer-events:none; }
-.slider:hover .prev,
-.slider:hover .next{ opacity:1; pointer-events:auto; }
-
-/* свайп‑жест выглядит естественно, поэтому стрелки можем прятать на мобильных */
-@media (max-width:768px){
-  .slider .prev, .slider .next{ opacity:1; pointer-events:auto; }
-}
-
-/* фиксируем аспект 16:9 для слайдера */
+ /* === Универсальный слайдер фото + видео === */
 .slider {
   position: relative;
-  width: 100%;
-  padding-bottom: 56.25%; /* 16:9 */
   overflow: hidden;
 }
+
+/* Слайды (img или video.slide) */
 .slider .slide {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
+  width: 100%;
+  height: auto;          /* авто‑высота по содержимому */
+  object-fit: cover;     /* масштабирует, сохраняя пропорции */
   display: none;
 }
+
 .slider .slide.active {
   display: block;
 }
+
+/* Кнопки навигации */
 .slider .prev,
 .slider .next {
   position: absolute;
-  top: 50%; transform: translateY(-50%);
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 10;
-  /* ваши стили кнопок */
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
 }
+
+.slider .prev { left: 12px; }
+.slider .next { right: 12px; }
+
+/* Показываем кнопки только при hover */
+.slider .prev,
+.slider .next {
+  opacity: 0;
+  pointer-events: none;
+}
+.slider:hover .prev,
+.slider:hover .next {
+  opacity: 1;
+  pointer-events: auto;
+  background: rgba(0,0,0,0.55);
+}
+
+/* На мобильных сразу показываем стрелки */
+@media (max-width: 768px) {
+  .slider .prev,
+  .slider .next {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+
 
 /* ---------- LOCKED POST ---------- */
 .post.locked{
@@ -1222,13 +1240,14 @@ function displayPosts(containerId, posts) {
       ));
     }
     // загруженные видео
-    if (post.videos) {
-      slides.push(...post.videos.map(url =>
-        `<video class="slide" controls>
-           <source src="${url}" type="video/mp4">
-         </video>`
-      ));
-    }
+if (post.videos) {
+  slides.push(...post.videos.map(url =>
+    `<video class="slide" controls playsinline webkit-playsinline>
+       <source src="${url}" type="video/mp4">
+     </video>`
+  ));
+}
+
     // единый слайдер, если есть хоть один слайд
     if (slides.length) {
       media = `
