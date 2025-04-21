@@ -461,7 +461,7 @@
 
       <div id="fileInputGroup">
         <label for="fileInput">Файл:</label>
-        <input type="file" id="fileInput" accept="image/*" multiple>
+        <input type="file" id="fileInput" accept="image/*,video/*" multiple>
         <div class="preview-container" id="filePreview"></div>
       </div>
 
@@ -500,12 +500,19 @@
           <option value="password">password</option>
           <option value="quiz">quiz</option>
           <option value="final">final (кнопка)</option>
+ <option value="audio">audio</option>
         </select>
 
         <div id="passwordGroup" style="display:none; margin-top:10px;">
           <label for="unlockPassword">Пароль:</label>
           <input type="text" id="unlockPassword" placeholder="A123">
         </div>
+
+<div id="audioGroup" style="display:none;margin-top:10px;">
+  <label for="unlockAudio">Аудио‑файл (mp3):</label>
+  <input type="file" id="unlockAudio" accept="audio/*">
+</div>
+
 
         <div id="quizGroup" style="display:none; margin-top:10px;">
   <h4>Викторина (до 10 вопросов)</h4>
@@ -837,6 +844,7 @@ const archiveSettings = document.getElementById('archiveSettings');
 const unlockType      = document.getElementById('unlockType');
 const passwordGroup   = document.getElementById('passwordGroup');
 const quizGroup       = document.getElementById('quizGroup');
+const audioGroup = document.getElementById('audioGroup');
 
 /* ---------- QUIZ BUILDER ---------- */
 const quizBuilder = document.getElementById('quizBuilder');
@@ -878,6 +886,7 @@ isArchiveCh.addEventListener('change', () => {
 unlockType.addEventListener('change', () => {
   passwordGroup.style.display = (unlockType.value === 'password') ? 'block' : 'none';
   quizGroup    .style.display = (unlockType.value === 'quiz')     ? 'block' : 'none';
+audioGroup.style.display = (unlockType.value === 'audio') ? 'block' : 'none';
 });
 
 // 4) Скрываем настройки архива по умолчанию
@@ -919,7 +928,7 @@ quizGroup.style.display       = 'none';
 
 /* ====== Предварительный просмотр файла/файлов ====== */
 document.getElementById('fileInput').addEventListener('change', e => {
-  const files   = [...e.target.files].slice(0, 10);   // максимум 10
+  const files = [...e.target.files];   // без ограничения
   const preview = document.getElementById('filePreview');
   if (!files.length) { preview.innerHTML = ''; return; }
 
@@ -991,6 +1000,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const isArchive  = isArchiveCh.checked;
     const archiveSeq = +document.getElementById('archiveSeq').value || null;
     let   unlockTypeVal  = unlockType.value;
+let unlockAudioURL = '';
     const unlockPassword = document.getElementById('unlockPassword').value.trim();
     const unlockQuiz = [];
 
@@ -998,6 +1008,12 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       for (const blk of quizBuilder.children) {
         const qText = blk.querySelector('.q-text').value.trim();
         if (!qText) throw new Error('Заполните текст вопроса');
+
+if (isArchive && unlockTypeVal === 'audio') {
+  const f = document.getElementById('unlockAudio').files[0];
+  if (!f) throw new Error('Загрузите аудио‑файл');
+  unlockAudioURL = await uploadFile(f,'task_audio');
+}
 
         let qImgURL = blk.querySelector('input[type="file"]').dataset.hasimg || '';
         if (blk.querySelector('input[type="file"]').files[0])
@@ -1025,11 +1041,22 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     } else if (categoryVal === 'video') {
       fileURL = document.getElementById('youtubeLink').value.trim();
       if (!getYoutubeVideoId(fileURL)) throw new Error('Неверная ссылка YouTube');
-    } else if (categoryVal === 'photo') {
-      const files = [...document.getElementById('fileInput').files];
-      if (!files.length) throw new Error('Выберите хотя бы одно фото');
-      if (files.length > 10) throw new Error('Максимум 10 изображений');
-      fileURL = await Promise.all(files.map(f => uploadFile(f, 'photo')));
+   } else if (categoryVal === 'photo') {
+  const files = [...document.getElementById('fileInput').files];
+  if (!files.length) throw new Error('Добавьте фото или видео');
+
+  const images = files.filter(f => f.type.startsWith('image/'));
+  const videos = files.filter(f => f.type.startsWith('video/'));
+
+  if (images.length)
+    newPost.photos  = await Promise.all(images.map(f => uploadFile(f, 'photo')));
+  if (videos.length)
+    newPost.videos  = await Promise.all(videos.map(f => uploadFile(f,'uploaded_video')));
+
+  /* fileURL больше не нужен */
+  fileURL = '';
+}
+
     } else {
       const f = document.getElementById('fileInput').files[0];
       if (!f) throw new Error('Выберите файл');
@@ -1062,6 +1089,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       if (unlockTypeVal === 'password') newPost.unlockPassword = unlockPassword;
       if (unlockTypeVal === 'quiz')     newPost.unlockQuiz     = unlockQuiz;
       if (taskHintVal)  newPost.taskHint = taskHintVal;
+if (unlockTypeVal === 'audio') newPost.unlockAudio = unlockAudioURL;
+
     }
 
     // запись в Firestore
