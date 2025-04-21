@@ -810,7 +810,14 @@
 .post-description.expanded::after{
   display:none;
 }
-
+.post.locked .lock-box {
+  position: relative;
+  z-index: 10;
+}
+.post.locked .post-description {
+  display: none !important;
+}
+    
 </style>
 <body>
     <div class="profile-section">
