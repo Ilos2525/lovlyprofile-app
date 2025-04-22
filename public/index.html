@@ -788,6 +788,18 @@
   color:var(--secondary-text);cursor:pointer
 }
 
+/* для текстовых вариантов (без картинки) делаем блок во всю ширину и auto‑высоту */
+.quiz-opt.text-only {
+  width: 100% !important;
+  height: auto !important;
+  padding: 12px 18px !important;
+  display: flex !important;
+  justify-content: center;
+  font-size: 1em;
+  line-height: 1.4;
+}
+
+
 .post-description{
   max-height:120px;
   overflow:hidden;
@@ -1294,11 +1306,23 @@ window.startQuiz = function (seq, quizArr) {
     const q = quizArr[cur];
 
     /* карточки‑варианты */
-    const optsHtml = q.options.map((opt, i) => `
-      <button class="quiz-opt" data-idx="${i}">
-        ${opt.imgURL ? `<img src="${opt.imgURL}" loading="lazy">` : ''}
-        <span>${opt.text || ''}</span>
-      </button>`).join('');
+const optsHtml = q.options.map((opt, i) => {
+  // если пришла просто строка — это текстовый вариант
+  const isTextOnly = (typeof opt === 'string');
+  // картинка, если объект с imgURL
+  const imgPart    = !isTextOnly && opt.imgURL
+    ? `<img src="${opt.imgURL}" loading="lazy">`
+    : '';
+  // текст — либо строка, либо свойство text у объекта
+  const textPart   = `<span>${ isTextOnly ? opt : (opt.text || '') }</span>`;
+
+  return `
+    <button class="quiz-opt ${isTextOnly ? 'text-only' : ''}" data-idx="${i}">
+      ${imgPart}
+      ${textPart}
+    </button>`;
+}).join('');
+
 
     /* разметка вопроса */
     ov.innerHTML = `
