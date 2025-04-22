@@ -1370,7 +1370,8 @@ window.startVideoGate = function(seq, url) {
   ov.innerHTML = `
     <div class="quiz-card">
       <video id="gateVideo" controls src="${url}" style="width:100%;height:auto"></video>
-      <p style="margin-top:15px">Смотреть минимум 10 секунд…</p>
+-     <p style="margin-top:15px">Смотреть минимум 10 секунд…</p>
++     <p style="margin-top:15px">Смотреть минимум 1 минуту 24 секунды…</p>
       <button class="quiz-close">✖ Закрыть</button>
     </div>`;
   document.body.appendChild(ov);
@@ -1379,11 +1380,13 @@ window.startVideoGate = function(seq, url) {
   let watched = 0;
   let timer = null;
   let finished = false;
+  const THRESHOLD = 84; // 1 мин 24 сек
 
   v.onplay = () => {
     if (finished) return;
     timer = setInterval(() => {
-      if (++watched >= 10) finish();
+      watched++;
+      if (watched >= THRESHOLD) finish();
     }, 1000);
   };
   v.onpause = () => clearInterval(timer);
@@ -1403,6 +1406,7 @@ window.startVideoGate = function(seq, url) {
     loadArchivePosts();
   };
 };
+
 
 function displayPosts(containerId, posts) {
   // Вспомогательная функция для таймстемпа
