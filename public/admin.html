@@ -1033,10 +1033,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const unlockPassword  = document.getElementById('unlockPassword').value.trim();
     let   unlockAudioURL  = '';
     let   unlockVideoURL  = '';
-    let unlockQuiz      = [];
-
-  // заменяем const на let, потому что будем пушить
-let unlockQuiz = [];
+    let  unlockQuiz      = [];
+    
 
 if (isArchive && unlockTypeVal === 'quiz') {
   const quizBlocks = quizBuilder.querySelectorAll('.q-block');
