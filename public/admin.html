@@ -1033,28 +1033,58 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     const unlockPassword  = document.getElementById('unlockPassword').value.trim();
     let   unlockAudioURL  = '';
     let   unlockVideoURL  = '';
-    const unlockQuiz      = [];
+    let unlockQuiz      = [];
 
-  if (isArchive && unlockTypeVal === 'quiz') {
-  // Собираем все блоки вопросов из конструктора
+  // заменяем const на let, потому что будем пушить
+let unlockQuiz = [];
+
+if (isArchive && unlockTypeVal === 'quiz') {
   const quizBlocks = quizBuilder.querySelectorAll('.q-block');
-  quizBlocks.forEach(block => {
-    const question = block.querySelector('.q-text').value.trim();
-    if (!question) return;              // пропускаем, если нет текста
-    // собираем все текстовые варианты ответа и фильтруем пустые
-    const options = Array.from(block.querySelectorAll('.q-opt'))
-      .map(opt => opt.value.trim())
-      .filter(text => text);
-    if (options.length < 1) return;     // пропускаем, если нет ни одного варианта
-    unlockQuiz.push({ question, options });
-  });
-  // если после парсинга вопросов ничего не набралось — ошибка
+  for (const block of quizBlocks) {
+    // текст вопроса
+    const questionText = block.querySelector('.q-text').value.trim();
+    if (!questionText) continue;
+
+    // картинка вопроса (если есть)
+    const qImgFile = block.querySelector('input[type="file"]').files[0];
+    let qImgURL = '';
+    if (qImgFile) {
+      qImgURL = await uploadFile(qImgFile, 'quiz_images');
+    }
+
+    // собираем варианты
+    const opts = [];
+    const textEls = block.querySelectorAll('.q-opt');
+    const imgEls  = block.querySelectorAll('.q-opt-img');
+    for (let i = 0; i < textEls.length; i++) {
+      const text = textEls[i].value.trim();
+      const file = imgEls[i].files[0];
+      if (!text && !file) continue;
+
+      let imgURL = '';
+      if (file) {
+        imgURL = await uploadFile(file, 'quiz_images');
+      }
+
+      opts.push({ text, imgURL });
+    }
+    if (opts.length === 0) continue;
+
+    unlockQuiz.push({
+      question: questionText,
+      imgURL:    qImgURL,
+      options:   opts
+    });
+  }
+
   if (unlockQuiz.length === 0) {
     throw new Error('Добавьте хотя бы один вопрос');
   }
-  // если нужно — записываем в скрытое поле (для отладки или визуального контроля)
+
+  // для отладки
   document.getElementById('unlockQuiz').value = JSON.stringify(unlockQuiz);
 }
+
 
     if (isArchive && unlockTypeVal === 'audio') {
       const f = document.getElementById('unlockAudio').files[0];
