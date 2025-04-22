@@ -1035,10 +1035,26 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     let   unlockVideoURL  = '';
     const unlockQuiz      = [];
 
-    if (isArchive && unlockTypeVal === 'quiz') {
-      // здесь ваш код сборки quiz …
-      if (!unlockQuiz.length) throw new Error('Добавьте хотя бы один вопрос');
-    }
+  if (isArchive && unlockTypeVal === 'quiz') {
+  // Собираем все блоки вопросов из конструктора
+  const quizBlocks = quizBuilder.querySelectorAll('.q-block');
+  quizBlocks.forEach(block => {
+    const question = block.querySelector('.q-text').value.trim();
+    if (!question) return;              // пропускаем, если нет текста
+    // собираем все текстовые варианты ответа и фильтруем пустые
+    const options = Array.from(block.querySelectorAll('.q-opt'))
+      .map(opt => opt.value.trim())
+      .filter(text => text);
+    if (options.length < 1) return;     // пропускаем, если нет ни одного варианта
+    unlockQuiz.push({ question, options });
+  });
+  // если после парсинга вопросов ничего не набралось — ошибка
+  if (unlockQuiz.length === 0) {
+    throw new Error('Добавьте хотя бы один вопрос');
+  }
+  // если нужно — записываем в скрытое поле (для отладки или визуального контроля)
+  document.getElementById('unlockQuiz').value = JSON.stringify(unlockQuiz);
+}
 
     if (isArchive && unlockTypeVal === 'audio') {
       const f = document.getElementById('unlockAudio').files[0];
