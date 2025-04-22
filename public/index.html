@@ -811,29 +811,6 @@
   display:none;
 }
 
-
-/* 2) растянуть .lock-box на всю карточку и поднять его выше */
-.post.locked .lock-box {
-  position: absolute;
-  inset: 0;                  
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  padding: 20px;             
-  z-index: 10;
-  display: flex;             
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-/* скрываем всё «обычное» содержимое и описание внутри заблокированных постов */
-.post.locked .post-content,
-.post.locked .post-description,
-.post.locked .post-description::after {
-  display: none !important;
-}
-
-
     
 </style>
 <body>
@@ -1057,16 +1034,25 @@ function renderLockedPost(post) {
   const seq   = post.archiveSeq;
   const hint  = post.taskHint || '';
   const type  = post.unlockType;
-  const pw    = post.unlockPassword || '';
-  const audio = post.unlockAudio    || '';
-  const video = post.unlockVideo    || '';
-  const quiz  = JSON.stringify(post.unlockQuiz || []);
+  // маленькая табличка «иконка + номер» вместо всего описания
+  let icon;
+  switch (type) {
+    case 'password': icon = '🔒'; break;
+    case 'audio':    icon = '🔊'; break;
+    case 'video':    icon = '📹'; break;
+    case 'quiz':     icon = '❓'; break;
+    default:         icon = '🔒';
+  }
+  const titleText = `${icon} Квест №${seq}`;
 
-  // общий контейнер
   let html = `<div class="post locked" data-post-id="${post.id}">
     <div class="lock-box">
-      <div class="lock-title">${post.description || 'Квест №' + seq}</div>
-      <div class="lock-hint">${hint}</div>`;
+      <div class="lock-title">${titleText}</div>`
+    // если у вас есть hint — выводим его:
+    + (hint
+        ? `<div class="lock-hint">${hint}</div>`
+        : '')
+
 
   // password
   if (type === 'password') {
