@@ -1108,6 +1108,28 @@ function renderLockedPost(post) {
 
   return html;
 }
+    
+function renderLockedFuture(post) {
+  const seq  = post.archiveSeq;
+  const icon = (() => {
+    switch (post.unlockType) {
+      case 'password': return '🔒';
+      case 'audio':    return '🔊';
+      case 'video':    return '📹';
+      case 'quiz':     return '❓';
+      default:         return '🔒';
+    }
+  })();
+
+  return `
+    <div class="post locked" style="opacity:0.4;pointer-events:none">
+      <div class="lock-box">
+        <div class="lock-title">${icon} Квест №${seq}</div>
+        <div class="lock-hint">Сначала выполните Квест №${seq-1}</div>
+      </div>
+    </div>`;
+}
+
 
 /**
  * Рендерит полностью открытый (unlocked) архивный пост
@@ -1177,6 +1199,14 @@ async function loadArchivePosts() {
   grid.innerHTML = '<div class="loading">Загрузка…</div>';
 
   try {
+    // Получаем прогресс пользователя
+    const progRef  = doc(db, 'userProgress', currentUser.id.toString());
+    const progSnap = await getDoc(progRef);
+    const unlocked = progSnap.data()?.archiveUnlocked || [];         // массив выполненных seq
+    const maxSeq   = unlocked.length ? Math.max(...unlocked) : 0;    // максимально выполненный
+    const nextSeq  = maxSeq + 1;                                     // какой открыть следующим
+
+    // Запрашиваем все архивные посты
     const snap = await getDocs(
       query(
         collection(db, 'posts'),
@@ -1189,22 +1219,23 @@ async function loadArchivePosts() {
       return;
     }
 
-    // 1) Собираем массив постов
     const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const fragments = raw.map(post => {
+      const seq = post.archiveSeq;
+      if (seq <= maxSeq) {
+        // уже выполненные — показываем полностью открытым
+        return renderOpenPost(post);
+      } else if (seq === nextSeq) {
+        // текущее задание — рендерим как заблокированное, но кликабельное
+        return renderLockedPost(post);
+      } else {
+        // будущие задания — показываем полупрозрачными и некликабельными
+        return renderLockedFuture(post);
+      }
+    });
 
-    // 2) Генерируем HTML через renderOpenPost / renderLockedPost
-    const fragments = await Promise.all(
-      raw.map(async post => {
-        return (await isTaskUnlocked(post.archiveSeq))
-          ? renderOpenPost(post)
-          : renderLockedPost(post);
-      })
-    );
-
-    // 3) Рендерим только их
+    // Вставляем и инициализируем UI‑компоненты
     grid.innerHTML = fragments.join('');
-
-    // 4) Инициализируем UI‑хелперы
     grid.querySelectorAll('.slider').forEach(initSlider);
     grid.querySelectorAll('.video-container.preview').forEach(initYouTubePreview);
     grid.querySelectorAll('.post-description').forEach(initReadMore);
