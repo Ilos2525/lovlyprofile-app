@@ -1030,11 +1030,19 @@ async function loadPosts() {
  * Возвращает HTML для одного «locked» поста,
  * в зависимости от его unlockType и параметров.
  */
+/**
+ * Рендерит карточку заблокированного поста
+ */
 function renderLockedPost(post) {
-  const seq   = post.archiveSeq;
-  const hint  = post.taskHint || '';
-  const type  = post.unlockType;
-  // маленькая табличка «иконка + номер» вместо всего описания
+  const seq    = post.archiveSeq;
+  const hint   = post.taskHint    || '';
+  const type   = post.unlockType;
+  const pw     = post.unlockPassword || '';
+  const audio  = post.unlockAudio    || '';
+  const video  = post.unlockVideo    || '';
+  const quiz   = JSON.stringify(post.unlockQuiz || []);
+
+  // выбор иконки
   let icon;
   switch (type) {
     case 'password': icon = '🔒'; break;
@@ -1045,57 +1053,50 @@ function renderLockedPost(post) {
   }
   const titleText = `${icon} Квест №${seq}`;
 
-  let html = `<div class="post locked" data-post-id="${post.id}">
-    <div class="lock-box">
-      <div class="lock-title">${titleText}</div>`
-    // если у вас есть hint — выводим его:
-    + (hint
-        ? `<div class="lock-hint">${hint}</div>`
-        : '')
+  // начало карточки
+  let html = `
+    <div class="post locked" data-post-id="${post.id}">
+      <div class="lock-box">
+        <div class="lock-title">${titleText}</div>`;
 
+  // подсказка (hint)
+  if (hint) {
+    html += `<div class="lock-hint">${hint}</div>`;
+  }
 
-  // password
+  // вставка управления в зависимости от типа
   if (type === 'password') {
     html += `
       <input id="pwd-${seq}" placeholder="Введите пароль">
       <button onclick="unlockPassword(${seq}, '${pw}')">Открыть</button>`;
-  }
-  // quiz
-  else if (type === 'quiz') {
+  } else if (type === 'quiz') {
     html += `
       <button onclick='startQuiz(${seq}, ${quiz})'>
         Пройти викторину
       </button>`;
-  }
-  // audio
-  else if (type === 'audio') {
+  } else if (type === 'audio') {
     html += `
       <button onclick="startAudioGate(${seq}, '${audio}')">
         Прослушать аудио
       </button>`;
-  }
-  // video
-  else if (type === 'video') {
+  } else if (type === 'video') {
     html += `
       <button onclick="startVideoGate(${seq}, '${video}')">
         Просмотреть видео
       </button>`;
-  }
-  // final
-  else if (type === 'final') {
-    html += `<button onclick="unlockFinal(${seq})">Открыть</button>`;
-  }
-  // auto, fallback
-  else {
+  } else {
+    // final / fallback
     html += `<button onclick="unlockFinal(${seq})">Открыть</button>`;
   }
 
+  // закрываем карточку
   html += `
-    </div>
-  </div>`;
+      </div>
+    </div>`;
 
   return html;
 }
+
 /**
  * Рендерит полностью открытый (unlocked) архивный пост
  */
