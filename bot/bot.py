@@ -12,7 +12,7 @@ async def send_welcome(message: types.Message):
     await message.answer(
         "Привет! Это whylovly\n\n"
         "Нажав на кнопку Blog ты перейдешь на мой профиль, в нем ты найдешь фото, видео, музыку и скрытый архив с заданиями.\n"
-        "Если будут проблемы с заданиями, напиши /help сюда в чат, чтобы получить подсказки по заданиям."
+
     )
 
 @dp.message_handler(commands=['help'])
