@@ -1,9 +1,25 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 
-TOKEN = os.getenv("API_TOKEN")  # токен из настроек Render
+# Запуск простого HTTP-сервера для Render (порт 8080)
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'whylovly bot is running')
 
+def run_http_server():
+    server = HTTPServer(('0.0.0.0', 8080), SimpleHandler)
+    server.serve_forever()
+
+# Запуск сервера в отдельном потоке
+threading.Thread(target=run_http_server, daemon=True).start()
+
+# Telegram-бот
+TOKEN = os.getenv("API_TOKEN")  # токен из Render → Environment
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
@@ -33,7 +49,6 @@ async def send_help(message: types.Message):
         "Реально - ***** . мне безразлично.\n\n"
         "Вписывай все слова с большой буквы без пробела — например: НапримерТестПароль\n\n"
     )
-
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
