@@ -815,15 +815,22 @@
 /* 2) растянуть .lock-box на всю карточку и поднять его выше */
 .post.locked .lock-box {
   position: absolute;
-  inset: 0;                  /* top:0; right:0; bottom:0; left:0; */
+  inset: 0;                  
   background: var(--card-bg);
   border-radius: var(--border-radius);
-  padding: 20px;             /* или ваш отступ */
+  padding: 20px;             
   z-index: 10;
-  display: flex;             /* чтобы сохранить ваши flex‑центровки */
+  display: flex;             
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+/* скрываем всё «обычное» содержимое и описание внутри заблокированных постов */
+.post.locked .post-content,
+.post.locked .post-description,
+.post.locked .post-description::after {
+  display: none !important;
 }
 
 
