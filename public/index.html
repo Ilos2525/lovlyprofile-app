@@ -1181,19 +1181,27 @@ function renderLockedFuture(post) {
 function renderOpenPost(post) {
   let media = '';
 
- // 1) собственное видео
-if (post.category === 'uploaded_video' && post.fileURL) {
-  media = `
-    <video
-      class="uploaded-video"
-      playsinline webkit-playsinline
-      controls
-      preload="none"                                   /* не грузим сразу */
-      poster="https://placehold.co/600x400?text=▶"     /* заглушка-кадр   */
-      data-src="${post.fileURL}">                      /* реальный файл   */
-    </video>`;
-}
-
+  // 1) собственное видео
+  if (post.category === 'uploaded_video' && post.fileURL) {
+    media = `
+      <div class="video-wrapper">
+        <video
+          class="uploaded-video"
+          playsinline webkit-playsinline
+          controls
+          src="${post.fileURL}"
+          preload="metadata"
+          style="display:none;"
+        ></video>
+        <img
+          class="video-placeholder"
+          src="https://placehold.co/600x400?text=▶"
+          data-video="${post.fileURL}"
+          loading="lazy"
+          alt="Video preview"
+        />
+      </div>`;
+  }
   /* -------- слайдер фото+видео -------- */
   /* -------- слайдер / YouTube / фото -------- */
 else {
@@ -1300,8 +1308,7 @@ async function loadArchivePosts() {
       v.addEventListener('loadedmetadata', () => captureFrame(v));
     });
     initMusicPlaylist();
-    initInlineVideos();
-
+      initLazyVideos();
 
   } catch (e) {
     console.error('archive load error:', e);
@@ -1311,100 +1318,131 @@ async function loadArchivePosts() {
 
 // ======= UI‑хелперы =======
 
+// Слайдер фото/видео с динамическим ресайзингом
 function initSlider(slider) {
   const pending = JSON.parse(slider.dataset.slides || '[]');
-  let   slides  = [...slider.querySelectorAll('.slide')];
-  let   idx     = 0;                       // текущий номер слайда
+  let slides = Array.from(slider.querySelectorAll('.slide'));
+  let idx = 0;
 
-  /* --- вспомогательные --- */
-  const resetSquare = () => {
-    slider.style.paddingBottom = '';
-    slider.style.height        = '';
-  };
-  const adjustTo = el => {
-    const w     = slider.clientWidth;
+  // Восстановить квадратный контейнер
+  function resetSquare() {
+    slider.style.paddingBottom = ''; 
+    slider.style.height = '';
+  }
+
+  // Подогнать контейнер под размер элемента
+  function adjustTo(el) {
+    const w = slider.clientWidth;
     const ratio = el.tagName === 'VIDEO'
-        ? el.videoHeight / el.videoWidth
-        : el.naturalHeight / el.naturalWidth;
-    slider.style.paddingBottom = '0';
-    slider.style.height        = `${w * ratio}px`;
-  };
+      ? el.videoHeight / el.videoWidth
+      : el.naturalHeight / el.naturalWidth;
+    slider.style.paddingBottom = '0px';
+    slider.style.height = `${w * ratio}px`;
+  }
 
-  /* --- показ слайда --- */
+  // Показать слайд по индексу
   function show(newIdx) {
     resetSquare();
     const total = slides.length + pending.length;
     idx = ((newIdx % total) + total) % total;
 
-    /* добралиcь до «отложенных» url – создаём элемент */
+    // Если индекс выходит за пределы уже вставленных слайдов
     if (idx >= slides.length) {
-      const url   = pending.shift();
-      const isVid = /\.(mp4|webm|ogg)$/i.test(url);
-
-      const el = document.createElement('img');
-      el.className = 'slide';
-      if (isVid) {
-        el.classList.add('preview');
-        el.src         = 'https://placehold.co/600x400?text=▶';
+      const url = pending.shift();
+      let el;
+      if (/\.(mp4|webm|ogg)$/.test(url)) {
+        // создаём превью для видео
+        el = document.createElement('img');
+        el.className = 'slide preview';
+        el.src = 'https://placehold.co/600x400?text=▶';
         el.dataset.video = url;
       } else {
+        el = document.createElement('img');
+        el.className = 'slide';
         el.src = url;
       }
-
       slider.insertBefore(el, slider.querySelector('.prev'));
-      slides = [...slider.querySelectorAll('.slide')];
+      slides = Array.from(slider.querySelectorAll('.slide'));
       slider.dataset.slides = JSON.stringify(pending);
     }
 
-    /* активируем текущий */
     slides.forEach(s => s.classList.remove('active'));
-    const cur = slides[idx];
-    cur.classList.add('active');
+    const current = slides[idx];
+    current.classList.add('active');
 
-    /* подгоняем высоту */
-    if (cur.tagName === 'VIDEO') {
-      cur.controls = true;
-      cur.onloadedmetadata = () => adjustTo(cur);
+  if (current.tagName === 'VIDEO') {
+  /* 1. Полностью убираем mute-флаги */
+  current.pause();               // если вдруг уже играет без звука
+  current.muted        = false;
+  current.defaultMuted = false;  // снимаем «глобальный» мут
+  current.removeAttribute('muted');
+
+  /* 2. Убедимся, что громкость слышна */
+  current.volume = 1;
+
+  /* 3. Перезапускаем ролик — этот вызов идёт после
+        клика по стрелке/свайпа, поэтому считается
+        «пользовательским жестом» и звук разрешён.      */
+  const p = current.play();
+  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
+}
+
+    if (current.tagName === 'IMG') {
+      if (current.complete) adjustTo(current);
+      else current.onload = () => adjustTo(current);
     } else {
-      if (cur.complete) adjustTo(cur);
-      else cur.onload = () => adjustTo(cur);
+      current.onloadedmetadata = () => adjustTo(current);
+      current.controls = true;
     }
   }
-  /* === конец show() === */
 
-  /* клик по превью-картинке ⇒ меняем на <video> */
+  // Заменяем превью-картинку видео на настоящий <video>
   slider.addEventListener('click', e => {
     const t = e.target;
-    if (t.tagName === 'IMG' && t.dataset.video) {
-      const v = document.createElement('video');
-      v.className  = 'slide';
-      v.src        = t.dataset.video;
-      v.controls   = true;
-      v.setAttribute('playsinline','');
-      v.onloadedmetadata = () => { adjustTo(v); v.play().catch(()=>{}); };
-
-      slider.replaceChild(v, t);
-      slides = [...slider.querySelectorAll('.slide')];
-      v.classList.add('active');
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl = document.createElement('video');
+      videoEl.className = 'slide';
+      videoEl.controls = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.src = videoUrl;
+      slider.replaceChild(videoEl, t);
+      slides = Array.from(slider.querySelectorAll('.slide'));
+      show(idx);
     }
   });
 
-  /* стрелки и свайпы */
+  // Fullscreen по клику на видео
+  slides.forEach(v => {
+    if (v.tagName === 'VIDEO') {
+      v.controls = true;
+      v.addEventListener('click', () => {
+        if (v.requestFullscreen) v.requestFullscreen();
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+        else if (v.msRequestFullscreen) v.msRequestFullscreen();
+      });
+    }
+  });
+
+  // Навигация стрелками
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
-  let x0 = null;
-  slider.addEventListener('touchstart', e => (x0 = e.touches[0].clientX), { passive:true });
-  slider.addEventListener('touchend',   e => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
+  // Тач-свайп
+  let startX = null;
+  slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
+  slider.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
     if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
-    x0 = null;
-  }, { passive:true });
+    startX = null;
+  }, { passive: true });
 
-  /* стартовый кадр */
+  // Инициализируем первый слайд
   show(0);
 }
+
+
 
 
 // Ленивое YouTube‑встраивание
@@ -1568,8 +1606,8 @@ window.startVideoGate = function(seq, url) {
   ov.innerHTML = `
     <div class="quiz-card">
       <video id="gateVideo" controls src="${url}" style="width:100%;height:auto"></video>
-     <p style="margin-top:15px">Смотреть минимум 10 секунд…</p>
-     <p style="margin-top:15px">Смотреть минимум 1 минуту 24 секунды…</p>
+-     <p style="margin-top:15px">Смотреть минимум 10 секунд…</p>
++     <p style="margin-top:15px">Смотреть минимум 1 минуту 24 секунды…</p>
       <button class="quiz-close">✖ Закрыть</button>
     </div>`;
   document.body.appendChild(ov);
@@ -1739,7 +1777,26 @@ else {                       /* фото / слайдер / fallback */
 
 
   // Инициализация слайдеров (фото/видео)
-
+  container.querySelectorAll('.slider').forEach(slider => {
+    const slides = slider.querySelectorAll('.slide');
+    slides[0]?.classList.add('active');
+    const show = idx => {
+      slides.forEach(s => s.classList.remove('active'));
+      const i = (idx + slides.length) % slides.length;
+      slides[i].classList.add('active');
+      slider.dataset.idx = i;
+    };
+    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
+    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
+    let x0 = null;
+    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+    slider.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
+      x0 = null;
+    }, { passive: true });
+  });
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
@@ -1775,7 +1832,7 @@ container.querySelectorAll('.post-description').forEach(p => {
 
   // После отрисовки всех постов нужно инициализировать аудио-плееры:
   initMusicPlaylist();
-    initInlineVideos();
+    initLazyVideos();
 }
 
 
@@ -1992,56 +2049,31 @@ function captureFrame(video, cb) {
   video.currentTime = Math.min(1, video.duration/2);
 }
 
-
-    function initInlineVideos() {
-  document.querySelectorAll('video.uploaded-video[data-src]')
-    .forEach(video => {
-      if (video.dataset.inited) return;          // защита от дублирования
-      video.dataset.inited = 1;
-
-      /* ставим настоящий постер кадром из ролика */
-      video.crossOrigin = 'anonymous';
-      video.preload     = 'metadata';
-      video.addEventListener('loadedmetadata',
-        () => captureFrame(video));              // frame → poster
-
-      /* первый клик загружает src и играет */
-      video.addEventListener('click', () => {
-        video.src = video.dataset.src;
-        video.load();
-        video.play().catch(()=>{});
-      }, { once:true });
-    });
-}
-
 // 2) Обновлённый initLazyVideos
 function initLazyVideos() {
   document.querySelectorAll('.video-wrapper').forEach(wrapper => {
     const video = wrapper.querySelector('video.uploaded-video');
     const img   = wrapper.querySelector('img.video-placeholder');
 
-    /* — метаданные нужны, чтобы сделать постер — */
     video.crossOrigin = 'anonymous';
-    video.preload     = 'metadata';
+    video.preload    = 'metadata';
     video.addEventListener('loadedmetadata', () => {
-      captureFrame(video, thumb => { img.src = thumb; });
+      // дождёмся echte captureFrame, и только потом обновим <img>
+      captureFrame(video, (thumb) => {
+        img.src = thumb;
+      });
     });
     video.load();
 
-    /* — по клику показываем-воспроизводим само видео — */
     img.addEventListener('click', () => {
-      wrapper.replaceWith(video);       // убираем псевдо-кадр
-      video.style.display  = 'block';
-
-      /* важный блок для звука на мобильных */
-      video.muted         = false;
-      video.defaultMuted  = false;
-      video.volume        = 1;
-
-      video.play().catch(()=>{});
+      // при клике полностью меняем обёртку, чтобы убирать псевдо-стрелку
+      wrapper.replaceWith(video);
+      video.style.display = 'block';
+      video.play();
     }, { once: true });
-  });                    // ← закрыли forEach
-}                       // ← закрыли initLazyVideos
+  });
+}
+
 
     
 async function initTelegram() {
