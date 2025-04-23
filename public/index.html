@@ -1321,127 +1321,105 @@ async function loadArchivePosts() {
 // Слайдер фото/видео с динамическим ресайзингом
 function initSlider(slider) {
   const pending = JSON.parse(slider.dataset.slides || '[]');
-  let slides = Array.from(slider.querySelectorAll('.slide'));
-  let idx = 0;
+  let   slides  = Array.from(slider.querySelectorAll('.slide'));
+  let   idx     = 0;
 
-  // Восстановить квадратный контейнер
+  /* ─── служебные хелперы ───────────────────────── */
   function resetSquare() {
-    slider.style.paddingBottom = ''; 
-    slider.style.height = '';
+    slider.style.paddingBottom = '';
+    slider.style.height        = '';
   }
-
-  // Подогнать контейнер под размер элемента
   function adjustTo(el) {
-    const w = slider.clientWidth;
+    const w     = slider.clientWidth;
     const ratio = el.tagName === 'VIDEO'
       ? el.videoHeight / el.videoWidth
       : el.naturalHeight / el.naturalWidth;
-    slider.style.paddingBottom = '0px';
-    slider.style.height = `${w * ratio}px`;
+    slider.style.paddingBottom = '0';
+    slider.style.height        = `${w * ratio}px`;
   }
 
-  // Показать слайд по индексу
+  /* ─── показ слайда ─────────────────────────────── */
   function show(newIdx) {
     resetSquare();
     const total = slides.length + pending.length;
     idx = ((newIdx % total) + total) % total;
 
-    // Если индекс выходит за пределы уже вставленных слайдов
+    /* подгружаем новые элементы из pending */
     if (idx >= slides.length) {
-      const url = pending.shift();
-      let el;
-      if (/\.(mp4|webm|ogg)$/.test(url)) {
-        // создаём превью для видео
-        el = document.createElement('img');
-        el.className = 'slide preview';
-        el.src = 'https://placehold.co/600x400?text=▶';
-        el.dataset.video = url;
-      } else {
-        el = document.createElement('img');
-        el.className = 'slide';
-        el.src = url;
-      }
+      const url  = pending.shift();
+      const isMp4 = /\.(mp4|webm|ogg)$/i.test(url);
+      const el   = document.createElement('img');
+      el.className  = 'slide preview';
+      el.src        = isMp4
+        ? 'https://placehold.co/600x400?text=▶'
+        : url;
+      if (isMp4) el.dataset.video = url;
       slider.insertBefore(el, slider.querySelector('.prev'));
       slides = Array.from(slider.querySelectorAll('.slide'));
       slider.dataset.slides = JSON.stringify(pending);
     }
 
     slides.forEach(s => s.classList.remove('active'));
-    const current = slides[idx];
-    current.classList.add('active');
+    const cur = slides[idx];
+    cur.classList.add('active');
 
-  if (current.tagName === 'VIDEO') {
-  /* 1. Полностью убираем mute-флаги */
-  current.pause();               // если вдруг уже играет без звука
-  current.muted        = false;
-  current.defaultMuted = false;  // снимаем «глобальный» мут
-  current.removeAttribute('muted');
-
-  /* 2. Убедимся, что громкость слышна */
-  current.volume = 1;
-
-  /* 3. Перезапускаем ролик — этот вызов идёт после
-        клика по стрелке/свайпа, поэтому считается
-        «пользовательским жестом» и звук разрешён.      */
-  const p = current.play();
-  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
-}
-
-    if (current.tagName === 'IMG') {
-      if (current.complete) adjustTo(current);
-      else current.onload = () => adjustTo(current);
-    } else {
-      current.onloadedmetadata = () => adjustTo(current);
-      current.controls = true;
+    if (cur.tagName === 'VIDEO') {
+      cur.muted         = false;
+      cur.defaultMuted  = false;
+      cur.volume        = 1;
+      cur.controls      = true;
+      const p = cur.play();
+      if (p?.catch) p.catch(()=>{});
+      cur.onloadedmetadata = () => adjustTo(cur);
+    } else if (cur.tagName === 'IMG') {
+      if (cur.complete) adjustTo(cur);
+      else cur.onload = () => adjustTo(cur);
     }
   }
 
-  // Заменяем превью-картинку видео на настоящий <video>
+  /* ─── !!! ФИКС !!!  заменённый обработчик клика ───────────────── */
   slider.addEventListener('click', e => {
     const t = e.target;
     if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-      const videoUrl = t.dataset.video;
-      const videoEl = document.createElement('video');
-      videoEl.className = 'slide';
-      videoEl.controls = true;
-      videoEl.setAttribute('playsinline', '');
-      videoEl.src = videoUrl;
-      slider.replaceChild(videoEl, t);
+      const src = t.dataset.video;
+      const v   = document.createElement('video');
+
+      v.className   = 'slide';
+      v.src         = src;
+      v.controls    = true;
+      v.crossOrigin = 'anonymous';   // ← ПК-Chrome теперь не блокирует звук
+      v.setAttribute('playsinline', '');
+
+      /* размьютим, когда хватит данных для старта */
+      v.onloadeddata = () => {
+        v.muted         = false;
+        v.defaultMuted  = false;
+        v.volume        = 1;
+        v.play().catch(()=>{});
+      };
+
+      slider.replaceChild(v, t);     // вставили вместо превью
       slides = Array.from(slider.querySelectorAll('.slide'));
-      show(idx);
+      show(idx);                     // пересчитали размеры
     }
   });
 
-  // Fullscreen по клику на видео
-  slides.forEach(v => {
-    if (v.tagName === 'VIDEO') {
-      v.controls = true;
-      v.addEventListener('click', () => {
-        if (v.requestFullscreen) v.requestFullscreen();
-        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
-        else if (v.msRequestFullscreen) v.msRequestFullscreen();
-      });
-    }
-  });
-
-  // Навигация стрелками
+  /* ─── навигация ───────────────────────────────── */
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
-  // Тач-свайп
-  let startX = null;
-  slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
-  slider.addEventListener('touchend', e => {
-    if (startX === null) return;
-    const dx = e.changedTouches[0].clientX - startX;
+  /* свайп */
+  let x0 = null;
+  slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
+  slider.addEventListener('touchend',   e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
     if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
-    startX = null;
-  }, { passive: true });
+    x0 = null;
+  }, {passive:true});
 
-  // Инициализируем первый слайд
-  show(0);
+  show(0);   // первый слайд
 }
-
 
 
 
