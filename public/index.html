@@ -1022,6 +1022,10 @@ function showSection(name) {
 }
 window.showSection = showSection;
 
+// --- helper: определяет, ролик это или нет ------------------------------
+function isVideo (url) {
+  return /\.(mp4|webm|ogg)$/i.test(url);
+}
 
 
 async function loadProfile() {
@@ -1196,25 +1200,22 @@ function renderOpenPost(post) {
         />
       </div>`;
   }
-// слайдер фото/видео
+  /* -------- слайдер фото+видео -------- */
   else {
     const slideUrls = [];
-    if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
-    if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
+    if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
+    if (Array.isArray(post.videos))  slideUrls.push(...post.videos); // <-- ТОЛЬКО url!
 
     if (slideUrls.length) {
       const first = slideUrls[0];
-      // если первый — видео, рендерим IMG-превью с data-video
-/* --- формируем первый слайд --- */
-const firstSlide = first.match(/\.(mp4|webm|ogg)$/i)
-  // если это видео – делаем превью-картинку с data-video
-  ? `<img class="slide preview"
-          src="https://placehold.co/600x400?text=▶"
-          data-video="${first}"
-          loading="lazy"
-          alt="Video preview">`
-  // иначе обычное фото
-  : `<img src="${first}" class="slide" loading="lazy">`;
+
+      // превью: если видео – показываем картинку с ▶
+      const firstSlide = isVideo(first)
+        ? `<img class="slide preview"
+                src="https://placehold.co/600x400?text=▶"
+                data-video="${first}"
+                loading="lazy" alt="Video preview">`
+        : `<img src="${first}" class="slide" loading="lazy">`;
 
       media = `
         <div class="slider"
@@ -1225,6 +1226,9 @@ const firstSlide = first.match(/\.(mp4|webm|ogg)$/i)
           <button class="next">›</button>
         </div>`;
     }
+    /* дальше – YouTube / фото / fallback – оставляем без изменений */
+  }
+
 
     // 3) YouTube-видео
     else if (post.category === 'video') {
@@ -1697,24 +1701,28 @@ if (post.category === 'uploaded_video' && post.fileURL) {
 }
 
   else {
-    // 2) Иначе собираем слайды (фото + свои видео)
-    const slides = [];
+        /* ---- собираем url-ы слайдов ---- */
+    const slideUrls = [];
+    if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
+    if (Array.isArray(post.videos))  slideUrls.push(...post.videos); // <-- только url!
 
-    if (Array.isArray(post.photos)) {
-      slides.push(...post.photos.map(url =>
-        `<img src="${url}" class="slide">`
-      ));
-    }
-    if (Array.isArray(post.videos)) {
-      slides.push(...post.videos.map(url =>
-        `<video
-           class="slide uploaded-video"
-           playsinline webkit-playsinline
-            preload="metadata" controls
-         >
-           <source src="${url}" type="video/mp4">
-         </video>`
-      ));
+    if (slideUrls.length) {
+      const first = slideUrls[0];
+
+      const firstSlide = isVideo(first)
+        ? `<img class="slide preview"
+                src="https://placehold.co/600x400?text=▶"
+                data-video="${first}"
+                loading="lazy" alt="Video preview">`
+        : `<img src="${first}" class="slide" loading="lazy">`;
+
+      media = `<div class="slider"
+                   data-idx="0"
+                   data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+                 ${firstSlide}
+                 <button class="prev">‹</button>
+                 <button class="next">›</button>
+               </div>`;
     }
 
     // 2.1) общий слайдер, если есть хотя бы один слайд
