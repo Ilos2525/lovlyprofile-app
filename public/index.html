@@ -1379,10 +1379,21 @@ function initSlider(slider) {
     current.classList.add('active');
 
   if (current.tagName === 'VIDEO') {
-    current.muted  = false;
-    current.volume = 1;    // на всякий случай
-    // current.play();     // автозапуск убран
-  }
+  /* 1. Полностью убираем mute-флаги */
+  current.pause();               // если вдруг уже играет без звука
+  current.muted        = false;
+  current.defaultMuted = false;  // снимаем «глобальный» мут
+  current.removeAttribute('muted');
+
+  /* 2. Убедимся, что громкость слышна */
+  current.volume = 1;
+
+  /* 3. Перезапускаем ролик — этот вызов идёт после
+        клика по стрелке/свайпа, поэтому считается
+        «пользовательским жестом» и звук разрешён.      */
+  const p = current.play();
+  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
+}
 
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
