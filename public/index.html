@@ -1029,10 +1029,14 @@ function showSection(name) {
   document.querySelector(`.nav-link[onclick="showSection('${name}')"]`)?.classList.add('active');
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(name)?.classList.add('active');
-}
 
-// Экспортируем в глобальную область:
+  // если зашли в архив — подгружаем посты
+  if (name === 'archive') {
+    loadArchivePosts();
+  }
+}
 window.showSection = showSection;
+
 
 
 async function loadProfile() {
