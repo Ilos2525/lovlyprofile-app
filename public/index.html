@@ -1366,7 +1366,11 @@ function initSlider(slider) {
       slider.dataset.slides = JSON.stringify(pending);
     }
 
-    slides.forEach(s => s.classList.remove('active'));
+      slides.forEach(s => {
+    s.classList.remove('active');
+    if (s.tagName === 'VIDEO') s.pause();   // стопим всё, что было
+  });
+      
     const current = slides[idx];
     current.classList.add('active');
 
@@ -1776,27 +1780,8 @@ else {                       /* фото / слайдер / fallback */
 }).join('');
 
 
-  // Инициализация слайдеров (фото/видео)
-  container.querySelectorAll('.slider').forEach(slider => {
-    const slides = slider.querySelectorAll('.slide');
-    slides[0]?.classList.add('active');
-    const show = idx => {
-      slides.forEach(s => s.classList.remove('active'));
-      const i = (idx + slides.length) % slides.length;
-      slides[i].classList.add('active');
-      slider.dataset.idx = i;
-    };
-    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
-    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
-    let x0 = null;
-    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
-    slider.addEventListener('touchend', e => {
-      if (x0 === null) return;
-      const dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
-      x0 = null;
-    }, { passive: true });
-  });
++  // Инициализация слайдеров (фото/видео) – всегда один и тот же, полный вариант
++  container.querySelectorAll('.slider').forEach(initSlider);
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
