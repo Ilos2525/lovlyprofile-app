@@ -1663,66 +1663,26 @@ function displayPosts(containerId, posts) {
 container.innerHTML = posts.map(post => {
   let media = '';
 
-  // 1) Если это собственное загруженное видео — сразу отрисовать <video>
+ /* ---------- контент поста ---------- */
 if (post.category === 'uploaded_video' && post.fileURL) {
   media = `
     <div class="video-wrapper">
-      <video
-        class="uploaded-video"
-        playsinline webkit-playsinline
-        controls
-        src="${post.fileURL}"
-        preload="metadata"
-        style="display:none;"
-      ></video>
-      <img
-        class="video-placeholder"
-        src="https://placehold.co/600x400?text=▶"
-        data-video="${post.fileURL}"
-        loading="lazy"
-        alt="Video preview"
-      />
+      <video class="uploaded-video" playsinline webkit-playsinline
+             controls preload="metadata" src="${post.fileURL}"
+             style="display:none;"></video>
+      <img class="video-placeholder"
+           src="https://placehold.co/600x400?text=▶"
+           data-video="${post.fileURL}" loading="lazy" alt="Video preview">
     </div>`;
 }
 
-  else {
-        /* ---- собираем url-ы слайдов ---- */
-    const slideUrls = [];
-    if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
-    if (Array.isArray(post.videos))  slideUrls.push(...post.videos); // <-- только url!
-
-    if (slideUrls.length) {
-      const first = slideUrls[0];
-
-      const firstSlide = isVideo(first)
-        ? `<img class="slide preview"
-                src="https://placehold.co/600x400?text=▶"
-                data-video="${first}"
-                loading="lazy" alt="Video preview">`
-        : `<img src="${first}" class="slide" loading="lazy">`;
-
-      media = `<div class="slider"
-                   data-idx="0"
-                   data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-                 ${firstSlide}
-                 <button class="prev">‹</button>
-                 <button class="next">›</button>
-               </div>`;
-    }
-}
-
-    // 3) Музыкальный пост
 else if (post.category === 'music') {
   media = `
     <div class="audio-post">
       <div class="audio-cover">
-        <img
-          src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
-          alt="Cover"
-          loading="lazy"
-        >
+        <img src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}"
+             loading="lazy" alt="Cover">
       </div>
-      <!-- вот здесь data-src должно быть на audio-info -->
       <div class="audio-info" data-src="${post.fileURL}">
         <div class="audio-title">${post.description || ''}</div>
         <div class="audio-controls">
@@ -1732,35 +1692,46 @@ else if (post.category === 'music') {
         </div>
         <div class="audio-progress">
           <div class="bar"><div class="fill"></div></div>
-          <div class="time">
-            <span class="current">00:00</span>
-            <span class="duration">00:00</span>
-          </div>
+          <div class="time"><span class="current">00:00</span>
+                            <span class="duration">00:00</span></div>
         </div>
       </div>
     </div>`;
 }
 
-    // 4) YouTube‑видео
-    else if (post.category === 'video') {
-      const id    = getYoutubeVideoId(post.fileURL);
-      const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
-      media = `
-        <div
-          class="video-container preview"
-          data-video-id="${id}"
-          style="background:url(${thumb}) center/cover no-repeat;cursor:pointer;">
-        </div>`;
-    }
-    // 5) Фото‑пост
-    else if (post.category === 'photo') {
-      media = `<img src="${post.fileURL}" loading="lazy">`;
-    }
-    // 6) Фоллбэк
-    else {
-      media = `<div class="video-container" style="background:#000"></div>`;
-    }
+else if (post.category === 'video') {
+  const id    = getYoutubeVideoId(post.fileURL);
+  const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+  media = `<div class="video-container preview" data-video-id="${id}"
+            style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
+}
+
+else {                       /* фото / слайдер / fallback */
+  const slideUrls = [];
+  if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
+  if (Array.isArray(post.videos))  slideUrls.push(...post.videos);
+
+  if (slideUrls.length) {
+    const first      = slideUrls[0];
+    const firstSlide = isVideo(first)
+      ? `<img class="slide preview" src="https://placehold.co/600x400?text=▶"
+               data-video="${first}" loading="lazy">`
+      : `<img src="${first}" class="slide" loading="lazy">`;
+
+    media = `
+      <div class="slider" data-idx="0"
+           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+        ${firstSlide}
+        <button class="prev">‹</button>
+        <button class="next">›</button>
+      </div>`;
+  } else if (post.category === 'photo') {
+    media = `<img src="${post.fileURL}" loading="lazy">`;
+  } else {
+    media = `<div class="video-container" style="background:#000"></div>`;
   }
+}
+
 
   const date = ts(post)
     ? new Date(ts(post)).toLocaleDateString('ru-RU')
