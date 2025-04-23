@@ -647,17 +647,19 @@
   border-radius: var(--border-radius);
   display: block;
 }
- /* === Универсальный слайдер фото + видео === */
+/* === Универсальный слайдер фото + видео === */
 .slider {
   position: relative;
   overflow: hidden;
+  aspect-ratio: 1 / 1;          /* всегда квадрат */
+  background: #222;             /* рамка пока грузится */
 }
 
-/* Слайды (img или video.slide) */
 .slider .slide {
-  width: 100%;
-  height: auto;          /* авто‑высота по содержимому */
-  object-fit: cover;     /* масштабирует, сохраняя пропорции */
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
   display: none;
 }
 
@@ -665,53 +667,25 @@
   display: block;
 }
 
-/* Кнопки навигации */
 .slider .prev,
 .slider .next {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 10;
-
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   border: none;
-  background: rgba(0,0,0,0.35);
-  color: #fff;
-  font-size: 32px;
-  line-height: 1;
-
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s;
+  z-index: 10;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
-
 .slider .prev { left: 12px; }
 .slider .next { right: 12px; }
-
-/* Показываем кнопки только при hover */
-.slider .prev,
-.slider .next {
-  opacity: 0;
-  pointer-events: none;
-}
-.slider:hover .prev,
-.slider:hover .next {
-  opacity: 1;
-  pointer-events: auto;
-  background: rgba(0,0,0,0.55);
-}
-
-/* На мобильных сразу показываем стрелки */
-@media (max-width: 768px) {
-  .slider .prev,
-  .slider .next {
-    opacity: 1;
-    pointer-events: auto;
-  }
 }
 
 
@@ -1219,12 +1193,12 @@ function renderOpenPost(post) {
 
     if (slideUrls.length) {
       const first = slideUrls[0];
-      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
-        ? `<video class="slide uploaded-video" playsinline webkit-playsinline preload="metadata" controls>
-             <source src="${first}" type="video/mp4">
-           </video>`
-        : `<img src="${first}" class="slide">`;
-
+       const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
+    ? `<video class="slide uploaded-video"+              playsinline webkit-playsinline
+               preload="metadata" controls>
+         <source src="${first}" type="video/mp4">
+       </video>`
+    : `<img src="${first}" class="slide">`;
       media = `
         <div class="slider"
              data-idx="0"
@@ -1366,13 +1340,13 @@ slides.forEach(v => {
     if (idx >= slides.length) {
       const url = pending.shift();          // берём next URL
       let el;
-      if (url.match(/\.(mp4|webm|ogg)$/)) {
-        el = document.createElement('video');
-        el.className = 'slide uploaded-video';
-        el.setAttribute('playsinline','');
-        el.setAttribute('webkit-playsinline','');
-        el.setAttribute('preload','metadata');
-        el.controls = true;
+     if (url.match(/\.(mp4|webm|ogg)$/)) {
+      el = document.createElement('video');
+      el.className = 'slide uploaded-video';
+      el.setAttribute('playsinline','');
+      el.setAttribute('webkit-playsinline','');
+      el.setAttribute('preload','metadata');
+      el.controls = true;
         const src = document.createElement('source');
         src.src  = url;
         src.type = 'video/mp4';
