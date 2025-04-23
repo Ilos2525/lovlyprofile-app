@@ -1330,7 +1330,7 @@ function initSlider(slider) {
     slider.style.paddingBottom = '';
     slider.style.height        = '';
   }
-
+ }
 
   // Подогнать контейнер под размер элемента
   function adjustTo(el) {
@@ -1376,7 +1376,7 @@ function initSlider(slider) {
     const current = slides[idx];
     current.classList.add('active');
 
-  +  if (current.tagName === 'VIDEO') {
+    if (current.tagName === 'VIDEO') {
     /* звук и кнопки сразу готовы, но ничего не стартует без клика */
     current.muted        = false;
     current.defaultMuted = false;
@@ -1779,8 +1779,8 @@ else {                       /* фото / слайдер / fallback */
 }).join('');
 
 
-+  // Инициализация слайдеров (фото/видео) – всегда один и тот же, полный вариант
-+  container.querySelectorAll('.slider').forEach(initSlider);
+  // Инициализация слайдеров (фото/видео) – всегда один и тот же, полный вариант
+  container.querySelectorAll('.slider').forEach(initSlider);
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
