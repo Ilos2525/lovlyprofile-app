@@ -1324,26 +1324,6 @@ function initSlider(slider) {
   let   slides  = Array.from(slider.querySelectorAll('.slide'));
   let   idx     = 0;
 
-  /* ─── служебные хелперы ───────────────────────── */
-  function resetSquare() {
-    slider.style.paddingBottom = '';
-    slider.style.height        = '';
-  }
-  function adjustTo(el) {
-    const w     = slider.clientWidth;
-    const ratio = el.tagName === 'VIDEO'
-      ? el.videoHeight / el.videoWidth
-      : el.naturalHeight / el.naturalWidth;
-    slider.style.paddingBottom = '0';
-    slider.style.height        = `${w * ratio}px`;
-  }
-
-// Слайдер фото/видео с динамическим ресайзингом
-function initSlider(slider) {
-  const pending = JSON.parse(slider.dataset.slides || '[]');
-  let   slides  = Array.from(slider.querySelectorAll('.slide'));
-  let   idx     = 0;
-
   /* ─── вспомогательные ───────────────────────── */
   function resetSquare() {
     slider.style.paddingBottom = '';
@@ -1422,8 +1402,6 @@ function initSlider(slider) {
 
   show(0);                                   // стартовый слайд
 }
-
-
 
 
 // Ленивое YouTube‑встраивание
