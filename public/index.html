@@ -1181,27 +1181,19 @@ function renderLockedFuture(post) {
 function renderOpenPost(post) {
   let media = '';
 
-  // 1) собственное видео
-  if (post.category === 'uploaded_video' && post.fileURL) {
-    media = `
-      <div class="video-wrapper">
-        <video
-          class="uploaded-video"
-          playsinline webkit-playsinline
-          controls
-          src="${post.fileURL}"
-          preload="metadata"
-          style="display:none;"
-        ></video>
-        <img
-          class="video-placeholder"
-          src="https://placehold.co/600x400?text=▶"
-          data-video="${post.fileURL}"
-          loading="lazy"
-          alt="Video preview"
-        />
-      </div>`;
-  }
+ // 1) собственное видео
+if (post.category === 'uploaded_video' && post.fileURL) {
+  media = `
+    <video
+      class="uploaded-video"
+      playsinline webkit-playsinline
+      controls
+      preload="none"                                   /* не грузим сразу */
+      poster="https://placehold.co/600x400?text=▶"     /* заглушка-кадр   */
+      data-src="${post.fileURL}">                      /* реальный файл   */
+    </video>`;
+}
+
   /* -------- слайдер фото+видео -------- */
   /* -------- слайдер / YouTube / фото -------- */
 else {
@@ -1308,7 +1300,8 @@ async function loadArchivePosts() {
       v.addEventListener('loadedmetadata', () => captureFrame(v));
     });
     initMusicPlaylist();
-      initLazyVideos();
+    initInlineVideos();
+
 
   } catch (e) {
     console.error('archive load error:', e);
@@ -1782,7 +1775,7 @@ container.querySelectorAll('.post-description').forEach(p => {
 
   // После отрисовки всех постов нужно инициализировать аудио-плееры:
   initMusicPlaylist();
-    initLazyVideos();
+    initInlineVideos();
 }
 
 
@@ -1997,6 +1990,28 @@ function captureFrame(video, cb) {
   };
   video.addEventListener('seeked', onSeeked);
   video.currentTime = Math.min(1, video.duration/2);
+}
+
+
+    function initInlineVideos() {
+  document.querySelectorAll('video.uploaded-video[data-src]')
+    .forEach(video => {
+      if (video.dataset.inited) return;          // защита от дублирования
+      video.dataset.inited = 1;
+
+      /* ставим настоящий постер кадром из ролика */
+      video.crossOrigin = 'anonymous';
+      video.preload     = 'metadata';
+      video.addEventListener('loadedmetadata',
+        () => captureFrame(video));              // frame → poster
+
+      /* первый клик загружает src и играет */
+      video.addEventListener('click', () => {
+        video.src = video.dataset.src;
+        video.load();
+        video.play().catch(()=>{});
+      }, { once:true });
+    });
 }
 
 // 2) Обновлённый initLazyVideos
