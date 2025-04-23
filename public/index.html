@@ -1692,7 +1692,7 @@ if (post.category === 'uploaded_video' && post.fileURL) {
         `<video
            class="slide uploaded-video"
            playsinline webkit-playsinline
-           muted preload="metadata" controls
+            preload="metadata" controls
          >
            <source src="${url}" type="video/mp4">
          </video>`
@@ -1710,7 +1710,7 @@ if (slideUrls.length) {
   const first = slideUrls[0];
   const firstSlide = first.match(/\.(mp4|webm|ogg)$/)
     // видео-слайд
-    ? `<video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
+    ? `<video class="slide uploaded-video" playsinline webkit-playsinline preload="metadata" controls>
          <source src="${first}" type="video/mp4">
        </video>`
     // фото-слайд
