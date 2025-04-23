@@ -651,17 +651,14 @@
 .slider {
   position: relative;
   width: 100%;
-  padding-bottom: 100%;       /* вот это делает ровно квадрат */
   overflow: hidden;
   background: #222;
-  margin: 0 auto;             /* центрируем внутренности */
+  margin: 0 auto;
 }
 
 .slider .slide {
-  position: absolute;
-  top: 0; left: 0;            /* полностью растягиваем внутрь контейнера */
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: cover;
   display: none;
 }
@@ -676,8 +673,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   border: none;
   background: rgba(0,0,0,0.5);
@@ -691,7 +687,6 @@
   opacity: 1; 
   pointer-events: auto;
 }
-
 .slider .prev { left: 12px; }
 .slider .next { right: 12px; }
 
@@ -1202,9 +1197,21 @@ function renderOpenPost(post) {
     if (slideUrls.length) {
       const first = slideUrls[0];
 const isVideo = /\.(mp4|webm|ogg)$/.test(first);
-const firstSlide = isVideo
-  ? `<video
-       class="slide"
+let firstSlide;
+if (isVideo) {
+  // превью с кнопкой Play
+  firstSlide = `
+    <img
+      class="slide preview"
+      src="https://placehold.co/600x400?text=▶"
+      data-video="${first}"
+      loading="lazy"
+      alt="Video preview"
+    />`;
+} else {
+  firstSlide = `<img src="${first}" class="slide">`;
+}
+
        controls
        playsinline
        preload="metadata"
@@ -1329,6 +1336,25 @@ function initSlider(slider) {
   // текущее DOM-состояние
   let slides = Array.from(slider.querySelectorAll('.slide'));
   slides[0]?.classList.add('active');
+
+  slider.addEventListener('click', e => {
+    const t = e.target;
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl = document.createElement('video');
+      videoEl.className = 'slide';
+      videoEl.controls = true;
+      videoEl.setAttribute('playsinline','');
+      videoEl.setAttribute('preload','metadata');
+      videoEl.src = videoUrl;
+      // меняем превью-картинку на настоящий <video>
+      slider.replaceChild(videoEl, t);
+      // обновляем массив slides и помечаем новый активным
+      slides = Array.from(slider.querySelectorAll('.slide'));
+      videoEl.classList.add('active');
+    }
+  });
+
   let idx = 0;
 
 slides.forEach(v => {
@@ -1353,19 +1379,20 @@ slides.forEach(v => {
     if (idx >= slides.length) {
       const url = pending.shift();          // берём next URL
       let el;
-     if (/\.(mp4|webm|ogg)$/.test(url)) {
-  el = document.createElement('video');
-  el.className = 'slide';
-  el.setAttribute('playsinline','');
-  el.setAttribute('preload','metadata');
-  el.controls = true;
-  el.src = url;                  // просто указываем src, без <source>
+// внутри initSlider, вместо создания <video> / <img> старым способом
+if (/\.(mp4|webm|ogg)$/.test(url)) {
+  // видео: создаём превью-картинку
+  el = document.createElement('img');
+  el.className = 'slide preview';
+  el.src = 'https://placehold.co/600x400?text=▶';
+  el.dataset.video = url;
 } else {
   el = document.createElement('img');
   el.className = 'slide';
   el.src = url;
 }
 
+        
       // вставляем перед кнопкой «prev»
       slider.insertBefore(el, slider.querySelector('.prev'));
       slides = Array.from(slider.querySelectorAll('.slide'));
