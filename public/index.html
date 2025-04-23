@@ -1722,6 +1722,20 @@ else if (post.category === 'video') {
             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
 }
 
+if (post.photos?.length && post.videos?.length) {
+  // комбинированный пост: сразу встраиваем стандартный <video>
+  media = `
+    <video
+      controls
+      playsinline
+      preload="metadata"
+      poster="${post.photos[0]}"
+      src="${post.videos[0]}"
+      style="width:100%;height:auto;border-radius:var(--border-radius)">
+    </video>`;
+}
+
+    
 else {                       /* фото / слайдер / fallback */
   const slideUrls = [];
   if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
