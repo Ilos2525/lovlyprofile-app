@@ -1023,16 +1023,6 @@ function showNotification(type, username) {
   setTimeout(() => notif.remove(), 3400);
 }
 
-/**
- * Debounce: вызывает fn не чаще, чем раз в delay миллисекунд.
- */
-function debounce(fn, delay) {
-  let timer = null;
-  return function(...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
 
 async function loadProfile() {
   try {
@@ -1047,6 +1037,18 @@ async function loadProfile() {
     console.error('Error loading profile:', e);
   }
 }
+
+/**
+ * Debounce: вызывает fn не чаще, чем раз в delay миллисекунд.
+ */
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 
 async function loadPosts() {
   const snap = await getDocs(
