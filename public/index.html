@@ -1338,24 +1338,42 @@ function initSlider(slider) {
     slider.style.height        = `${w * ratio}px`;
   }
 
-  /* ─── показ слайда ─────────────────────────────── */
+// Слайдер фото/видео с динамическим ресайзингом
+function initSlider(slider) {
+  const pending = JSON.parse(slider.dataset.slides || '[]');
+  let   slides  = Array.from(slider.querySelectorAll('.slide'));
+  let   idx     = 0;
+
+  /* ─── вспомогательные ───────────────────────── */
+  function resetSquare() {
+    slider.style.paddingBottom = '';
+    slider.style.height        = '';
+  }
+  function adjustTo(el) {
+    const w     = slider.clientWidth;
+    const ratio = el.tagName === 'VIDEO'
+      ? el.videoHeight / el.videoWidth
+      : el.naturalHeight / el.naturalWidth;
+    slider.style.paddingBottom = '0';
+    slider.style.height        = `${w * ratio}px`;
+  }
+
+  /* ─── показ слайда ──────────────────────────── */
   function show(newIdx) {
     resetSquare();
     const total = slides.length + pending.length;
     idx = ((newIdx % total) + total) % total;
 
-    /* подгружаем новые элементы из pending */
+    /* если дошли до отложенных (pending) ­— создаём элемент */
     if (idx >= slides.length) {
-      const url  = pending.shift();
-      const isMp4 = /\.(mp4|webm|ogg)$/i.test(url);
-      const el   = document.createElement('img');
-      el.className  = 'slide preview';
-      el.src        = isMp4
-        ? 'https://placehold.co/600x400?text=▶'
-        : url;
-      if (isMp4) el.dataset.video = url;
+      const url   = pending.shift();
+      const isVid = /\.(mp4|webm|ogg)$/i.test(url);
+      const el    = document.createElement('img');
+      el.className = 'slide preview';
+      el.src       = isVid ? 'https://placehold.co/600x400?text=▶' : url;
+      if (isVid) el.dataset.video = url;
       slider.insertBefore(el, slider.querySelector('.prev'));
-      slides = Array.from(slider.querySelectorAll('.slide'));
+      slides = [...slider.querySelectorAll('.slide')];
       slider.dataset.slides = JSON.stringify(pending);
     }
 
@@ -1364,42 +1382,35 @@ function initSlider(slider) {
     cur.classList.add('active');
 
     if (cur.tagName === 'VIDEO') {
-        cur.controls = true;             // просто показываем контролы
-     cur.onloadedmetadata = () => adjustTo(cur);
+      cur.controls = true;
+      cur.onloadedmetadata = () => adjustTo(cur);
+    } else {                                 // превью-картинка
+      if (cur.complete) adjustTo(cur);
+      else cur.onload = () => adjustTo(cur);
+    }
   }
-} 
-  /* ─── !!! ФИКС !!!  заменённый обработчик клика ───────────────── */
+
+  /* ─── клик по превью-картинке ───────────────── */
   slider.addEventListener('click', e => {
     const t = e.target;
     if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-      const src = t.dataset.video;
-      const v   = document.createElement('video');
-
-      v.className   = 'slide';
-      v.src         = src;
-      v.controls    = true;
-      v.crossOrigin = 'anonymous';   // ← ПК-Chrome теперь не блокирует звук
+      const v = document.createElement('video');
+      v.className = 'slide';
+      v.src       = t.dataset.video;
+      v.controls  = true;
       v.setAttribute('playsinline', '');
+      v.onloadedmetadata = () => adjustTo(v);
 
-      /* размьютим, когда хватит данных для старта */
-      v.onloadeddata = () => {
-        v.muted         = false;
-        v.defaultMuted  = false;
-        v.volume        = 1;
-        v.play().catch(()=>{});
-      };
-
-      slider.replaceChild(v, t);     // вставили вместо превью
-      slides = Array.from(slider.querySelectorAll('.slide'));
-      show(idx);                     // пересчитали размеры
+      slider.replaceChild(v, t);             // меняем картинку на video
+      slides = [...slider.querySelectorAll('.slide')];
+      v.classList.add('active');             // делаем новым активным
     }
   });
 
-  /* ─── навигация ───────────────────────────────── */
+  /* ─── стрелки и свайпы ──────────────────────── */
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
-  /* свайп */
   let x0 = null;
   slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
   slider.addEventListener('touchend',   e => {
@@ -1409,8 +1420,9 @@ function initSlider(slider) {
     x0 = null;
   }, {passive:true});
 
-  show(0);   // первый слайд
+  show(0);                                   // стартовый слайд
 }
+
 
 
 
