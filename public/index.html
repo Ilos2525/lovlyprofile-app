@@ -1171,27 +1171,30 @@ function renderLockedFuture(post) {
 
 /**
  * Рендерит полностью открытый (unlocked) архивный пост
+ *   — в одну ленту кладёт сначала превью-фото,
+ *     потом превью-видео (никакого autoplay, никакого muted),
+ *     реальный <video> подгружается только по клику
  */
 function renderOpenPost(post) {
-  let media = '';
-
-  // Собираем все URL фото и видео
+  // собираем URL-ы фото и видео
   const slideUrls = [
     ...(Array.isArray(post.photos) ? post.photos : []),
     ...(Array.isArray(post.videos) ? post.videos : [])
   ];
 
+  let media = '';
+
   if (slideUrls.length) {
     const first = slideUrls[0];
     const isVideo = /\.(mp4|webm|ogg)$/i.test(first);
 
-    // Если видео — рендерим превью-картинку, иначе — просто фото
+    // превью — всегда <img>, даже если сразу видео
     const firstSlide = isVideo
       ? `<img
            class="slide preview"
            src="https://placehold.co/600x400?text=▶"
            data-video="${first}"
-           alt="Video placeholder"
+           alt="Video preview"
            loading="lazy"
          />`
       : `<img
@@ -1210,7 +1213,7 @@ function renderOpenPost(post) {
       </div>`;
   }
   else if (post.category === 'video') {
-    // Ваш существующий YouTube-fallback
+    // ваш YouTube-fallback
     const id = getYoutubeVideoId(post.fileURL);
     const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
     media = `
@@ -1226,7 +1229,7 @@ function renderOpenPost(post) {
     media = `<div class="video-container" style="background:#000"></div>`;
   }
 
-  // Дальше уже ваш остальной рендер (описание, дата и т.д.)
+  // дата
   const ts = post.timestamp?.seconds
     ? post.timestamp.seconds * 1000
     : post.trackDate
@@ -1306,7 +1309,11 @@ async function loadArchivePosts() {
 
 // ======= UI‑хелперы =======
 
-// Слайдер фото/видео с динамическим ресайзингом
+/**
+ * Универсальный слайдер для архивных постов
+ *   — видео не автозапускаются, звук включён, контролы видны
+ *   — реальный <video> создаётся только по клику
+ */
 function initSlider(slider) {
   let pending = JSON.parse(slider.dataset.slides || '[]');
   let slides  = Array.from(slider.querySelectorAll('.slide'));
@@ -1317,20 +1324,17 @@ function initSlider(slider) {
     const total = slides.length + pending.length;
     idx = ((i % total) + total) % total;
 
-    // если индекс "ушёл" в pending — подгружаем новый слайд
+    // если вышли за предел текущих слайдов — подгружаем новый
     if (idx >= slides.length) {
       const url = pending.shift();
-      let el;
-      if (/\.(mp4|webm|ogg)$/i.test(url)) {
-        el = document.createElement('img');
-        el.className = 'slide preview';
-        el.src       = 'https://placehold.co/600x400?text=▶';
-        el.dataset.video = url;
-      } else {
-        el = document.createElement('img');
-        el.className = 'slide';
-        el.src       = url;
-      }
+      const isVideo = /\.(mp4|webm|ogg)$/i.test(url);
+      const el = document.createElement('img');
+      el.className = isVideo ? 'slide preview' : 'slide';
+      el.src       = isVideo
+                     ? 'https://placehold.co/600x400?text=▶'
+                     : url;
+      if (isVideo) el.dataset.video = url;
+
       slider.insertBefore(el, slider.querySelector('.prev'));
       slides = Array.from(slider.querySelectorAll('.slide'));
       slider.dataset.slides = JSON.stringify(pending);
@@ -1339,11 +1343,11 @@ function initSlider(slider) {
     slides[idx].classList.add('active');
   }
 
-  // Левый и правый стрелки
+  // стрелочки
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
-  // При клике по превью->заменяем на <video> с контролами (без autoplay!)
+  // по клику на превью-картинку вставляем настоящий <video>
   slider.addEventListener('click', e => {
     const t = e.target;
     if (t.tagName === 'IMG' && t.classList.contains('preview')) {
@@ -1353,13 +1357,24 @@ function initSlider(slider) {
       videoEl.controls    = true;
       videoEl.playsInline = true;
       videoEl.src         = videoUrl;
+      // убираем превью, ставим video
       slider.replaceChild(videoEl, t);
       slides = Array.from(slider.querySelectorAll('.slide'));
       show(idx);
     }
   });
 
-  // Инициализируем первый слайд
+  // свайп
+  let startX = null;
+  slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
+  slider.addEventListener('touchend', e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
+    startX = null;
+  }, { passive: true });
+
+  // запускаем первый
   show(0);
 }
 
