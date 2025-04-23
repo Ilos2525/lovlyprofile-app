@@ -1318,67 +1318,77 @@ async function loadArchivePosts() {
 
 // ======= UI‑хелперы =======
 
-// Слайдер фото/видео с динамическим ресайзингом
-function initSlider(slider) {
+/function initSlider(slider) {
   const pending = JSON.parse(slider.dataset.slides || '[]');
-  let   slides  = Array.from(slider.querySelectorAll('.slide'));
-  let   idx     = 0;
+  let   slides  = [...slider.querySelectorAll('.slide')];
+  let   idx     = 0;                       // текущий номер слайда
 
-  /* ─── вспомогательные ───────────────────────── */
-  function resetSquare() {
+  /* --- вспомогательные --- */
+  const resetSquare = () => {
     slider.style.paddingBottom = '';
     slider.style.height        = '';
-  }
-  function adjustTo(el) {
+  };
+  const adjustTo = el => {
     const w     = slider.clientWidth;
     const ratio = el.tagName === 'VIDEO'
-      ? el.videoHeight / el.videoWidth
-      : el.naturalHeight / el.naturalWidth;
+        ? el.videoHeight / el.videoWidth
+        : el.naturalHeight / el.naturalWidth;
     slider.style.paddingBottom = '0';
     slider.style.height        = `${w * ratio}px`;
-  }
+  };
 
-  /* ─── показ слайда ──────────────────────────── */
+  /* --- показ слайда --- */
   function show(newIdx) {
     resetSquare();
     const total = slides.length + pending.length;
     idx = ((newIdx % total) + total) % total;
 
-   /* === 1. СОЗДАЁМ СЛАЙД ИЗ pending  =================================== */
-  if (idx >= slides.length) {
-    const url   = pending.shift();
-    const isVid = /\.(mp4|webm|ogg)$/i.test(url);
+    /* добралиcь до «отложенных» url – создаём элемент */
+    if (idx >= slides.length) {
+      const url   = pending.shift();
+      const isVid = /\.(mp4|webm|ogg)$/i.test(url);
 
-    const el = document.createElement('img');
-    el.className = 'slide';
-    if (isVid){                              // только для видео
-      el.classList.add('preview');
-      el.src = 'https://placehold.co/600x400?text=▶';
-      el.dataset.video = url;                // храним реальный src
-    }else{
-      el.src = url;                          // это обычное фото
+      const el = document.createElement('img');
+      el.className = 'slide';
+      if (isVid) {
+        el.classList.add('preview');
+        el.src         = 'https://placehold.co/600x400?text=▶';
+        el.dataset.video = url;
+      } else {
+        el.src = url;
+      }
+
+      slider.insertBefore(el, slider.querySelector('.prev'));
+      slides = [...slider.querySelectorAll('.slide')];
+      slider.dataset.slides = JSON.stringify(pending);
     }
 
-    slider.insertBefore(el, slider.querySelector('.prev'));
-    slides = [...slider.querySelectorAll('.slide')];
-    slider.dataset.slides = JSON.stringify(pending);
+    /* активируем текущий */
+    slides.forEach(s => s.classList.remove('active'));
+    const cur = slides[idx];
+    cur.classList.add('active');
+
+    /* подгоняем высоту */
+    if (cur.tagName === 'VIDEO') {
+      cur.controls = true;
+      cur.onloadedmetadata = () => adjustTo(cur);
+    } else {
+      if (cur.complete) adjustTo(cur);
+      else cur.onload = () => adjustTo(cur);
+    }
   }
+  /* === конец show() === */
 
-  /* === 2. ОБРАБОТЧИК КЛИКА ПО ПРЕВЬЮ-КАРТИНКЕ  ======================== */
-  slider.addEventListener('click', e=>{
+  /* клик по превью-картинке ⇒ меняем на <video> */
+  slider.addEventListener('click', e => {
     const t = e.target;
-    if (t.tagName==='IMG' && t.dataset.video){   // реагируем ТОЛЬКО,
-                                                 // если есть data-video
+    if (t.tagName === 'IMG' && t.dataset.video) {
       const v = document.createElement('video');
-      v.className = 'slide';
-      v.src       = t.dataset.video;
-      v.controls  = true;
-      v.playsInline = true;                      // iOS
-      v.muted   = false; v.defaultMuted = false;
-      v.volume  = 1;
-
-      /* подогнали размеры и сразу запустили */
-      v.onloadedmetadata = ()=>{ adjustTo(v); v.play().catch(()=>{}); };
+      v.className  = 'slide';
+      v.src        = t.dataset.video;
+      v.controls   = true;
+      v.setAttribute('playsinline','');
+      v.onloadedmetadata = () => { adjustTo(v); v.play().catch(()=>{}); };
 
       slider.replaceChild(v, t);
       slides = [...slider.querySelectorAll('.slide')];
@@ -1386,20 +1396,21 @@ function initSlider(slider) {
     }
   });
 
-  /* ─── стрелки и свайпы ──────────────────────── */
+  /* стрелки и свайпы */
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
   let x0 = null;
-  slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
+  slider.addEventListener('touchstart', e => (x0 = e.touches[0].clientX), { passive:true });
   slider.addEventListener('touchend',   e => {
     if (x0 === null) return;
     const dx = e.changedTouches[0].clientX - x0;
     if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
     x0 = null;
-  }, {passive:true});
+  }, { passive:true });
 
-  show(0);                                   // стартовый слайд
+  /* стартовый кадр */
+  show(0);
 }
 
 
