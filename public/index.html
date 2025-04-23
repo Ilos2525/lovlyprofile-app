@@ -1220,7 +1220,7 @@ function renderOpenPost(post) {
     if (slideUrls.length) {
       const first = slideUrls[0];
       const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
-        ? `<video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
+        ? `<video class="slide uploaded-video" playsinline webkit-playsinline preload="metadata" controls>
              <source src="${first}" type="video/mp4">
            </video>`
         : `<img src="${first}" class="slide">`;
@@ -1344,6 +1344,19 @@ function initSlider(slider) {
   slides[0]?.classList.add('active');
   let idx = 0;
 
+slides.forEach(v => {
+  if (v.tagName === 'VIDEO') {
+    // на всякий случай гарантируем, что есть controls
+    v.controls = true;
+    // по клику на видео — fullscreen
+    v.addEventListener('click', () => {
+      if (v.requestFullscreen)       v.requestFullscreen();
+      else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+      else if (v.msRequestFullscreen)     v.msRequestFullscreen();
+    });
+  }
+});
+    
   const show = newIdx => {
     const total = slides.length + pending.length;
     // циклический индекс
