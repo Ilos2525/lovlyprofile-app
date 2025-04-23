@@ -4,7 +4,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 
-# Запуск простого HTTP-сервера для Render (порт 8080)
+# 🔹 HTTP-сервер для Render, чтобы не "засыпал"
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -15,14 +15,14 @@ def run_http_server():
     server = HTTPServer(('0.0.0.0', 8080), SimpleHandler)
     server.serve_forever()
 
-# Запуск сервера в отдельном потоке
 threading.Thread(target=run_http_server, daemon=True).start()
 
-# Telegram-бот
-TOKEN = os.getenv("API_TOKEN")  # токен из Render → Environment
+# 🔹 Получаем токен из Render Environment
+TOKEN = os.getenv("API_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
+# 🔹 Обработка команды /start
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.answer(
@@ -31,6 +31,7 @@ async def send_welcome(message: types.Message):
         "в нем ты найдешь фото, видео, музыку и скрытый архив с заданиями.\n"
     )
 
+# 🔹 Обработка команды /help
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.answer(
@@ -50,5 +51,6 @@ async def send_help(message: types.Message):
         "Вписывай все слова с большой буквы без пробела — например: НапримерТестПароль\n\n"
     )
 
+# 🔹 Запуск бота
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
