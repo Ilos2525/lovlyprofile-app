@@ -1978,31 +1978,29 @@ window.showSection = function(sectionId) {
 if (sectionId === 'archive') loadArchivePosts();
 };
 
-/** 1️⃣ Генерим превью через captureFrame, 2️⃣ меняем на video по клику */
 function initLazyVideos() {
   document.querySelectorAll('.video-wrapper').forEach(wrapper => {
     const video = wrapper.querySelector('video.uploaded-video');
     const img   = wrapper.querySelector('img.video-placeholder');
 
-    // 1) Как только метаданные видео загрузятся, captureFrame нарисует poster
+    // Загружаем только метаданные и кадр для превью
     video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
     video.addEventListener('loadedmetadata', () => {
-      captureFrame(video);       // выставит video.poster = dataURL
-      img.src = video.poster;    // обновляем <img> на реальный кадр
-      // можно сразу убрать video из DOM, но пусть лежит до клика
+      captureFrame(video);       // генерируем кадр
+      img.src = video.poster;    // обновляем <img>
     });
-
-    // Начинаем загрузку метаданных (не всего файла!)
     video.load();
 
-    // 2) По клику заменяем превью на сам видео-плеер
+    // По клику сразу заменяем всю обёртку на <video>, чтобы убрать CSS-стрелку
     img.addEventListener('click', () => {
-      img.replaceWith(video);
+      wrapper.replaceWith(video);
       video.style.display = 'block';
       video.play();
     }, { once: true });
   });
 }
+
 
     
 async function initTelegram() {
