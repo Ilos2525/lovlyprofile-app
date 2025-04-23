@@ -1639,14 +1639,31 @@ if (post.category === 'uploaded_video' && post.fileURL) {
     }
 
     // 2.1) общий слайдер, если есть хотя бы один слайд
-    if (slides.length) {
-      media = `
-        <div class="slider" data-idx="0">
-          ${slides.join('')}
-          <button class="prev">‹</button>
-          <button class="next">›</button>
-        </div>`;
-    }
+// собрали все URL (фото + видео) в один массив
+const slideUrls = [];
+if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
+if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
+
+if (slideUrls.length) {
+  // первый слайд сразу вставляем
+  const first = slideUrls[0];
+  const firstSlide = first.match(/\.(mp4|webm|ogg)$/)
+    // видео-слайд
+    ? `<video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
+         <source src="${first}" type="video/mp4">
+       </video>`
+    // фото-слайд
+    : `<img src="${first}" class="slide">`;
+
+  media = `<div class="slider"
+                data-idx="0"
+                data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+      ${firstSlide}
+      <button class="prev">‹</button>
+      <button class="next">›</button>
+    </div>`;
+}
+
     // 3) Музыкальный пост
 else if (post.category === 'music') {
   media = `
