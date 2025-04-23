@@ -1332,33 +1332,34 @@ function initSlider(slider) {
   let slides = Array.from(slider.querySelectorAll('.slide'));
   let idx = 0;
 
-  // сброс контейнера в квадрат
+  // Восстановить квадратный контейнер
   function resetSquare() {
-    slider.classList.remove('loaded');
+    slider.style.paddingBottom = ''; 
     slider.style.height = '';
   }
 
-  // подстроить контейнер под пропорции элемента
+  // Подогнать контейнер под размер элемента
   function adjustTo(el) {
-    const ratio = el.tagName === 'IMG'
-      ? el.naturalHeight / el.naturalWidth
-      : el.videoHeight / el.videoWidth;
     const w = slider.clientWidth;
+    const ratio = el.tagName === 'VIDEO'
+      ? el.videoHeight / el.videoWidth
+      : el.naturalHeight / el.naturalWidth;
+    slider.style.paddingBottom = '0px';
     slider.style.height = `${w * ratio}px`;
-    slider.classList.add('loaded');
   }
 
-  // отрисовка слайда
+  // Показать слайд по индексу
   function show(newIdx) {
     resetSquare();
     const total = slides.length + pending.length;
     idx = ((newIdx % total) + total) % total;
 
+    // Если индекс выходит за пределы уже вставленных слайдов
     if (idx >= slides.length) {
       const url = pending.shift();
       let el;
       if (/\.(mp4|webm|ogg)$/.test(url)) {
-        // видео-превью
+        // создаём превью для видео
         el = document.createElement('img');
         el.className = 'slide preview';
         el.src = 'https://placehold.co/600x400?text=▶';
@@ -1376,19 +1377,33 @@ function initSlider(slider) {
     slides.forEach(s => s.classList.remove('active'));
     const current = slides[idx];
     current.classList.add('active');
-    slider.dataset.idx = idx;
 
-    // подождать загрузки и растянуть
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
       else current.onload = () => adjustTo(current);
-    } else if (current.tagName === 'VIDEO') {
+    } else {
       current.onloadedmetadata = () => adjustTo(current);
       current.controls = true;
     }
   }
 
-  // full-screen по клику на видео
+  // Заменяем превью-картинку видео на настоящий <video>
+  slider.addEventListener('click', e => {
+    const t = e.target;
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl = document.createElement('video');
+      videoEl.className = 'slide';
+      videoEl.controls = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.src = videoUrl;
+      slider.replaceChild(videoEl, t);
+      slides = Array.from(slider.querySelectorAll('.slide'));
+      show(idx);
+    }
+  });
+
+  // Fullscreen по клику на видео
   slides.forEach(v => {
     if (v.tagName === 'VIDEO') {
       v.controls = true;
@@ -1400,9 +1415,11 @@ function initSlider(slider) {
     }
   });
 
-  // навигация
+  // Навигация стрелками
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
+
+  // Тач-свайп
   let startX = null;
   slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
   slider.addEventListener('touchend', e => {
@@ -1412,10 +1429,10 @@ function initSlider(slider) {
     startX = null;
   }, { passive: true });
 
-  // инициализация первого
-  slides[0]?.classList.add('active');
+  // Инициализируем первый слайд
   show(0);
 }
+
 
 
 
