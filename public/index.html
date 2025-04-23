@@ -1326,9 +1326,11 @@ function initSlider(slider) {
 
   // Восстановить квадратный контейнер
   function resetSquare() {
-    slider.style.paddingBottom = ''; 
-    slider.style.height = '';
+  if (!slider.classList.contains('loaded')) {
+    slider.style.paddingBottom = '';
+    slider.style.height        = '';
   }
+}
 
   // Подогнать контейнер под размер элемента
   function adjustTo(el) {
@@ -1374,22 +1376,14 @@ function initSlider(slider) {
     const current = slides[idx];
     current.classList.add('active');
 
-  if (current.tagName === 'VIDEO') {
-  /* 1. Полностью убираем mute-флаги */
-  current.pause();               // если вдруг уже играет без звука
-  current.muted        = false;
-  current.defaultMuted = false;  // снимаем «глобальный» мут
-  current.removeAttribute('muted');
-
-  /* 2. Убедимся, что громкость слышна */
-  current.volume = 1;
-
-  /* 3. Перезапускаем ролик — этот вызов идёт после
-        клика по стрелке/свайпа, поэтому считается
-        «пользовательским жестом» и звук разрешён.      */
-  const p = current.play();
-  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
-}
+  +  if (current.tagName === 'VIDEO') {
+    /* звук и кнопки сразу готовы, но ничего не стартует без клика */
+    current.muted        = false;
+    current.defaultMuted = false;
+    current.removeAttribute('muted');
+    current.volume = 1;
+    current.controls = true;          // на мобильных нужен ДО клика
+  }
 
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
@@ -1408,8 +1402,13 @@ function initSlider(slider) {
       const videoEl = document.createElement('video');
       videoEl.className = 'slide';
       videoEl.controls = true;
+           videoEl.preload     = 'metadata';    // чтобы пришли размеры
       videoEl.setAttribute('playsinline', '');
       videoEl.src = videoUrl;
+   /* пока ждём метаданные — убираем фиксированный квадрат,
++      иначе контейнер схлопывается до 0 px */
+  slider.classList.add('loaded');      // css уже есть выше
+        
       slider.replaceChild(videoEl, t);
       slides = Array.from(slider.querySelectorAll('.slide'));
       show(idx);
