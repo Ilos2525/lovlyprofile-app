@@ -1161,66 +1161,54 @@ function renderLockedFuture(post) {
  */
 function renderOpenPost(post) {
   let media = '';
-  // собственные загруженные видео
+
+  // 1) собственное видео
   if (post.category === 'uploaded_video' && post.fileURL) {
-media = `
-  <div class="video-wrapper">
-    <video
-      class="uploaded-video"
-      playsinline webkit-playsinline
-      controls
-      src="${post.fileURL}"
-      preload="metadata"
-      style="display:none;"
-    ></video>
-    <img
-      class="video-placeholder"
-      src="https://placehold.co/600x400?text=▶"
-      data-video="${post.fileURL}"
-      loading="lazy"
-      alt="Video preview"
-    />
-  </div>`;
+    media = `
+      <div class="video-wrapper">
+        <video
+          class="uploaded-video"
+          playsinline webkit-playsinline
+          controls
+          src="${post.fileURL}"
+          preload="metadata"
+          style="display:none;"
+        ></video>
+        <img
+          class="video-placeholder"
+          src="https://placehold.co/600x400?text=▶"
+          data-video="${post.fileURL}"
+          loading="lazy"
+          alt="Video preview"
+        />
+      </div>`;
+  }
+  // 2) слайдер фото/видео (лениво)
+  else {
+    const slideUrls = [];
+    if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
+    if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
 
-  } else {
-    // собираем слайды из фото/видео
-    const slides = [];
-    if (Array.isArray(post.photos)) {
-      slides.push(...post.photos.map(u => `<img src="${u}" class="slide">`));
+    if (slideUrls.length) {
+      const first = slideUrls[0];
+      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
+        ? `<video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
+             <source src="${first}" type="video/mp4">
+           </video>`
+        : `<img src="${first}" class="slide">`;
+
+      media = `
+        <div class="slider"
+             data-idx="0"
+             data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+          ${firstSlide}
+          <button class="prev">‹</button>
+          <button class="next">›</button>
+        </div>`;
     }
-    if (Array.isArray(post.videos)) {
-      slides.push(...post.videos.map(u => `
-        <video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
-          <source src="${u}" type="video/mp4">
-        </video>`));
-    }
-  // собрали все URL (фото + видео) в один массив
-const slideUrls = [];
-if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
-if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
-
-if (slideUrls.length) {
-  // первый слайд сразу вставляем
-  const first = slideUrls[0];
-  const firstSlide = first.match(/\.(mp4|webm|ogg)$/)
-    // видео-слайд
-    ? `<video class="slide uploaded-video" playsinline webkit-playsinline muted preload="metadata" controls>
-         <source src="${first}" type="video/mp4">
-       </video>`
-    // фото-слайд
-    : `<img src="${first}" class="slide">`;
-
-  media = `<div class="slider"
-                data-idx="0"
-                data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-      ${firstSlide}
-      <button class="prev">‹</button>
-      <button class="next">›</button>
-    </div>`;
-}
-
+    // 3) YouTube-видео
     else if (post.category === 'video') {
-      const id    = getYoutubeVideoId(post.fileURL);
+      const id = getYoutubeVideoId(post.fileURL);
       const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
       media = `
         <div class="video-container preview"
@@ -1228,8 +1216,13 @@ if (slideUrls.length) {
              style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
         </div>`;
     }
+    // 4) просто фото
     else if (post.category === 'photo') {
       media = `<img src="${post.fileURL}" loading="lazy">`;
+    }
+    // 5) нет контента
+    else {
+      media = `<div class="video-container" style="background:#000"></div>`;
     }
   }
 
@@ -1250,6 +1243,7 @@ if (slideUrls.length) {
       </div>
     </div>`;
 }
+
 
 
 // === Загружаем архивные посты ============================================
