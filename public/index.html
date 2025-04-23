@@ -1205,15 +1205,16 @@ function renderOpenPost(post) {
     if (slideUrls.length) {
       const first = slideUrls[0];
       // если первый — видео, рендерим IMG-превью с data-video
-      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
-        ? `<img
-             class="slide preview"
-             src="https://placehold.co/600x400?text=▶"
-             data-video="${first}"
-             loading="lazy"
-             alt="Video preview"
-           />`
-        : `<img src="${first}" class="slide" loading="lazy">`;
+/* --- формируем первый слайд --- */
+const firstSlide = first.match(/\.(mp4|webm|ogg)$/i)
+  // если это видео – делаем превью-картинку с data-video
+  ? `<img class="slide preview"
+          src="https://placehold.co/600x400?text=▶"
+          data-video="${first}"
+          loading="lazy"
+          alt="Video preview">`
+  // иначе обычное фото
+  : `<img src="${first}" class="slide" loading="lazy">`;
 
       media = `
         <div class="slider"
@@ -1725,13 +1726,16 @@ if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
 if (slideUrls.length) {
   // первый слайд сразу вставляем
   const first = slideUrls[0];
-  const firstSlide = first.match(/\.(mp4|webm|ogg)$/)
-    // видео-слайд
-    ? `<video class="slide uploaded-video" playsinline webkit-playsinline preload="metadata" controls>
-         <source src="${first}" type="video/mp4">
-       </video>`
-    // фото-слайд
-    : `<img src="${first}" class="slide">`;
+/* --- формируем первый слайд --- */
+const firstSlide = first.match(/\.(mp4|webm|ogg)$/i)
+  // если это видео – делаем превью-картинку с data-video
+  ? `<img class="slide preview"
+          src="https://placehold.co/600x400?text=▶"
+          data-video="${first}"
+          loading="lazy"
+          alt="Video preview">`
+  // иначе обычное фото
+  : `<img src="${first}" class="slide" loading="lazy">`;
 
   media = `<div class="slider"
                 data-idx="0"
