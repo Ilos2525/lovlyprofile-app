@@ -1175,7 +1175,7 @@ function renderLockedFuture(post) {
 function renderOpenPost(post) {
   let media = '';
 
-  // собираем все URL–ы фото и видео
+  // Собираем все URL фото и видео
   const slideUrls = [
     ...(Array.isArray(post.photos) ? post.photos : []),
     ...(Array.isArray(post.videos) ? post.videos : [])
@@ -1183,32 +1183,34 @@ function renderOpenPost(post) {
 
   if (slideUrls.length) {
     const first = slideUrls[0];
-    // если первый URL — видео, рендерим превью картинку
-    const firstSlide = /\.(mp4|webm|ogg)$/i.test(first)
+    const isVideo = /\.(mp4|webm|ogg)$/i.test(first);
+
+    // Если видео — рендерим превью-картинку, иначе — просто фото
+    const firstSlide = isVideo
       ? `<img
            class="slide preview"
            src="https://placehold.co/600x400?text=▶"
            data-video="${first}"
+           alt="Video placeholder"
            loading="lazy"
-           alt="Video preview"
          />`
       : `<img
            class="slide"
            src="${first}"
-           loading="lazy"
            alt="Photo"
+           loading="lazy"
          />`;
 
     media = `
       <div class="slider"
-           data-idx="0"
            data-slides='${JSON.stringify(slideUrls.slice(1))}'>
         ${firstSlide}
         <button class="prev">‹</button>
         <button class="next">›</button>
       </div>`;
-  } else if (post.category === 'video') {
-    // fallback для одиночных YouTube-видео
+  }
+  else if (post.category === 'video') {
+    // Ваш существующий YouTube-fallback
     const id = getYoutubeVideoId(post.fileURL);
     const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
     media = `
@@ -1216,12 +1218,15 @@ function renderOpenPost(post) {
            data-video-id="${id}"
            style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
       </div>`;
-  } else if (post.category === 'photo') {
+  }
+  else if (post.category === 'photo') {
     media = `<img src="${post.fileURL}" loading="lazy" alt="Photo">`;
-  } else {
+  }
+  else {
     media = `<div class="video-container" style="background:#000"></div>`;
   }
 
+  // Дальше уже ваш остальной рендер (описание, дата и т.д.)
   const ts = post.timestamp?.seconds
     ? post.timestamp.seconds * 1000
     : post.trackDate
@@ -1238,7 +1243,6 @@ function renderOpenPost(post) {
       </div>
     </div>`;
 }
-
 
 
 // === Загружаем архивные посты ============================================
@@ -1304,113 +1308,60 @@ async function loadArchivePosts() {
 
 // Слайдер фото/видео с динамическим ресайзингом
 function initSlider(slider) {
-  const pending = JSON.parse(slider.dataset.slides || '[]');
-  let slides = Array.from(slider.querySelectorAll('.slide'));
-  let idx = 0;
+  let pending = JSON.parse(slider.dataset.slides || '[]');
+  let slides  = Array.from(slider.querySelectorAll('.slide'));
+  let idx     = 0;
 
-  // Восстановить квадратный контейнер
-  function resetSquare() {
-    slider.style.paddingBottom = ''; 
-    slider.style.height = '';
-  }
-
-  // Подогнать контейнер под размер элемента
-  function adjustTo(el) {
-    const w = slider.clientWidth;
-    const ratio = el.tagName === 'VIDEO'
-      ? el.videoHeight / el.videoWidth
-      : el.naturalHeight / el.naturalWidth;
-    slider.style.paddingBottom = '0px';
-    slider.style.height = `${w * ratio}px`;
-  }
-
-  // Показать слайд по индексу
-  function show(newIdx) {
-    resetSquare();
+  function show(i) {
+    slides.forEach(s => s.classList.remove('active'));
     const total = slides.length + pending.length;
-    idx = ((newIdx % total) + total) % total;
+    idx = ((i % total) + total) % total;
 
-    // Если индекс выходит за пределы уже вставленных слайдов
+    // если индекс "ушёл" в pending — подгружаем новый слайд
     if (idx >= slides.length) {
       const url = pending.shift();
       let el;
-      if (/\.(mp4|webm|ogg)$/.test(url)) {
-        // создаём превью для видео
+      if (/\.(mp4|webm|ogg)$/i.test(url)) {
         el = document.createElement('img');
         el.className = 'slide preview';
-        el.src = 'https://placehold.co/600x400?text=▶';
+        el.src       = 'https://placehold.co/600x400?text=▶';
         el.dataset.video = url;
       } else {
         el = document.createElement('img');
         el.className = 'slide';
-        el.src = url;
+        el.src       = url;
       }
       slider.insertBefore(el, slider.querySelector('.prev'));
       slides = Array.from(slider.querySelectorAll('.slide'));
       slider.dataset.slides = JSON.stringify(pending);
     }
 
-    slides.forEach(s => s.classList.remove('active'));
-    const current = slides[idx];
-    current.classList.add('active');
-
-    if (current.tagName === 'IMG') {
-      if (current.complete) adjustTo(current);
-      else current.onload = () => adjustTo(current);
-    } else {
-      current.onloadedmetadata = () => adjustTo(current);
-      current.controls = true;
-    }
+    slides[idx].classList.add('active');
   }
 
-  // Заменяем превью-картинку видео на настоящий <video>
-slider.addEventListener('click', e => {
-  const t = e.target;
-  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-    const videoUrl = t.dataset.video;
-    const videoEl = document.createElement('video');
-    videoEl.className = 'slide';
-    videoEl.controls = true;
-    videoEl.setAttribute('playsinline','');
-    videoEl.src = videoUrl;
-    slider.replaceChild(videoEl, t);
-    slides = Array.from(slider.querySelectorAll('.slide'));
-    show(idx); // показать только что вставленный видео-слайд
-  }
-});
-
-
-  // Fullscreen по клику на видео
-  slides.forEach(v => {
-    if (v.tagName === 'VIDEO') {
-      v.controls = true;
-      v.addEventListener('click', () => {
-        if (v.requestFullscreen) v.requestFullscreen();
-        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
-        else if (v.msRequestFullscreen) v.msRequestFullscreen();
-      });
-    }
-  });
-
-  // Навигация стрелками
+  // Левый и правый стрелки
   slider.querySelector('.prev').onclick = () => show(idx - 1);
   slider.querySelector('.next').onclick = () => show(idx + 1);
 
-  // Тач-свайп
-  let startX = null;
-  slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
-  slider.addEventListener('touchend', e => {
-    if (startX === null) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
-    startX = null;
-  }, { passive: true });
+  // При клике по превью->заменяем на <video> с контролами (без autoplay!)
+  slider.addEventListener('click', e => {
+    const t = e.target;
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl  = document.createElement('video');
+      videoEl.className   = 'slide uploaded-video';
+      videoEl.controls    = true;
+      videoEl.playsInline = true;
+      videoEl.src         = videoUrl;
+      slider.replaceChild(videoEl, t);
+      slides = Array.from(slider.querySelectorAll('.slide'));
+      show(idx);
+    }
+  });
 
   // Инициализируем первый слайд
   show(0);
 }
-
-
 
 
 // Ленивое YouTube‑встраивание
