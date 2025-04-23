@@ -1176,6 +1176,7 @@ function renderLockedFuture(post) {
  *     реальный <video> подгружается только по клику
  */
 function renderOpenPost(post) {
+  // Собираем все URL фото и видео
   const slideUrls = [
     ...(Array.isArray(post.photos) ? post.photos : []),
     ...(Array.isArray(post.videos) ? post.videos : [])
@@ -1187,32 +1188,67 @@ function renderOpenPost(post) {
     const first = slideUrls[0];
     const isVideo = /\.(mp4|webm|ogg)$/i.test(first);
 
-    // если это видео — сразу вставляем <video> с controls и красивым poster
+    // Если первый — видео, вставляем <video controls>
     const firstSlide = isVideo
       ? `<video
-           class="slide uploaded-video"
-           controls
-           playsinline
-           preload="metadata"
-           poster="https://placehold.co/600x400?text=▶"
-           src="${first}"
-         ></video>`
+          class="slide uploaded-video"
+          controls
+          playsinline
+          preload="metadata"
+          poster="https://placehold.co/600x400?text=▶"
+          src="${first}"
+        ></video>`
       : `<img
-           class="slide"
-           src="${first}"
-           alt="Photo"
-           loading="lazy"
-         />`;
+          class="slide"
+          src="${first}"
+          alt="Photo"
+          loading="lazy"
+        />`;
 
     media = `
-      <div class="slider"
-           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+      <div class="slider" data-slides='${JSON.stringify(slideUrls.slice(1))}'>
         ${firstSlide}
         <button class="prev">‹</button>
         <button class="next">›</button>
       </div>`;
   }
-  // ... остальной fallback-код без изменений
+  else if (post.category === 'video') {
+    // Фоллбэк для YouTube
+    const id = getYoutubeVideoId(post.fileURL);
+    const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+    media = `
+      <div class="video-container preview"
+           data-video-id="${id}"
+           style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
+      </div>`;
+  }
+  else if (post.category === 'photo') {
+    // Одиночная фотография
+    media = `<img src="${post.fileURL}" loading="lazy" alt="Photo">`;
+  }
+  else {
+    // Вызываем пустой контейнер, чтобы не ломать вёрстку
+    media = `<div class="video-container" style="background:#000"></div>`;
+  }
+
+  // Форматируем дату
+  const ts = post.timestamp?.seconds
+    ? post.timestamp.seconds * 1000
+    : post.trackDate
+      ? new Date(post.trackDate).getTime()
+      : 0;
+  const date = ts ? new Date(ts).toLocaleDateString('ru-RU') : '—';
+
+  // Возвращаем итоговый HTML
+  return `
+    <div class="post" data-post-id="${post.id}">
+      ${media}
+      <div class="post-content">
+        <div class="post-description">${post.description || ''}</div>
+        <div class="post-date">${date}</div>
+      </div>
+    </div>`;
+}
 
 
 // === Загружаем архивные посты ============================================
