@@ -1364,17 +1364,8 @@ function initSlider(slider) {
     cur.classList.add('active');
 
     if (cur.tagName === 'VIDEO') {
-      cur.muted         = false;
-      cur.defaultMuted  = false;
-      cur.volume        = 1;
-      cur.controls      = true;
-      const p = cur.play();
-      if (p?.catch) p.catch(()=>{});
-      cur.onloadedmetadata = () => adjustTo(cur);
-    } else if (cur.tagName === 'IMG') {
-      if (cur.complete) adjustTo(cur);
-      else cur.onload = () => adjustTo(cur);
-    }
+        cur.controls = true;             // просто показываем контролы
+     cur.onloadedmetadata = () => adjustTo(cur);
   }
 
   /* ─── !!! ФИКС !!!  заменённый обработчик клика ───────────────── */
