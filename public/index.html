@@ -1022,6 +1022,17 @@ function showNotification(type, username) {
   setTimeout(() => notif.classList.remove('show'), 3100);
   setTimeout(() => notif.remove(), 3400);
 }
+    
+// В начале вашего <script type="module"> после import-ов
+function showSection(name) {
+  document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+  document.querySelector(`.nav-link[onclick="showSection('${name}')"]`)?.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(name)?.classList.add('active');
+}
+
+// Экспортируем в глобальную область:
+window.showSection = showSection;
 
 
 async function loadProfile() {
