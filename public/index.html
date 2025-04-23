@@ -1194,30 +1194,29 @@ function renderOpenPost(post) {
     if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
     if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
 
-    if (slideUrls.length) {
+        if (slideUrls.length) {
       const first = slideUrls[0];
-const isVideo = /\.(mp4|webm|ogg)$/.test(first);
-let firstSlide;
-if (isVideo) {
-  // превью с кнопкой Play
-  firstSlide = `
-    <img
-      class="slide preview"
-      src="https://placehold.co/600x400?text=▶"
-      data-video="${first}"
-      loading="lazy"
-      alt="Video preview"
-    />`;
-} else {
-  firstSlide = `<img src="${first}" class="slide">`;
-}
+      // если это видео — рендерим <img>-превью с data-video и классом preview
+      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
+        ? `<img
+             class="slide preview"
+             src="https://placehold.co/600x400?text=▶"
+             data-video="${first}"
+             loading="lazy"
+             alt="Video preview"
+           />`
+        : `<img src="${first}" class="slide">`;
 
-       controls
-       playsinline
-       preload="metadata"
-       src="${first}"
-     ></video>`
-  : `<img src="${first}" class="slide">`;
+      media = `
+        <div class="slider"
+             data-idx="0"
+             data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+          ${firstSlide}
+          <button class="prev">‹</button>
+          <button class="next">›</button>
+        </div>`;
+    }
+
 
       media = `
         <div class="slider"
