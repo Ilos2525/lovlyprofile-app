@@ -1175,53 +1175,77 @@ function renderLockedFuture(post) {
 function renderOpenPost(post) {
   let media = '';
 
-  // собираем все URL–ы фото и видео
-  const slideUrls = [
-    ...(Array.isArray(post.photos) ? post.photos : []),
-    ...(Array.isArray(post.videos) ? post.videos : [])
-  ];
-
-  if (slideUrls.length) {
-    const first = slideUrls[0];
-    // если первый URL — видео, рендерим превью картинку
-    const firstSlide = /\.(mp4|webm|ogg)$/i.test(first)
-      ? `<img
-           class="slide preview"
-           src="https://placehold.co/600x400?text=▶"
-           data-video="${first}"
-           loading="lazy"
-           alt="Video preview"
-         />`
-      : `<img
-           class="slide"
-           src="${first}"
-           loading="lazy"
-           alt="Photo"
-         />`;
-
+  // 1) собственное видео
+  if (post.category === 'uploaded_video' && post.fileURL) {
     media = `
-      <div class="slider"
-           data-idx="0"
-           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-        ${firstSlide}
-        <button class="prev">‹</button>
-        <button class="next">›</button>
+      <div class="video-wrapper">
+        <video
+          class="uploaded-video"
+          playsinline webkit-playsinline
+          controls
+          src="${post.fileURL}"
+          preload="metadata"
+          style="display:none;"
+        ></video>
+        <img
+          class="video-placeholder"
+          src="https://placehold.co/600x400?text=▶"
+          data-video="${post.fileURL}"
+          loading="lazy"
+          alt="Video preview"
+        />
       </div>`;
-  } else if (post.category === 'video') {
-    // fallback для одиночных YouTube-видео
-    const id = getYoutubeVideoId(post.fileURL);
-    const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
-    media = `
-      <div class="video-container preview"
-           data-video-id="${id}"
-           style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
-      </div>`;
-  } else if (post.category === 'photo') {
-    media = `<img src="${post.fileURL}" loading="lazy" alt="Photo">`;
-  } else {
-    media = `<div class="video-container" style="background:#000"></div>`;
+  }
+// слайдер фото/видео
+  else {
+    const slideUrls = [];
+    if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
+    if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
+
+    if (slideUrls.length) {
+      const first = slideUrls[0];
+      // если первый — видео, рендерим IMG-превью с data-video
+      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
+        ? `<img
+             class="slide preview"
+             src="https://placehold.co/600x400?text=▶"
+             data-video="${first}"
+             loading="lazy"
+             alt="Video preview"
+           />`
+        : `<img src="${first}" class="slide" loading="lazy">`;
+
+      media = `
+        <div class="slider"
+             data-idx="0"
+             data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+          ${firstSlide}
+          <button class="prev">‹</button>
+          <button class="next">›</button>
+        </div>`;
+    }
+
+    // 3) YouTube-видео
+    else if (post.category === 'video') {
+      const id = getYoutubeVideoId(post.fileURL);
+      const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+      media = `
+        <div class="video-container preview"
+             data-video-id="${id}"
+             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
+        </div>`;
+    }
+    // 4) просто фото
+    else if (post.category === 'photo') {
+      media = `<img src="${post.fileURL}" loading="lazy">`;
+    }
+    // 5) нет контента
+    else {
+      media = `<div class="video-container" style="background:#000"></div>`;
+    }
   }
 
+  // дата
   const ts = post.timestamp?.seconds
     ? post.timestamp.seconds * 1000
     : post.trackDate
@@ -1364,21 +1388,20 @@ function initSlider(slider) {
   }
 
   // Заменяем превью-картинку видео на настоящий <video>
-slider.addEventListener('click', e => {
-  const t = e.target;
-  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-    const videoUrl = t.dataset.video;
-    const videoEl = document.createElement('video');
-    videoEl.className = 'slide';
-    videoEl.controls = true;
-    videoEl.setAttribute('playsinline','');
-    videoEl.src = videoUrl;
-    slider.replaceChild(videoEl, t);
-    slides = Array.from(slider.querySelectorAll('.slide'));
-    show(idx); // показать только что вставленный видео-слайд
-  }
-});
-
+  slider.addEventListener('click', e => {
+    const t = e.target;
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl = document.createElement('video');
+      videoEl.className = 'slide';
+      videoEl.controls = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.src = videoUrl;
+      slider.replaceChild(videoEl, t);
+      slides = Array.from(slider.querySelectorAll('.slide'));
+      show(idx);
+    }
+  });
 
   // Fullscreen по клику на видео
   slides.forEach(v => {
