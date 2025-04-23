@@ -1201,54 +1201,39 @@ function renderOpenPost(post) {
       </div>`;
   }
   /* -------- слайдер фото+видео -------- */
-  else {
-    const slideUrls = [];
-    if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
-    if (Array.isArray(post.videos))  slideUrls.push(...post.videos); // <-- ТОЛЬКО url!
+  /* -------- слайдер / YouTube / фото -------- */
+else {
+  const slideUrls = [];
+  if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
+  if (Array.isArray(post.videos))  slideUrls.push(...post.videos);
 
-    if (slideUrls.length) {
-      const first = slideUrls[0];
+  if (slideUrls.length) {
+    const first      = slideUrls[0];
+    const firstSlide = isVideo(first)
+      ? `<img class="slide preview"
+              src="https://placehold.co/600x400?text=▶"
+              data-video="${first}" loading="lazy">`
+      : `<img src="${first}" class="slide" loading="lazy">`;
 
-      // превью: если видео – показываем картинку с ▶
-      const firstSlide = isVideo(first)
-        ? `<img class="slide preview"
-                src="https://placehold.co/600x400?text=▶"
-                data-video="${first}"
-                loading="lazy" alt="Video preview">`
-        : `<img src="${first}" class="slide" loading="lazy">`;
-
-      media = `
-        <div class="slider"
-             data-idx="0"
-             data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-          ${firstSlide}
-          <button class="prev">‹</button>
-          <button class="next">›</button>
-        </div>`;
-    }
-    /* дальше – YouTube / фото / fallback – оставляем без изменений */
+    media = `
+      <div class="slider" data-idx="0"
+           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
+        ${firstSlide}
+        <button class="prev">‹</button>
+        <button class="next">›</button>
+      </div>`;
+  } else if (post.category === 'video') {            // YouTube-ссылка
+    const id    = getYoutubeVideoId(post.fileURL);
+    const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+    media = `<div class="video-container preview"
+                  data-video-id="${id}"
+                  style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
+  } else if (post.category === 'photo') {            // одиночное фото
+    media = `<img src="${post.fileURL}" loading="lazy">`;
+  } else {                                           // fallback
+    media = `<div class="video-container" style="background:#000"></div>`;
   }
-
-
-    // 3) YouTube-видео
-    else if (post.category === 'video') {
-      const id = getYoutubeVideoId(post.fileURL);
-      const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
-      media = `
-        <div class="video-container preview"
-             data-video-id="${id}"
-             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer">
-        </div>`;
-    }
-    // 4) просто фото
-    else if (post.category === 'photo') {
-      media = `<img src="${post.fileURL}" loading="lazy">`;
-    }
-    // 5) нет контента
-    else {
-      media = `<div class="video-container" style="background:#000"></div>`;
-    }
-  }
+}
 
   // дата
   const ts = post.timestamp?.seconds
@@ -1724,34 +1709,6 @@ if (post.category === 'uploaded_video' && post.fileURL) {
                  <button class="next">›</button>
                </div>`;
     }
-
-    // 2.1) общий слайдер, если есть хотя бы один слайд
-// собрали все URL (фото + видео) в один массив
-const slideUrls = [];
-if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
-if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
-
-if (slideUrls.length) {
-  // первый слайд сразу вставляем
-  const first = slideUrls[0];
-/* --- формируем первый слайд --- */
-const firstSlide = first.match(/\.(mp4|webm|ogg)$/i)
-  // если это видео – делаем превью-картинку с data-video
-  ? `<img class="slide preview"
-          src="https://placehold.co/600x400?text=▶"
-          data-video="${first}"
-          loading="lazy"
-          alt="Video preview">`
-  // иначе обычное фото
-  : `<img src="${first}" class="slide" loading="lazy">`;
-
-  media = `<div class="slider"
-                data-idx="0"
-                data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-      ${firstSlide}
-      <button class="prev">‹</button>
-      <button class="next">›</button>
-    </div>`;
 }
 
     // 3) Музыкальный пост
