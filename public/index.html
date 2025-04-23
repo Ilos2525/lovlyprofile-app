@@ -1022,10 +1022,12 @@ function showSection(name) {
 }
 window.showSection = showSection;
 
-// --- helper: определяет, ролик это или нет ------------------------------
-function isVideo (url) {
-  return /\.(mp4|webm|ogg)$/i.test(url);
+// video.mp4?alt=media → считаем видео
+function isVideo(url) {
+  const clean = url.split(/[?#]/)[0];        // убираем ?... или #...
+  return /\.(mp4|webm|ogg)$/i.test(clean);   // проверяем только «голое» имя
 }
+
 
 
 async function loadProfile() {
