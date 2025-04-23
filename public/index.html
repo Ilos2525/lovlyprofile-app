@@ -1385,36 +1385,47 @@ const optsHtml = q.options.map((opt, i) => {
   render();
 };
 
-/* -------- AUDIO GATE --------- */
-window.startAudioGate = function(seq, url){
+// -------- AUDIO GATE --------
+window.startAudioGate = function(seq, url) {
   const ov = document.createElement('div');
   ov.className = 'quiz-overlay';
   ov.innerHTML = `
     <div class="quiz-card">
       <audio id="gateAudio" controls src="${url}"></audio>
-      <p style="margin-top:15px">Слушайте минимум 10 секунд…</p>
+      <p style="margin-top:15px">Слушайте минимум 10 секунд…</p>
       <button class="quiz-close">✖ Закрыть</button>
     </div>`;
   document.body.appendChild(ov);
 
   const a = ov.querySelector('#gateAudio');
-  let played = 0, timer = null;
+  let played = 0;
+  let timer = null;
+  let finished = false;
 
-  a.onplay  = () => timer = setInterval(() => { if (++played >= 10) finish(); }, 1000);
+  // отслеживаем воспроизведение
+  a.onplay = () => {
+    if (finished) return;
+    timer = setInterval(() => {
+      if (++played >= 10) finish();
+    }, 1000);
+  };
   a.onpause = () => clearInterval(timer);
 
-  function finish(){
+  function finish() {
+    if (finished) return;
+    finished = true;
     clearInterval(timer);
-    markTaskUnlocked(seq)
-      .then(()=>{
-        ov.remove();
-        loadArchivePosts();
-        alert('✅ Задание выполнено!');
-      });
+    // помечаем задание выполненным, но НЕ убираем оверлей
+    markTaskUnlocked(seq).then(() => {
+      alert('✅ Задание выполнено! Теперь вы можете закрыть окно');
+    });
   }
-  ov.querySelector('.quiz-close').onclick = () => { 
-    clearInterval(timer); 
-    ov.remove(); 
+
+  // кнопка «Закрыть» теперь удаляет оверлей и перезагружает архив
+  ov.querySelector('.quiz-close').onclick = () => {
+    clearInterval(timer);
+    ov.remove();
+    loadArchivePosts();
   };
 };
 
