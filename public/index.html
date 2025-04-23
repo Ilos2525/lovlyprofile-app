@@ -1217,16 +1217,6 @@ function renderOpenPost(post) {
         </div>`;
     }
 
-
-      media = `
-        <div class="slider"
-             data-idx="0"
-             data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-          ${firstSlide}
-          <button class="prev">‹</button>
-          <button class="next">›</button>
-        </div>`;
-    }
     // 3) YouTube-видео
     else if (post.category === 'video') {
       const id = getYoutubeVideoId(post.fileURL);
