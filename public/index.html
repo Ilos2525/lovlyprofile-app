@@ -1384,6 +1384,16 @@ function initSlider(slider) {
       // И запускаем воспроизведение (это всё ещё считается пользовательским действием при клике на стрелку)
       current.play();
     }
+/* Видео больше не запускаем автоматически –-
++       иначе мобильные браузеры обнуляют звук.
++       Просто снимаем mute, выставляем громкость
++       и оставляем решение пользователю.            */
+   if (current.tagName === 'VIDEO') {
+     current.muted  = false;
+      current.volume = 1;          // на всякий случай
+     /* play() не вызываем */
+     }
+ }
 
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
