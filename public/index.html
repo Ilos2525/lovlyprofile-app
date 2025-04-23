@@ -660,7 +660,6 @@
 /* когда контент загружен — снимаем квадрат, включаем авто-высоту */
 .slider.loaded {
   padding-bottom: 0;
-  height: auto !important;
 }
 
 /* сами слайды по-прежнему абсолютно позиционируются */
@@ -1395,25 +1394,37 @@ function initSlider(slider) {
   }
 
   // Заменяем превью-картинку видео на настоящий <video>
-  slider.addEventListener('click', e => {
-    const t = e.target;
-    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-      const videoUrl = t.dataset.video;
-      const videoEl = document.createElement('video');
-      videoEl.className = 'slide';
-      videoEl.controls = true;
-           videoEl.preload     = 'metadata';    // чтобы пришли размеры
-      videoEl.setAttribute('playsinline', '');
-      videoEl.src = videoUrl;
-   /* пока ждём метаданные — убираем фиксированный квадрат,
-+      иначе контейнер схлопывается до 0 px */
-  slider.classList.add('loaded');      // css уже есть выше
-        
-      slider.replaceChild(videoEl, t);
-      slides = Array.from(slider.querySelectorAll('.slide'));
+ // Заменяем превью-картинку видео на настоящий <video>, ждём metadata
+slider.addEventListener('click', e => {
+  const t = e.target;
+  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+    // Создаём <video> без преждевременного loaded-класса
+    const videoEl = document.createElement('video');
+    videoEl.className = 'slide';
+    videoEl.controls = true;
+    videoEl.preload = 'metadata';
+    videoEl.setAttribute('playsinline', '');
+    videoEl.src = t.dataset.video;
+
+    // Сразу заменяем превью
+    slider.replaceChild(videoEl, t);
+    slides = Array.from(slider.querySelectorAll('.slide'));
+
+    // После загрузки метаданных выставляем высоту + запускаем show()
+    videoEl.addEventListener('loadedmetadata', () => {
+      // убираем квадрат-заглушку
+      slider.style.paddingBottom = '0';
+      // рассчитываем высоту по пропорциям видео
+      const w = slider.clientWidth;
+      const h = videoEl.videoHeight / videoEl.videoWidth * w;
+      slider.style.height = `${h}px`;
+
+      // теперь отрисуем текущий слайд (включит звук, контролы и т.п.)
       show(idx);
-    }
-  });
+    }, { once: true });
+  }
+});
+
 
   // Fullscreen по клику на видео
   slides.forEach(v => {
