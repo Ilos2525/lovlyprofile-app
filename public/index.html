@@ -1211,23 +1211,36 @@ function renderOpenPost(post) {
         />
       </div>`;
   }
-  // 2) слайдер фото/видео (лениво)
+ // 2) слайдер фото/видео (лениво)
   else {
-    const slideUrls = [];
-    if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
-    if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
+    const slideUrls = [
+      ...(Array.isArray(post.photos) ? post.photos : []),
+      ...(Array.isArray(post.videos) ? post.videos : [])
+    ];
 
     if (slideUrls.length) {
+      // первый слайд — если видео, рисуем placeholder
       const first = slideUrls[0];
-      const firstSlide = /\.(mp4|webm|ogg)$/.test(first)
-        ? `<video class="slide uploaded-video" playsinline webkit-playsinline preload="metadata" controls>
-             <source src="${first}" type="video/mp4">
-           </video>`
-        : `<img src="${first}" class="slide">`;
+      const isVideo = /\.(mp4|webm|ogg)$/.test(first);
+
+      const firstSlide = isVideo
+        ? `<div class="video-wrapper">
+             <video class="uploaded-video" 
+                    style="display:none;"
+                    src="${first}" 
+                    preload="metadata" 
+                    controls>
+             </video>
+             <img class="video-placeholder" 
+                  src="https://placehold.co/600x400?text=▶" 
+                  data-video="${first}" 
+                  loading="lazy"/>
+           </div>`
+        : `<img src="${first}" class="slide" />`;
 
       media = `
-        <div class="slider"
-             data-idx="0"
+        <div class="slider" 
+             data-idx="0" 
              data-slides='${JSON.stringify(slideUrls.slice(1))}'>
           ${firstSlide}
           <button class="prev">‹</button>
