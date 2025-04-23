@@ -715,7 +715,6 @@
 }
 
 
-
 /* ---------- LOCKED POST ---------- */
 .post.locked{
   display:flex; flex-direction:column; justify-content:center; align-items:center;
@@ -821,6 +820,32 @@
 }
 .post-description.expanded::after{
   display:none;
+}
+
+    .video-wrapper {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+}
+
+.video-placeholder {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.video-wrapper::after {
+  content: '▶';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3em;
+  color: var(--neon-color);
+  text-shadow: 0 0 10px var(--neon-shadow);
+  pointer-events: none;
 }
 
     
@@ -1138,9 +1163,25 @@ function renderOpenPost(post) {
   let media = '';
   // собственные загруженные видео
   if (post.category === 'uploaded_video' && post.fileURL) {
-    media = `
-      <video class="uploaded-video" playsinline webkit-playsinline controls
-             src="${post.fileURL}" preload="metadata"></video>`;
+media = `
+  <div class="video-wrapper">
+    <video
+      class="uploaded-video"
+      playsinline webkit-playsinline
+      controls
+      src="${post.fileURL}"
+      preload="metadata"
+      style="display:none;"
+    ></video>
+    <img
+      class="video-placeholder"
+      src="https://placehold.co/600x400?text=▶"
+      data-video="${post.fileURL}"
+      loading="lazy"
+      alt="Video preview"
+    />
+  </div>`;
+
   } else {
     // собираем слайды из фото/видео
     const slides = [];
@@ -1244,6 +1285,7 @@ async function loadArchivePosts() {
       v.addEventListener('loadedmetadata', () => captureFrame(v));
     });
     initMusicPlaylist();
+      initLazyVideos();
 
   } catch (e) {
     console.error('archive load error:', e);
@@ -1496,16 +1538,27 @@ container.innerHTML = posts.map(post => {
   let media = '';
 
   // 1) Если это собственное загруженное видео — сразу отрисовать <video>
-  if (post.category === 'uploaded_video' && post.fileURL) {
-    media = `
+if (post.category === 'uploaded_video' && post.fileURL) {
+  media = `
+    <div class="video-wrapper">
       <video
         class="uploaded-video"
         playsinline webkit-playsinline
         controls
         src="${post.fileURL}"
         preload="metadata"
-      ></video>`;
-  }
+        style="display:none;"
+      ></video>
+      <img
+        class="video-placeholder"
+        src="https://placehold.co/600x400?text=▶"
+        data-video="${post.fileURL}"
+        loading="lazy"
+        alt="Video preview"
+      />
+    </div>`;
+}
+
   else {
     // 2) Иначе собираем слайды (фото + свои видео)
     const slides = [];
@@ -1684,6 +1737,7 @@ container.querySelectorAll('.post-description').forEach(p => {
 
   // После отрисовки всех постов нужно инициализировать аудио-плееры:
   initMusicPlaylist();
+    initLazyVideos();
 }
 
 
@@ -1924,6 +1978,33 @@ window.showSection = function(sectionId) {
 if (sectionId === 'archive') loadArchivePosts();
 };
 
+/** 1️⃣ Генерим превью через captureFrame, 2️⃣ меняем на video по клику */
+function initLazyVideos() {
+  document.querySelectorAll('.video-wrapper').forEach(wrapper => {
+    const video = wrapper.querySelector('video.uploaded-video');
+    const img   = wrapper.querySelector('img.video-placeholder');
+
+    // 1) Как только метаданные видео загрузятся, captureFrame нарисует poster
+    video.crossOrigin = 'anonymous';
+    video.addEventListener('loadedmetadata', () => {
+      captureFrame(video);       // выставит video.poster = dataURL
+      img.src = video.poster;    // обновляем <img> на реальный кадр
+      // можно сразу убрать video из DOM, но пусть лежит до клика
+    });
+
+    // Начинаем загрузку метаданных (не всего файла!)
+    video.load();
+
+    // 2) По клику заменяем превью на сам видео-плеер
+    img.addEventListener('click', () => {
+      img.replaceWith(video);
+      video.style.display = 'block';
+      video.play();
+    }, { once: true });
+  });
+}
+
+    
 async function initTelegram() {
   try {
     if (!window.Telegram?.WebApp) throw new Error();
