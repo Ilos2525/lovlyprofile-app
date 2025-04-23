@@ -1318,7 +1318,7 @@ async function loadArchivePosts() {
 
 // ======= UI‑хелперы =======
 
-/function initSlider(slider) {
+function initSlider(slider) {
   const pending = JSON.parse(slider.dataset.slides || '[]');
   let   slides  = [...slider.querySelectorAll('.slide')];
   let   idx     = 0;                       // текущий номер слайда
