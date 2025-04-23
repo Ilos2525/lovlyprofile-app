@@ -1377,6 +1377,13 @@ function initSlider(slider) {
     slides.forEach(s => s.classList.remove('active'));
     const current = slides[idx];
     current.classList.add('active');
+    const current = slides[idx];
+    if (current.tagName === 'VIDEO') {
+      // Убедимся, что видео не заглушено
+      current.muted = false;
+      // И запускаем воспроизведение (это всё ещё считается пользовательским действием при клике на стрелку)
+      current.play();
+    }
 
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
