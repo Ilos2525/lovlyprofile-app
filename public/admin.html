@@ -1489,8 +1489,10 @@ async function loadQuestStats() {
     const profilesSnap = await getDocs(collection(db, 'profiles'));
     const profiles = {};
     profilesSnap.forEach(doc => {
-      profiles[doc.id] = doc.data().displayName || doc.id;
-    });
+  const data = doc.data();
+  profiles[doc.id] = data.displayName || data.username || data.first_name || doc.id;
+});
+
 
     const rows = [];
 
