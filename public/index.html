@@ -1095,7 +1095,7 @@ function renderLockedPost(post) {
   const type   = post.unlockType;
   const pw     = post.unlockPassword || '';
   const audio  = post.unlockAudio    || '';
-   const videoUrl  = post.unlockVideo    || '';
+  const video  = post.unlockVideo    || '';
   const quiz   = JSON.stringify(post.unlockQuiz || []);
 
   // выбор иконки
@@ -1137,7 +1137,7 @@ function renderLockedPost(post) {
       </button>`;
   } else if (type === 'video') {
     html += `
-      <button onclick="startVideoGate(${seq}, '${videoUrl}')">
+      <button onclick="startVideoGate(${seq}, '${video}')">
         Просмотреть видео
       </button>`;
   } else {
@@ -1320,9 +1320,6 @@ async function loadArchivePosts() {
 
 // Слайдер фото/видео с динамическим ресайзингом
 function initSlider(slider) {
-   // 1) Определяем, мобильное ли устройство, чтобы не автозапускать видео без жеста
-    // автоплей отключается только на реальных мобильных UA
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const pending = JSON.parse(slider.dataset.slides || '[]');
   let slides = Array.from(slider.querySelectorAll('.slide'));
   let idx = 0;
@@ -1383,11 +1380,11 @@ function initSlider(slider) {
   /* 2. Убедимся, что громкость слышна */
   current.volume = 1;
 
-      // 2) Автоплей только на не‐мобильных (браузеры на моб. блокируют звук иначе)
-      if (!isMobile) {
-        const p = current.play();
-        if (p?.catch) p.catch(() => {});
-      }
+  /* 3. Перезапускаем ролик — этот вызов идёт после
+        клика по стрелке/свайпа, поэтому считается
+        «пользовательским жестом» и звук разрешён.      */
+  const p = current.play();
+  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
 }
 
     if (current.tagName === 'IMG') {
@@ -1408,8 +1405,6 @@ function initSlider(slider) {
       videoEl.className = 'slide';
       videoEl.controls = true;
       videoEl.setAttribute('playsinline', '');
-        videoEl.setAttribute('playsinline', '');
-     videoEl.setAttribute('webkit-playsinline', ''); // inline‐режим для iOS 
       videoEl.src = videoUrl;
       slider.replaceChild(videoEl, t);
       slides = Array.from(slider.querySelectorAll('.slide'));
@@ -1781,6 +1776,28 @@ else {                       /* фото / слайдер / fallback */
 }).join('');
 
 
+  // Инициализация слайдеров (фото/видео)
+  container.querySelectorAll('.slider').forEach(slider => {
+    const slides = slider.querySelectorAll('.slide');
+    slides[0]?.classList.add('active');
+    const show = idx => {
+      slides.forEach(s => s.classList.remove('active'));
+      const i = (idx + slides.length) % slides.length;
+      slides[i].classList.add('active');
+      slider.dataset.idx = i;
+    };
+    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
+    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
+    let x0 = null;
+    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+    slider.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
+      x0 = null;
+    }, { passive: true });
+  });
+
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
     const vid = div.dataset.videoId;
@@ -2034,8 +2051,6 @@ function captureFrame(video, cb) {
 
 // 2) Обновлённый initLazyVideos
 function initLazyVideos() {
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    
   document.querySelectorAll('.video-wrapper').forEach(wrapper => {
     const video = wrapper.querySelector('video.uploaded-video');
     const img   = wrapper.querySelector('img.video-placeholder');
@@ -2051,12 +2066,11 @@ function initLazyVideos() {
     video.load();
 
     img.addEventListener('click', () => {
-    wrapper.replaceWith(video);
-    video.style.display = 'block';
-    if (!isMobile) {
-      video.play();   // автозапуск только на десктопе
-    }
-}, { once: true });
+      // при клике полностью меняем обёртку, чтобы убирать псевдо-стрелку
+      wrapper.replaceWith(video);
+      video.style.display = 'block';
+      video.play();
+    }, { once: true });
   });
 }
 
