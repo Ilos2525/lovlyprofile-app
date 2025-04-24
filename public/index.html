@@ -1781,10 +1781,6 @@ else {                       /* фото / слайдер / fallback */
 }).join('');
 
 
-  // Инициализация слайдеров (фото/видео) — подхватываем полноценный initSlider
-container.querySelectorAll('.slider').forEach(initSlider);
-
-
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
     const vid = div.dataset.videoId;
@@ -2038,6 +2034,8 @@ function captureFrame(video, cb) {
 
 // 2) Обновлённый initLazyVideos
 function initLazyVideos() {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
   document.querySelectorAll('.video-wrapper').forEach(wrapper => {
     const video = wrapper.querySelector('video.uploaded-video');
     const img   = wrapper.querySelector('img.video-placeholder');
