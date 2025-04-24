@@ -1643,6 +1643,8 @@ media = `
 
 
 
+  // …внутри функции displayPosts, вместо старого container.innerHTML = posts.map…
+container.innerHTML = posts.map(post => {
   const date = ts(post)
     ? new Date(ts(post)).toLocaleDateString('ru-RU')
     : '—';
@@ -1656,13 +1658,13 @@ media = `
         <div class="post-actions">
           <button class="action-btn ${post.isLiked ? 'liked' : ''}"
                   onclick="handleLike('${post.id}')">
-            ${post.isLiked ? '❤️' : '🤍'} ${post.likes||0}
+            ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
           </button>
           <button class="action-btn" onclick="toggleComments('${post.id}')">
-            💬 ${post.commentsCount||0}
+            💬 ${post.commentsCount || 0}
           </button>
         </div>
-<div class="comments-section" id="comments-${post.id}" style="display:none">
+        <div class="comments-section" id="comments-${post.id}" style="display:none">
           <div class="comments-container" id="comments-container-${post.id}"></div>
           <div class="comment-form">
             <textarea
@@ -1681,7 +1683,7 @@ media = `
         <!-- /конец блока -->
       </div>
     </div>`;
-}).join('');
+})/*.map() закрыли выше и сразу продолжаем*/.join('');
 
 
 
