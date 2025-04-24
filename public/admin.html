@@ -1483,27 +1483,26 @@ async function loadQuestStats() {
   statsTable.innerHTML = '<tr><td colspan="3">Загрузка...</td></tr>';
 
   try {
-    const snap = await getDocs(collection(db, 'userProgress'));
+    const progressSnap = await getDocs(collection(db, 'userProgress'));
+    const usersSnap = await getDocs(collection(db, 'userProfiles')); // или 'users'
 
-    // Загружаем все профили сразу
-    const profilesSnap = await getDocs(collection(db, 'profiles'));
-    const profiles = {};
-    profilesSnap.forEach(doc => {
-  const data = doc.data();
-  profiles[doc.id] = data.displayName || data.username || data.first_name || doc.id;
-});
-
+    // Создаём мапу: userId -> username/displayName
+    const userMap = {};
+    usersSnap.forEach(doc => {
+      const data = doc.data();
+      userMap[doc.id] = data.displayName || data.username || data.first_name || doc.id;
+    });
 
     const rows = [];
 
-    snap.forEach(doc => {
+    progressSnap.forEach(doc => {
       const data = doc.data();
       const userId = doc.id;
-      const displayName = profiles[userId] || userId; // если имя не найдено — показать ID
+      const name = userMap[userId] || userId;
 
       rows.push(`
         <tr>
-          <td style="padding:8px;">${displayName}</td>
+          <td style="padding:8px;">${name}</td>
           <td style="padding:8px;">${data.maxLevel || '-'}</td>
           <td style="padding:8px;">${data.lastUpdate?.toDate().toLocaleString() || '-'}</td>
         </tr>
