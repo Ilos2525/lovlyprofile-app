@@ -944,6 +944,32 @@ const auth = getAuth(app);
 let tg = null;
 let currentUser = null;
 
+// ————————————————————————————————————
+// Универсальная настройка для любого <video>
+// ————————————————————————————————————
+function setupCombinedPostMedia(mediaElement) {
+  if (mediaElement.tagName !== 'VIDEO') return;
+  // всегда показываем стандартные контролы
+  mediaElement.setAttribute('controls','controls');
+  // чтобы на iOS остался inline-режим
+  mediaElement.setAttribute('playsinline','playsinline');
+  // снимаем любые автозапуск/миут
+  mediaElement.removeAttribute('autoplay');
+  mediaElement.removeAttribute('muted');
+  mediaElement.muted = false;
+  mediaElement.defaultMuted = false;
+  mediaElement.volume = 1;
+
+  // опционально: на мобильных ставим постер из data-poster
+  const plat = window.Telegram?.WebApp?.platform || '';
+  const ua   = navigator.userAgent || '';
+  const isMobile = /iphone|ipad|android|mobile/i.test(plat + ua);
+  if (isMobile && mediaElement.dataset.poster) {
+    mediaElement.setAttribute('poster', mediaElement.dataset.poster);
+  }
+}
+
+
 async function recordVisit(user) {
   try {
     await addDoc(collection(db, 'visitors'), {
@@ -1397,20 +1423,22 @@ function initSlider(slider) {
   }
 
   // Заменяем превью-картинку видео на настоящий <video>
-  slider.addEventListener('click', e => {
-    const t = e.target;
-    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-      const videoUrl = t.dataset.video;
-      const videoEl = document.createElement('video');
-      videoEl.className = 'slide';
-      videoEl.controls = true;
-      videoEl.setAttribute('playsinline', '');
-      videoEl.src = videoUrl;
-      slider.replaceChild(videoEl, t);
-      slides = Array.from(slider.querySelectorAll('.slide'));
-      show(idx);
-    }
-  });
+ slider.addEventListener('click', e => {
+  const t = e.target;
+  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+    const videoUrl = t.dataset.video;
+    const videoEl = document.createElement('video');
+    videoEl.className = 'slide';
+    videoEl.src = videoUrl;
+    videoEl.setAttribute('playsinline', '');
+    // вот этот вызов — сразу настраивает контролы и звук
+    setupCombinedPostMedia(videoEl);
+    slider.replaceChild(videoEl, t);
+    slides = Array.from(slider.querySelectorAll('.slide'));
+    show(idx);
+  }
+});
+
 
   // Fullscreen по клику на видео
   slides.forEach(v => {
@@ -2066,11 +2094,13 @@ function initLazyVideos() {
     video.load();
 
     img.addEventListener('click', () => {
-      // при клике полностью меняем обёртку, чтобы убирать псевдо-стрелку
-      wrapper.replaceWith(video);
-      video.style.display = 'block';
-      video.play();
-    }, { once: true });
+  wrapper.replaceWith(video);
+  video.style.display = 'block';
+  // настраиваем контролы/звук, но НЕ запускаем автоматически
+  setupCombinedPostMedia(video);
+  // пользователь сам кликнет ▶
+}, { once: true });
+
   });
 }
 
