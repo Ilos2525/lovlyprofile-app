@@ -15,6 +15,14 @@
     
     <!-- Подключаем шрифт Roboto -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<!-- Swiper CSS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/swiper/swiper-bundle.min.css"
+/>
+<!-- Swiper JS -->
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
 </head>
 <style>
     /* Основные переменные и настройки темы */
@@ -944,6 +952,7 @@ const auth = getAuth(app);
 let tg = null;
 let currentUser = null;
 
+    
 
 async function recordVisit(user) {
   try {
@@ -1218,13 +1227,40 @@ else {
               data-video="${first}" loading="lazy">`
       : `<img src="${first}" class="slide" loading="lazy">`;
 
-    media = `
-      <div class="slider" data-idx="0"
-           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-        ${firstSlide}
-        <button class="prev">‹</button>
-        <button class="next">›</button>
-      </div>`;
+   // Вместо вашего <div class="slider"> … </div>:
+media = `
+  <div class="swiper-container">
+    <div class="swiper-wrapper">
+      ${slideUrls.map(url => {
+        if (/\.(mp4|webm|ogg)$/i.test(url.split(/[?#]/)[0])) {
+          // видео-слайд
+          return `
+            <div class="swiper-slide">
+              <video
+                controls
+                playsinline
+                preload="none"
+                poster=""
+                style="width:100%; height:auto;"
+              >
+                <source src="${url}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+              </video>
+            </div>`;
+        } else {
+          // фото-слайд
+          return `
+            <div class="swiper-slide">
+              <img src="${url}" loading="lazy" style="width:100%; height:auto; object-fit:cover;">
+            </div>`;
+        }
+      }).join('')}
+    </div>
+    <!-- Кнопки навигации -->
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+  </div>`;
+
   } else if (post.category === 'video') {            // YouTube-ссылка
     const id    = getYoutubeVideoId(post.fileURL);
     const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
@@ -1744,19 +1780,40 @@ else {                       /* фото / слайдер / fallback */
                data-video="${first}" loading="lazy">`
       : `<img src="${first}" class="slide" loading="lazy">`;
 
-    media = `
-      <div class="slider" data-idx="0"
-           data-slides='${JSON.stringify(slideUrls.slice(1))}'>
-        ${firstSlide}
-        <button class="prev">‹</button>
-        <button class="next">›</button>
-      </div>`;
-  } else if (post.category === 'photo') {
-    media = `<img src="${post.fileURL}" loading="lazy">`;
-  } else {
-    media = `<div class="video-container" style="background:#000"></div>`;
-  }
-}
+// Вместо вашего <div class="slider"> … </div>:
+media = `
+  <div class="swiper-container">
+    <div class="swiper-wrapper">
+      ${slideUrls.map(url => {
+        if (/\.(mp4|webm|ogg)$/i.test(url.split(/[?#]/)[0])) {
+          // видео-слайд
+          return `
+            <div class="swiper-slide">
+              <video
+                controls
+                playsinline
+                preload="none"
+                poster=""
+                style="width:100%; height:auto;"
+              >
+                <source src="${url}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+              </video>
+            </div>`;
+        } else {
+          // фото-слайд
+          return `
+            <div class="swiper-slide">
+              <img src="${url}" loading="lazy" style="width:100%; height:auto; object-fit:cover;">
+            </div>`;
+        }
+      }).join('')}
+    </div>
+    <!-- Кнопки навигации -->
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+  </div>`;
+
 
 
   const date = ts(post)
@@ -1836,6 +1893,26 @@ else {                       /* фото / слайдер / fallback */
     });
   });
 
+// после container.innerHTML = posts.map(...).join('');
+container.querySelectorAll('.swiper-container').forEach(el => {
+  const swiper = new Swiper(el, {
+    // не грузить медиа заранее
+    preloadImages: false,
+    lazy: { loadOnTransitionStart: true },
+    navigation: {
+      nextEl: el.querySelector('.swiper-button-next'),
+      prevEl: el.querySelector('.swiper-button-prev'),
+    },
+    on: {
+      // при смене слайда — останавливать все видео
+      slideChange: () => {
+        el.querySelectorAll('video').forEach(v => v.pause());
+      }
+    }
+  });
+});
+
+    
 // «Читать далее» — делаем кликабельной обрезанную по высоте подсказку
 container.querySelectorAll('.post-description').forEach(p => {
   // если текст короче 120px — сразу разворачиваем и скрываем подсказку
