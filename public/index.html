@@ -660,6 +660,7 @@
 /* когда контент загружен — снимаем квадрат, включаем авто-высоту */
 .slider.loaded {
   padding-bottom: 0;
+  height: auto !important;
 }
 
 /* сами слайды по-прежнему абсолютно позиционируются */
@@ -1325,11 +1326,9 @@ function initSlider(slider) {
 
   // Восстановить квадратный контейнер
   function resetSquare() {
-  if (!slider.classList.contains('loaded')) {
-    slider.style.paddingBottom = '';
-    slider.style.height        = '';
+    slider.style.paddingBottom = ''; 
+    slider.style.height = '';
   }
- }
 
   // Подогнать контейнер под размер элемента
   function adjustTo(el) {
@@ -1367,22 +1366,26 @@ function initSlider(slider) {
       slider.dataset.slides = JSON.stringify(pending);
     }
 
-      slides.forEach(s => {
-    s.classList.remove('active');
-    if (s.tagName === 'VIDEO') s.pause();   // стопим всё, что было
-  });
-      
+    slides.forEach(s => s.classList.remove('active'));
     const current = slides[idx];
     current.classList.add('active');
 
-    if (current.tagName === 'VIDEO') {
-    /* звук и кнопки сразу готовы, но ничего не стартует без клика */
-    current.muted        = false;
-    current.defaultMuted = false;
-    current.removeAttribute('muted');
-    current.volume = 1;
-    current.controls = true;          // на мобильных нужен ДО клика
-  }
+  if (current.tagName === 'VIDEO') {
+  /* 1. Полностью убираем mute-флаги */
+  current.pause();               // если вдруг уже играет без звука
+  current.muted        = false;
+  current.defaultMuted = false;  // снимаем «глобальный» мут
+  current.removeAttribute('muted');
+
+  /* 2. Убедимся, что громкость слышна */
+  current.volume = 1;
+
+  /* 3. Перезапускаем ролик — этот вызов идёт после
+        клика по стрелке/свайпа, поэтому считается
+        «пользовательским жестом» и звук разрешён.      */
+  const p = current.play();
+  if (p?.catch) p.catch(()=>{}); // ловим возможный warning
+}
 
     if (current.tagName === 'IMG') {
       if (current.complete) adjustTo(current);
@@ -1394,37 +1397,20 @@ function initSlider(slider) {
   }
 
   // Заменяем превью-картинку видео на настоящий <video>
- // Заменяем превью-картинку видео на настоящий <video>, ждём metadata
-slider.addEventListener('click', e => {
-  const t = e.target;
-  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-    // Создаём <video> без преждевременного loaded-класса
-    const videoEl = document.createElement('video');
-    videoEl.className = 'slide';
-    videoEl.controls = true;
-    videoEl.preload = 'metadata';
-    videoEl.setAttribute('playsinline', '');
-    videoEl.src = t.dataset.video;
-
-    // Сразу заменяем превью
-    slider.replaceChild(videoEl, t);
-    slides = Array.from(slider.querySelectorAll('.slide'));
-
-    // После загрузки метаданных выставляем высоту + запускаем show()
-    videoEl.addEventListener('loadedmetadata', () => {
-      // убираем квадрат-заглушку
-      slider.style.paddingBottom = '0';
-      // рассчитываем высоту по пропорциям видео
-      const w = slider.clientWidth;
-      const h = videoEl.videoHeight / videoEl.videoWidth * w;
-      slider.style.height = `${h}px`;
-
-      // теперь отрисуем текущий слайд (включит звук, контролы и т.п.)
+  slider.addEventListener('click', e => {
+    const t = e.target;
+    if (t.tagName === 'IMG' && t.classList.contains('preview')) {
+      const videoUrl = t.dataset.video;
+      const videoEl = document.createElement('video');
+      videoEl.className = 'slide';
+      videoEl.controls = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.src = videoUrl;
+      slider.replaceChild(videoEl, t);
+      slides = Array.from(slider.querySelectorAll('.slide'));
       show(idx);
-    }, { once: true });
-  }
-});
-
+    }
+  });
 
   // Fullscreen по клику на видео
   slides.forEach(v => {
@@ -1722,30 +1708,6 @@ else if (post.category === 'video') {
             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
 }
 
-if (post.photos?.length && post.videos?.length) {
-  // комбинированный пост: пользуемся той же разметкой инициализации
-  media = `
-    <div class="video-wrapper">
-      <video
-        class="uploaded-video"
-        playsinline webkit-playsinline
-        controls
-        preload="metadata"
-        src="${post.videos[0]}"
-        style="display:none;"
-      ></video>
-      <img
-        class="video-placeholder"
-        src="${post.photos[0]}"
-        data-video="${post.videos[0]}"
-        loading="lazy"
-        alt="Video preview"
-      />
-    </div>`;
-}
-
-
-    
 else {                       /* фото / слайдер / fallback */
   const slideUrls = [];
   if (Array.isArray(post.photos))  slideUrls.push(...post.photos);
@@ -1814,8 +1776,27 @@ else {                       /* фото / слайдер / fallback */
 }).join('');
 
 
-  // Инициализация слайдеров (фото/видео) – всегда один и тот же, полный вариант
-  container.querySelectorAll('.slider').forEach(initSlider);
+  // Инициализация слайдеров (фото/видео)
+  container.querySelectorAll('.slider').forEach(slider => {
+    const slides = slider.querySelectorAll('.slide');
+    slides[0]?.classList.add('active');
+    const show = idx => {
+      slides.forEach(s => s.classList.remove('active'));
+      const i = (idx + slides.length) % slides.length;
+      slides[i].classList.add('active');
+      slider.dataset.idx = i;
+    };
+    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
+    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
+    let x0 = null;
+    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
+    slider.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
+      x0 = null;
+    }, { passive: true });
+  });
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
