@@ -647,6 +647,24 @@
           </div>
         </div>
 
+          <!-- Секция статистики прохождений квестов -->
+  <div class="form-group">
+    <h3>Кто до какого уровня дошёл</h3>
+    <table id="questStatsTable" style="width:100%; border-collapse: collapse; text-align: left;">
+      <thead>
+        <tr>
+          <th style="border-bottom:1px solid var(--neon-color); padding:8px;">Пользователь</th>
+          <th style="border-bottom:1px solid var(--neon-color); padding:8px;">Макс. уровень</th>
+          <th style="border-bottom:1px solid var(--neon-color); padding:8px;">Дата последнего прохода</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- сюда JS подставит строки -->
+      </tbody>
+    </table>
+  </div>
+
+
         <!-- Детальная статистика по постам -->
         <div class="form-group">
           <h3>Статистика по постам</h3>
@@ -705,6 +723,8 @@ import {
     getDownloadURL 
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 
   /* ====== Конфигурация Firebase ====== */
   const firebaseConfig = {
@@ -819,8 +839,12 @@ import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-fi
     if (targetTab) targetTab.classList.add('active');
     if (clickedBtn) clickedBtn.classList.add('active');
 
-    if (tabId === 'manage') loadPosts();
-    if (tabId === 'stats') loadStats();
+     if (tabId === 'manage') loadPosts();
+  if (tabId === 'stats') {
+    loadStats();
+    loadQuestStats();  // <-- добавили
+  }
+    
   };
 
 // ====== Переключение типа поста (категория) ======
@@ -1450,6 +1474,57 @@ if (isArchive && unlockTypeVal === 'quiz') {
     document.querySelector(`[onclick="showActivityTab('${tab}')"]`).classList.add('active');
     loadActivityData(tab);
   };
+
+// Загружает статистику квестов и заполняет таблицу #questStatsTable
+async function loadQuestStats() {
+  const tbody = document.querySelector('#questStatsTable tbody');
+  tbody.innerHTML = `<tr><td colspan="3" style="padding:8px;">Загрузка…</td></tr>`;
+
+  try {
+    // 1) Получаем всех, кто начал квест
+    const q = query(
+      collection(db, 'userProgress'),
+      where('firstTaskCompleted', '==', true),
+      orderBy('maxLevel', 'desc'),
+      orderBy('lastUpdate', 'desc')
+    );
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      tbody.innerHTML = `<tr><td colspan="3" style="padding:8px;">Никто ещё не прошёл ни одного уровня</td></tr>`;
+      return;
+    }
+
+    // 2) Для каждого пользователя достаём имя из коллекции users
+    let rows = '';
+    for (const docItem of snap.docs) {
+      const prog = docItem.data();
+      const userId = docItem.id;
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      const user = userSnap.exists() ? userSnap.data() : {};
+
+      const username = user.username || userId;
+      const maxLevel = prog.maxLevel ?? Math.max(...(prog.archiveUnlocked || []), 0);
+      const lastDt = prog.lastUpdate?.toDate
+        ? prog.lastUpdate.toDate().toLocaleString('ru-RU')
+        : '-';
+
+      rows += `
+      <tr>
+        <td style="border-bottom:1px solid #444; padding:8px;">${username}</td>
+        <td style="border-bottom:1px solid #444; padding:8px;">${maxLevel}</td>
+        <td style="border-bottom:1px solid #444; padding:8px;">${lastDt}</td>
+      </tr>`;
+    }
+
+    tbody.innerHTML = rows;
+  } catch (err) {
+    console.error('Ошибка загрузки статистики квестов:', err);
+    tbody.innerHTML = `<tr><td colspan="3" style="padding:8px; color: var(--error-color);">Ошибка загрузки</td></tr>`;
+  }
+}
+
+
 
   /* ====== Загрузка активности (лайки, комменты, посещения) ====== */
   async function loadActivityData(tab) {
