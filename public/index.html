@@ -1321,8 +1321,9 @@ async function loadArchivePosts() {
 // Слайдер фото/видео с динамическим ресайзингом
 function initSlider(slider) {
    // 1) Определяем, мобильное ли устройство, чтобы не автозапускать видео без жеста
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-                 || navigator.maxTouchPoints > 0;
+    // автоплей отключается только на реальных мобильных UA
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const pending = JSON.parse(slider.dataset.slides || '[]');
   const pending = JSON.parse(slider.dataset.slides || '[]');
   let slides = Array.from(slider.querySelectorAll('.slide'));
   let idx = 0;
