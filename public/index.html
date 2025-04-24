@@ -655,56 +655,6 @@
   border-radius: var(--border-radius);
   display: block;
 }
-/* === Универсальный слайдер фото + видео === */
-/* неизменный квадрат */
-.slider {
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%;
-  overflow: hidden;
-  background: #222;
-}
-
-/* когда контент загружен — снимаем квадрат, включаем авто-высоту */
-.slider.loaded {
-  padding-bottom: 0;
-  height: auto !important;
-}
-
-/* сами слайды по-прежнему абсолютно позиционируются */
-.slider .slide {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-}
-.slider .slide.active {
-  display: block;
-}
-
-
-/* стрелки */
-.slider .prev,
-.slider .next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0,0,0,0.5);
-  color: #fff;
-  font-size: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-}
-.slider .prev { left: 12px; }
-.slider .next { right: 12px; }
 
 
 
@@ -1337,7 +1287,6 @@ async function loadArchivePosts() {
 
     // Вставляем и инициализируем UI‑компоненты
     grid.innerHTML = fragments.join('');
-    grid.querySelectorAll('.slider').forEach(initSlider);
     grid.querySelectorAll('.video-container.preview').forEach(initYouTubePreview);
     grid.querySelectorAll('.post-description').forEach(initReadMore);
     grid.querySelectorAll('video.uploaded-video').forEach(v => {
@@ -1382,127 +1331,6 @@ function setupCombinedPostMedia(mediaElement) {
   }
 }
     
-// Слайдер фото/видео с динамическим ресайзингом
-function initSlider(slider) {
-  const pending = JSON.parse(slider.dataset.slides || '[]');
-  let slides = Array.from(slider.querySelectorAll('.slide'));
-  let idx = 0;
-
-  // Восстановить квадратный контейнер
-  function resetSquare() {
-    slider.style.paddingBottom = ''; 
-    slider.style.height = '';
-  }
-
-  // Подогнать контейнер под размер элемента
-  function adjustTo(el) {
-    const w = slider.clientWidth;
-    const ratio = el.tagName === 'VIDEO'
-      ? el.videoHeight / el.videoWidth
-      : el.naturalHeight / el.naturalWidth;
-    slider.style.paddingBottom = '0px';
-    slider.style.height = `${w * ratio}px`;
-  }
-
-  // Показать слайд по индексу
-  function show(newIdx) {
-    resetSquare();
-    const total = slides.length + pending.length;
-    idx = ((newIdx % total) + total) % total;
-
-    // Если индекс выходит за пределы уже вставленных слайдов
-    if (idx >= slides.length) {
-      const url = pending.shift();
-      let el;
-      if (/\.(mp4|webm|ogg)$/.test(url)) {
-        // создаём превью для видео
-        el = document.createElement('img');
-        el.className = 'slide preview';
-        el.src = 'https://placehold.co/600x400?text=▶';
-        el.dataset.video = url;
-      } else {
-        el = document.createElement('img');
-        el.className = 'slide';
-        el.src = url;
-      }
-      slider.insertBefore(el, slider.querySelector('.prev'));
-      slides = Array.from(slider.querySelectorAll('.slide'));
-      slider.dataset.slides = JSON.stringify(pending);
-    }
-
-    slides.forEach(s => s.classList.remove('active'));
-    const current = slides[idx];
-    current.classList.add('active');
-
-   if (current.tagName === 'VIDEO') {
-    // просто гарантируем, что видео на паузе, и показываем контролы
-    current.pause();
-    current.controls = true;
-    // Никакого current.play() — ждём клика пользователя
-  }
-
-    if (current.tagName === 'IMG') {
-      if (current.complete) adjustTo(current);
-      else current.onload = () => adjustTo(current);
-    } else {
-      current.onloadedmetadata = () => adjustTo(current);
-      current.controls = true;
-    }
-  }
-
-  // Заменяем превью-картинку видео на настоящий <video>
- slider.addEventListener('click', e => {
-  const t = e.target;
-  if (t.tagName === 'IMG' && t.classList.contains('preview')) {
-    const videoUrl = t.dataset.video;
-   // создаём полноценный <video>
-      const videoEl = document.createElement('video');
-      videoEl.className = 'slide';
-      videoEl.src       = videoUrl;
-      // настраиваем нативный плеер (controls, inline, preload=none)
-      setupCombinedPostMedia(videoEl);
-      // берём постер из исходного IMG
-      if (t.src) videoEl.setAttribute('poster', t.src);
-      // заменяем превью на видео
-      slider.replaceChild(videoEl, t);
-      slides = Array.from(slider.querySelectorAll('.slide'));
-      // показываем этот же слайд без автозапуска
-      show(idx);
-  }
-});
-
-
-  // Fullscreen по клику на видео
-  slides.forEach(v => {
-    if (v.tagName === 'VIDEO') {
-      v.controls = true;
-      v.addEventListener('click', () => {
-        if (v.requestFullscreen) v.requestFullscreen();
-        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
-        else if (v.msRequestFullscreen) v.msRequestFullscreen();
-      });
-    }
-  });
-
-  // Навигация стрелками
-  slider.querySelector('.prev').onclick = () => show(idx - 1);
-  slider.querySelector('.next').onclick = () => show(idx + 1);
-
-  // Тач-свайп
-  let startX = null;
-  slider.addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
-  slider.addEventListener('touchend', e => {
-    if (startX === null) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    if (Math.abs(dx) > 30) show(dx < 0 ? idx + 1 : idx - 1);
-    startX = null;
-  }, { passive: true });
-
-  // Инициализируем первый слайд
-  show(0);
-}
-
-
 
 
 // Ленивое YouTube‑встраивание
@@ -1857,27 +1685,6 @@ media = `
 }).join('');
 
 
-  // Инициализация слайдеров (фото/видео)
-  container.querySelectorAll('.slider').forEach(slider => {
-    const slides = slider.querySelectorAll('.slide');
-    slides[0]?.classList.add('active');
-    const show = idx => {
-      slides.forEach(s => s.classList.remove('active'));
-      const i = (idx + slides.length) % slides.length;
-      slides[i].classList.add('active');
-      slider.dataset.idx = i;
-    };
-    slider.querySelector('.prev').onclick = () => show(+slider.dataset.idx - 1);
-    slider.querySelector('.next').onclick = () => show(+slider.dataset.idx + 1);
-    let x0 = null;
-    slider.addEventListener('touchstart', e => x0 = e.touches[0].clientX, { passive: true });
-    slider.addEventListener('touchend', e => {
-      if (x0 === null) return;
-      const dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 30) show(dx < 0 ? +slider.dataset.idx + 1 : +slider.dataset.idx - 1);
-      x0 = null;
-    }, { passive: true });
-  });
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
