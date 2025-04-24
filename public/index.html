@@ -1784,6 +1784,25 @@ else {                       /* фото / слайдер / fallback */
   // Инициализация слайдеров (фото/видео) — подхватываем полноценный initSlider
 container.querySelectorAll('.slider').forEach(initSlider);
 
+    // После initSlider — обрабатываем клик по превью и создаём <video>
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+container.querySelectorAll('.slider .slide.preview').forEach(preview => {
+  preview.addEventListener('click', () => {
+    const videoUrl = preview.dataset.video;
+    const videoEl = document.createElement('video');
+    videoEl.className = 'slide';
+    videoEl.controls = true;
+    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('webkit-playsinline', '');
+    videoEl.src = videoUrl;
+    preview.replaceWith(videoEl);
+    // на десктопе сразу стартуем, на мобилках ждём ручного клика
+    if (!isMobile) {
+      videoEl.play().catch(() => {});
+    }
+  }, { once: true });
+});
+
 
   // Ленивый YouTube
   container.querySelectorAll('.video-container.preview').forEach(div => {
