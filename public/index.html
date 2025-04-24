@@ -1477,10 +1477,27 @@ async function isTaskUnlocked(seq) {
   const arr  = snap.data()?.archiveUnlocked || [];
   return arr.includes(seq);
 }
+// Помечает квест выполненным, обновляет maxLevel/lastUpdate и записывает событие
 async function markTaskUnlocked(seq) {
-  const ref = doc(db, 'userProgress', currentUser.id.toString());
-  await updateDoc(ref, { archiveUnlocked: arrayUnion(seq) });
+  const userId = currentUser.id.toString();
+  const ref = doc(db, 'userProgress', userId);
+
+  // 1) обновляем прогресс
+  const updates = {
+    archiveUnlocked: arrayUnion(seq),
+    maxLevel: seq,
+    lastUpdate: serverTimestamp()
+  };
+  await updateDoc(ref, updates);
+
+  // 2) (опционально) пишем историю в questEvents
+  await addDoc(collection(db, 'questEvents'), {
+    userId: userId,
+    level: seq,
+    completedAt: serverTimestamp()
+  });
 }
+
 /* ---------- UI‑коллбеки ---------- */
 window.unlockPassword = async (seq, correct) => {
   const inp = document.getElementById(`pwd-${seq}`);
