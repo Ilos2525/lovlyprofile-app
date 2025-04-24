@@ -1532,45 +1532,44 @@ window.startVideoGate = function(seq, url) {
 
 
 function displayPosts(containerId, posts) {
-  // Вспомогательная функция для таймстемпа
+  // 1) Вспомогательная функция для таймстемпа
   const ts = p =>
     p.trackDate ? new Date(p.trackDate).getTime() :
     p.timestamp?.seconds ? p.timestamp.seconds * 1000 :
     typeof p.timestamp === 'string' ? new Date(p.timestamp).getTime() :
     p.timestamp?.toDate ? p.timestamp.toDate().getTime() : 0;
 
-  // Сортируем по дате
+  // 2) Сортируем по дате
   posts = [...posts].sort((a, b) => ts(b) - ts(a));
   const container = document.getElementById(containerId);
 
+  // 3) Пустой результат
   if (!posts.length) {
     container.innerHTML = `<div class="post"><div class="post-content">Нет постов</div></div>`;
     return;
   }
 
-  // Собираем HTML одним вызовом map().join()
+  // 4) Собираем HTML
   const html = posts.map(post => {
     let media = '';
 
-    // Видео, загруженное в Firebase
+    // ——— своё видео
     if (post.category === 'uploaded_video' && post.fileURL) {
       media = `
         <div class="video-wrapper">
           <video class="uploaded-video" playsinline webkit-playsinline controls preload="metadata" src="${post.fileURL}" style="display:none;"></video>
-          <img class="video-placeholder"
-               src="https://placehold.co/600x400?text=▶"
-               data-video="${post.fileURL}" loading="lazy" alt="Video preview">
+          <img class="video-placeholder" src="https://placehold.co/600x400?text=▶" data-video="${post.fileURL}" loading="lazy">
         </div>`;
     }
-    // Музыка
+    // ——— музыка
     else if (post.category === 'music') {
       media = `
         <div class="audio-post">
           <div class="audio-cover">
-            <img src="${post.coverURL || 'https://placehold.co/100x100?text=No+Cover'}" loading="lazy" alt="Cover">
+            <img src="${post.coverURL||'https://placehold.co/100x100?text=No+Cover'}" loading="lazy">
           </div>
           <div class="audio-info" data-src="${post.fileURL}">
-            <div class="audio-title">${post.description || ''}</div>
+            <div class="audio-title">${post.description||''}</div>
             <div class="audio-controls">
               <button class="btn-prev">⏮️</button>
               <button class="btn-play">▶️</button>
@@ -1586,40 +1585,26 @@ function displayPosts(containerId, posts) {
           </div>
         </div>`;
     }
-    // YouTube-видео
+    // ——— YouTube-видео
     else if (post.category === 'video') {
-      const id    = getYoutubeVideoId(post.fileURL);
+      const id = getYoutubeVideoId(post.fileURL);
       const thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
       media = `
-        <div class="video-container preview" data-video-id="${id}"
-             style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
+        <div class="video-container preview" data-video-id="${id}" style="background:url(${thumb}) center/cover no-repeat;cursor:pointer"></div>`;
     }
-    // Фото или слайдер
+    // ——— фото или слайдер
     else {
-      const slideUrls = [];
-      if (Array.isArray(post.photos)) slideUrls.push(...post.photos);
-      if (Array.isArray(post.videos)) slideUrls.push(...post.videos);
-
-      if (slideUrls.length) {
+      const slide = [];
+      if (Array.isArray(post.photos)) slide.push(...post.photos);
+      if (Array.isArray(post.videos)) slide.push(...post.videos);
+      if (slide.length) {
         media = `
           <div class="swiper-container">
             <div class="swiper-wrapper">
-              ${slideUrls.map(url => {
-                if (/\.(mp4|webm|ogg)$/i.test(url.split(/[?#]/)[0])) {
-                  return `
-                    <div class="swiper-slide">
-                      <video controls playsinline preload="none" style="width:100%;height:auto;">
-                        <source src="${url}" type="video/mp4">
-                        Ваш браузер не поддерживает видео.
-                      </video>
-                    </div>`;
-                } else {
-                  return `
-                    <div class="swiper-slide">
-                      <img src="${url}" loading="lazy" style="width:100%;height:auto;object-fit:cover;">
-                    </div>`;
-                }
-              }).join('')}
+              ${slide.map(url => /\.(mp4|webm|ogg)$/i.test(url) 
+                  ? `<div class="swiper-slide"><video controls playsinline preload="none" style="width:100%;height:auto"><source src="${url}" type="video/mp4"></video></div>`
+                  : `<div class="swiper-slide"><img src="${url}" loading="lazy" style="width:100%;height:auto;object-fit:cover"></div>`
+              ).join('')}
             </div>
             <div class="swiper-button-prev"></div>
             <div class="swiper-button-next"></div>
@@ -1627,23 +1612,24 @@ function displayPosts(containerId, posts) {
       }
     }
 
-    // Дата
+    // ——— форматируем дату
     const date = ts(post)
       ? new Date(ts(post)).toLocaleDateString('ru-RU')
       : '—';
 
+    // ——— возвращаем карточку
     return `
       <div class="post" data-post-id="${post.id}">
         ${media}
         <div class="post-content">
-          <div class="post-description">${post.description || ''}</div>
+          <div class="post-description">${post.description||''}</div>
           <div class="post-date">${date}</div>
           <div class="post-actions">
-            <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
-              ${post.isLiked ? '❤️' : '🤍'} ${post.likes || 0}
+            <button class="action-btn ${post.isLiked?'liked':''}" onclick="handleLike('${post.id}')">
+              ${post.isLiked?'❤️':'🤍'} ${post.likes||0}
             </button>
             <button class="action-btn" onclick="toggleComments('${post.id}')">
-              💬 ${post.commentsCount || 0}
+              💬 ${post.commentsCount||0}
             </button>
           </div>
           <div class="comments-section" id="comments-${post.id}" style="display:none">
@@ -1657,22 +1643,18 @@ function displayPosts(containerId, posts) {
       </div>`;
   }).join('');
 
-  // Вставляем готовый HTML
+  // 5) Вставляем и инициализируем всё остальное
   container.innerHTML = html;
 
-  // Инициализируем YouTube-превью
+  // YouTube-превью
   container.querySelectorAll('.video-container.preview').forEach(div => {
-    const vid = div.dataset.videoId;
     div.onclick = () => {
-      div.innerHTML = `
-        <iframe src="https://www.youtube.com/embed/${vid}?autoplay=1"
-                allowfullscreen
-                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;">
-        </iframe>`;
+      const vid = div.dataset.videoId;
+      div.innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"></iframe>`;
     };
   });
 
-  // Инициализируем Swiper
+  // Swiper
   container.querySelectorAll('.swiper-container').forEach(el => {
     new Swiper(el, {
       preloadImages: false,
@@ -1681,22 +1663,16 @@ function displayPosts(containerId, posts) {
         nextEl: el.querySelector('.swiper-button-next'),
         prevEl: el.querySelector('.swiper-button-prev'),
       },
-      on: {
-        slideChange: () => el.querySelectorAll('video').forEach(v => v.pause())
-      }
+      on: { slideChange: () => el.querySelectorAll('video').forEach(v => v.pause()) }
     });
   });
 
-  // «Читать далее» для длинных описаний
+  // «Читать далее»
   container.querySelectorAll('.post-description').forEach(p => {
-    if (p.scrollHeight <= 120) {
-      p.classList.add('expanded');
-    } else {
-      p.addEventListener('click', () => p.classList.toggle('expanded'));
-    }
+    if (p.scrollHeight > 120) p.addEventListener('click', () => p.classList.toggle('expanded'));
   });
 
-  // Постер для собственных видео
+  // Постеры для собственных видео
   container.querySelectorAll('video.uploaded-video').forEach(v => {
     v.crossOrigin = 'anonymous';
     v.addEventListener('loadedmetadata', () => captureFrame(v));
