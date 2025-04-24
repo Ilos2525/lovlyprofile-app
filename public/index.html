@@ -1095,7 +1095,7 @@ function renderLockedPost(post) {
   const type   = post.unlockType;
   const pw     = post.unlockPassword || '';
   const audio  = post.unlockAudio    || '';
-  const video  = post.unlockVideo    || '';
+   const videoUrl  = post.unlockVideo    || '';
   const quiz   = JSON.stringify(post.unlockQuiz || []);
 
   // выбор иконки
@@ -1137,7 +1137,7 @@ function renderLockedPost(post) {
       </button>`;
   } else if (type === 'video') {
     html += `
-      <button onclick="startVideoGate(${seq}, '${video}')">
+      <button onclick="startVideoGate(${seq}, '${videoUrl}')">
         Просмотреть видео
       </button>`;
   } else {
