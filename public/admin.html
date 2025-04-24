@@ -1483,8 +1483,10 @@ async function loadQuestStats() {
   statsTable.innerHTML = '<tr><td colspan="3">Загрузка...</td></tr>';
 
   try {
-    const progressSnap = await getDocs(collection(db, 'userProgress'));
-    const usersSnap = await getDocs(collection(db, 'userProfiles')); // или 'users'
+    const [progressSnap, usersSnap] = await Promise.all([
+      getDocs(collection(db, 'userProgress')),
+      getDocs(collection(db, 'userProfiles'))
+    ]);
 
     // Создаём мапу: userId -> username/displayName
     const userMap = {};
@@ -1493,23 +1495,32 @@ async function loadQuestStats() {
       userMap[doc.id] = data.displayName || data.username || data.first_name || doc.id;
     });
 
-    const rows = [];
-
+    // Сортируем по maxLevel (по убыванию)
+    const dataRows = [];
     progressSnap.forEach(doc => {
       const data = doc.data();
-      const userId = doc.id;
-      const name = userMap[userId] || userId;
-
-      rows.push(`
-        <tr>
-          <td style="padding:8px;">${name}</td>
-          <td style="padding:8px;">${data.maxLevel || '-'}</td>
-          <td style="padding:8px;">${data.lastUpdate?.toDate().toLocaleString() || '-'}</td>
-        </tr>
-      `);
+      dataRows.push({
+        id: doc.id,
+        name: userMap[doc.id] || doc.id,
+        level: data.maxLevel || '-',
+        date: data.lastUpdate?.toDate().toLocaleString('ru-RU') || '-'
+      });
     });
 
-    statsTable.innerHTML = rows.join('');
+    dataRows.sort((a, b) => {
+      const aLvl = (typeof a.level === 'number') ? a.level : 0;
+      const bLvl = (typeof b.level === 'number') ? b.level : 0;
+      return bLvl - aLvl;
+    });
+
+    statsTable.innerHTML = dataRows.map(user => `
+      <tr>
+        <td style="padding:8px;">${user.name}</td>
+        <td style="padding:8px;">${user.level}</td>
+        <td style="padding:8px;">${user.date}</td>
+      </tr>
+    `).join('');
+
   } catch (err) {
     console.error("Ошибка загрузки статистики квестов:", err);
     statsTable.innerHTML = '<tr><td colspan="3" style="color:red">Ошибка загрузки</td></tr>';
