@@ -1504,6 +1504,8 @@ async function loadQuestStats() {
       const userId = docItem.id;
       const userSnap = await getDoc(doc(db, 'users', userId));
 const user = userSnap.exists() ? userSnap.data() : {};
+console.log("Загрузка пользователя:", userId, user);
+
 
 // Формируем метку: предпочитаем username, затем displayName, и только потом ID
 let label;
@@ -1518,6 +1520,8 @@ if (user.username) {
 } else {
   label = userId;
 }
+ console.log("Имя для таблицы:", label);
+      
       const maxLevel = prog.maxLevel ?? Math.max(...(prog.archiveUnlocked || []), 0);
       const lastDt = prog.lastUpdate?.toDate
         ? prog.lastUpdate.toDate().toLocaleString('ru-RU')
