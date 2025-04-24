@@ -1324,7 +1324,6 @@ function initSlider(slider) {
     // автоплей отключается только на реальных мобильных UA
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const pending = JSON.parse(slider.dataset.slides || '[]');
-  const pending = JSON.parse(slider.dataset.slides || '[]');
   let slides = Array.from(slider.querySelectorAll('.slide'));
   let idx = 0;
 
