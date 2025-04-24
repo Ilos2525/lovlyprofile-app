@@ -1723,17 +1723,27 @@ else if (post.category === 'video') {
 }
 
 if (post.photos?.length && post.videos?.length) {
-  // комбинированный пост: сразу встраиваем стандартный <video>
+  // комбинированный пост: пользуемся той же разметкой инициализации
   media = `
-    <video
-      controls
-      playsinline
-      preload="metadata"
-      poster="${post.photos[0]}"
-      src="${post.videos[0]}"
-      style="width:100%;height:auto;border-radius:var(--border-radius)">
-    </video>`;
+    <div class="video-wrapper">
+      <video
+        class="uploaded-video"
+        playsinline webkit-playsinline
+        controls
+        preload="metadata"
+        src="${post.videos[0]}"
+        style="display:none;"
+      ></video>
+      <img
+        class="video-placeholder"
+        src="${post.photos[0]}"
+        data-video="${post.videos[0]}"
+        loading="lazy"
+        alt="Video preview"
+      />
+    </div>`;
 }
+
 
     
 else {                       /* фото / слайдер / fallback */
