@@ -4,25 +4,37 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 
-# 🔹 HTTP-сервер для Render, чтобы не "засыпал"
+# 🔧 Улучшенный HTTP-сервер для Render и UptimeRobot
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
         self.end_headers()
         self.wfile.write(b'whylovly bot is running')
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def do_POST(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        return  # Отключаем логи от HTTP-сервера
 
 def run_http_server():
     server = HTTPServer(('0.0.0.0', 8080), SimpleHandler)
     server.serve_forever()
 
+# 🚀 Запускаем сервер параллельно с ботом
 threading.Thread(target=run_http_server, daemon=True).start()
 
-# 🔹 Получаем токен из Render Environment
+# 🤖 Настройка Telegram-бота
 TOKEN = os.getenv("API_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-# 🔹 Обработка команды /start
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.answer(
@@ -31,7 +43,6 @@ async def send_welcome(message: types.Message):
         "в нем ты найдешь фото, видео, музыку и скрытый архив с заданиями.\n"
     )
 
-# 🔹 Обработка команды /help
 @dp.message_handler(commands=['help'])
 async def send_help(message: types.Message):
     await message.answer(
@@ -51,6 +62,5 @@ async def send_help(message: types.Message):
         "Вписывай все слова с большой буквы без пробела — например: НапримерТестПароль\n\n"
     )
 
-# 🔹 Запуск бота
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
