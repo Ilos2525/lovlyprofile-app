@@ -1260,6 +1260,7 @@ else {
 
 // === Загружаем архивные посты ============================================
 async function loadArchivePosts() {
+    throw new Error("Архив временно закрыт на технические работы");
   const grid = document.getElementById('archivePosts');
   grid.innerHTML = '<div class="loading">Загрузка…</div>';
 
