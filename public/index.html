@@ -855,7 +855,7 @@
     </div>
 
     <div class="nav">
-       <a href="#" class="nav-link" onclick="showSection('home')">
+       <a href="#" class="nav-link" onclick="showSection('all')">
   Главная <span class="badge" id="badge-home" style="display:none;"></span>
 </a>
 
@@ -931,7 +931,7 @@
   <!-- Архив (скрыт по умолчанию) -->
   <div id="archive" class="section">
     <div class="posts-grid" id="archivePosts">
-      <div class="loading">Архив пока закрыт</div>
+      <div class="loading">Закрыт на тех обслуживание</div>
     </div>
   </div>
 </div>
@@ -1102,7 +1102,15 @@ function debounce(fn, delay) {
     timer = setTimeout(() => fn.apply(this, args), delay);
   };
 }
-   
+
+function tsToMillis(ts) {
+  if (!ts) return 0;
+  if (typeof ts === 'string' || typeof ts === 'number') return +new Date(ts);
+  if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  return 0;
+}
+    
 async function loadPosts() {
   const snap = await getDocs(
     query(collection(db, 'posts'), orderBy('timestamp', 'desc'))
@@ -1126,7 +1134,9 @@ const now = Date.now();
 
 function checkBadge(storageKey, badgeId, filterFn) {
   const lastSeen = Number(localStorage.getItem(storageKey) || 0);
-  const newCount = posts.filter(p => filterFn(p) && p.timestamp?.toMillis() > lastSeen).length;
+  const newCount = posts.filter(p =>
+  filterFn(p) && tsToMillis(p.timestamp) > lastSeen
+).length;
   const badge = document.getElementById(badgeId);
   if (badge) {
     badge.style.display = newCount > 0 ? 'inline-block' : 'none';
