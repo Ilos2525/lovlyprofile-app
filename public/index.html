@@ -847,6 +847,7 @@
     <div class="nav">
         <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
         <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
+          <a href="#" class="nav-link" onclick="showSection('favorites')">Избранное</a>
         <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
          <a href="#"
            id="navArchive"
@@ -891,6 +892,14 @@
     </div>
   </div>
 
+<!-- Избранное -->
+<div id="favorites" class="section">
+  <h2>Избранные треки</h2>
+  <div class="posts-grid" id="favoriteMusicPosts">
+    <div class="loading">Загрузка избранного...</div>
+  </div>
+</div>
+      
   <!-- Видео -->
   <div id="video" class="section">
     <div class="posts-grid" id="videoPosts">
@@ -1019,6 +1028,8 @@ function showSection(name) {
   // если зашли в архив — подгружаем посты
   if (name === 'archive') {
     loadArchivePosts();
+  }else if (name === 'favorites') {
+    loadFavoriteMusicPosts();
   }
 }
 window.showSection = showSection;
@@ -1055,8 +1066,7 @@ function debounce(fn, delay) {
     timer = setTimeout(() => fn.apply(this, args), delay);
   };
 }
-
-
+   
 async function loadPosts() {
   const snap = await getDocs(
     query(collection(db, 'posts'), orderBy('timestamp', 'desc'))
@@ -1083,6 +1093,7 @@ async function loadPosts() {
   displayPosts('videoPosts', posts.filter(p => p.category === 'video'));
 }
 
+    
 /**
  * Возвращает HTML для одного «locked» поста,
  * в зависимости от его unlockType и параметров.
@@ -1794,8 +1805,6 @@ else {                       /* фото / слайдер / fallback */
     </div>`;
 }).join('');
 
-
-  // Инициализация слайдеров (фото/видео)
   // Инициализация слайдеров (фото/видео)
 container.querySelectorAll('.slider').forEach(initSlider);
 
