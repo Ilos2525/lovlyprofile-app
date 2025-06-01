@@ -833,6 +833,16 @@
   pointer-events: none;
 }
 
+    .badge {
+    background-color: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 20px;
+    position: relative;
+    top: -2px;
+    left: 4px;
+  }
     
 </style>
 <body>
@@ -845,10 +855,21 @@
     </div>
 
     <div class="nav">
-        <a href="#" class="nav-link active" onclick="showSection('all')">Главная</a>
-        <a href="#" class="nav-link" onclick="showSection('music')">Музыка</a>
-          <a href="#" class="nav-link" onclick="showSection('favorites')">Избранное</a>
-        <a href="#" class="nav-link" onclick="showSection('video')">Видео</a>
+       <a href="#" class="nav-link" onclick="showSection('home')">
+  Главная <span class="badge" id="badge-home" style="display:none;"></span>
+</a>
+
+<a href="#" class="nav-link" onclick="showSection('music')">
+  Музыка <span class="badge" id="badge-music" style="display:none;"></span>
+</a>
+
+<a href="#" class="nav-link" onclick="showSection('video')">
+  Видео <span class="badge" id="badge-video" style="display:none;"></span>
+</a>
+
+<a href="#" class="nav-link" onclick="showSection('favorites')">
+  Избранное <span class="badge" id="badge-favorite" style="display:none;"></span>
+</a>
          <a href="#"
            id="navArchive"
            class="nav-link"
@@ -1028,10 +1049,25 @@ function showSection(name) {
   // если зашли в архив — подгружаем посты
   if (name === 'archive') {
     loadArchivePosts();
-  }else if (name === 'favorites') {
+  } else if (name === 'favorites') {
     loadFavoriteMusicPosts();
   }
+
+  // 🔔 обнуляем счетчик уведомлений
+  const sectionToStorageKey = {
+    home: 'lastSeen_home',
+    music: 'lastSeen_music',
+    video: 'lastSeen_video',
+    favorites: 'lastSeen_favorite'
+  };
+
+  if (sectionToStorageKey[name]) {
+    localStorage.setItem(sectionToStorageKey[name], Date.now());
+    const badge = document.getElementById(`badge-${name}`);
+    if (badge) badge.style.display = 'none';
+  }
 }
+
 window.showSection = showSection;
 
 // video.mp4?alt=media → считаем видео
@@ -1084,6 +1120,32 @@ async function loadPosts() {
   }));
 window.allPosts = posts;
 
+    // 🔔 Индикаторы новых постов по категориям
+
+const now = Date.now();
+
+function checkBadge(storageKey, badgeId, filterFn) {
+  const lastSeen = Number(localStorage.getItem(storageKey) || 0);
+  const newCount = posts.filter(p => filterFn(p) && p.timestamp?.toMillis() > lastSeen).length;
+  const badge = document.getElementById(badgeId);
+  if (badge) {
+    badge.style.display = newCount > 0 ? 'inline-block' : 'none';
+    badge.textContent = newCount > 0 ? newCount : '';
+  }
+}
+
+checkBadge('lastSeen_home', 'badge-home', p =>
+  ['photo', 'uploaded_video'].includes(p.category)
+);
+checkBadge('lastSeen_music', 'badge-music', p =>
+  p.category === 'music'
+);
+checkBadge('lastSeen_video', 'badge-video', p =>
+  p.category === 'video'
+);
+checkBadge('lastSeen_favorite', 'badge-favorite', p =>
+  p.category === 'music' && p.isLiked
+);
 
   // 3. Теперь отрисовываем
   displayPosts(
