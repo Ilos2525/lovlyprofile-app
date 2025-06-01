@@ -1,3 +1,10 @@
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import threading
@@ -37,6 +44,13 @@ dp = Dispatcher(bot)
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
+    chat_id = message.chat.id
+
+    # Сохраняем chat_id в Firebase (в коллекцию "subscribers")
+    db.collection("subscribers").document(str(chat_id)).set({
+        "subscribed": True
+    })
+
     await message.answer(
         "Привет! Это whylovly\n\n"
         "Нажав на кнопку Blog ты перейдешь на мой профиль, "
@@ -62,5 +76,29 @@ async def send_help(message: types.Message):
         "Вписывай все слова с большой буквы без пробела — например: НапримерТестПароль\n\n"
     )
 
+import asyncio
+
+async def notify_all_subscribers():
+    message_text = (
+        "👋 Привет! Как дела?\n"
+        "В архиве новый пост — глянь, может, что важное или интересное 😉"
+    )
+
+    try:
+        # Получаем всех подписчиков
+        subscribers = db.collection("subscribers").stream()
+        for doc in subscribers:
+            chat_id = doc.id
+            try:
+                await bot.send_message(chat_id, message_text)
+                print(f"✅ Уведомление отправлено: {chat_id}")
+            except Exception as e:
+                print(f"❌ Ошибка при отправке {chat_id}: {e}")
+    except Exception as e:
+        print(f"🔥 Ошибка рассылки: {e}")
+
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
+
+    # Раскомментируй, если хочешь вручную вызвать рассылку:
+    # asyncio.run(notify_all_subscribers())
