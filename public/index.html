@@ -1082,6 +1082,8 @@ async function loadPosts() {
     ...p,
     isLiked: Array.isArray(p.likedBy) && p.likedBy.includes(currentUser.id)
   }));
+window.allPosts = posts;
+
 
   // 3. Теперь отрисовываем
   displayPosts(
@@ -1093,7 +1095,13 @@ async function loadPosts() {
   displayPosts('videoPosts', posts.filter(p => p.category === 'video'));
 }
 
-    
+ function loadFavoriteMusicPosts() {
+  const favorites = allPosts.filter(post =>
+    post.category === 'music' && post.isLiked
+  );
+  displayPosts('favoriteMusicPosts', favorites);
+}
+window.loadFavoriteMusicPosts = loadFavoriteMusicPosts;   
 /**
  * Возвращает HTML для одного «locked» поста,
  * в зависимости от его unlockType и параметров.
@@ -1187,6 +1195,7 @@ function renderLockedFuture(post) {
 }
 
 
+    
 /**
  * Рендерит полностью открытый (unlocked) архивный пост
  */
